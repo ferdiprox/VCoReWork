@@ -138,6 +138,7 @@ void iKeyControls::init(void)
 	// Not found in the available controls settings
 //	  addDefaultCode(iKEY_VERTICAL_THRUST,'Z');
 	addDefaultCode(iKEY_JOYSTICK_SWITCH,VK_BUTTON_1);
+
 	setFlag(iKEY_JOYSTICK_SWITCH,iKEY_NO_RESET);
 
 	reset();

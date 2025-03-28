@@ -1,5 +1,8 @@
-#ifndef __TERRA__VMAP_H__
-#define __TERRA__VMAP_H__
+#pragma once
+
+#include "../common.h"
+#include "../3d/3d_math.h"
+#include "render.h"
 
 const uint H_POWER = MAP_POWER_X;
 const uint H_SIZE = 1 << H_POWER;
@@ -17,7 +20,7 @@ extern double zMod_flood_level_delta;
 struct vrtWorld {
 	char* name;
 	char* fname;
-	
+
 	vrtWorld(void){ name = fname = NULL; }
 };
 
@@ -109,7 +112,7 @@ struct vrtMap {
 	void sssReserve(void);
 	void sssRestore(void);
 	void squeeze(void);
-	
+
 	void openMirror(void);
 	void closeMirror(void);
 #endif
@@ -176,5 +179,3 @@ inline double getDistY(double v0,double v1)
 }
 
 const int MLNAMELEN = 15;
-
-#endif

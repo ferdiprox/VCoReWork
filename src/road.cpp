@@ -1,12 +1,12 @@
 #define _ROAD_
+
+#include "xgraph.h"
+
 #include "zmod_client.h"
 
-#include "global.h"
 #include "lang.h"
 
-
 #define SCREENSHOT
-
 
 #define ISCREEN
 //#define ACTINT
@@ -23,7 +23,7 @@
 
 #include "runtime.h"
 
-#include "sqexp.h"
+#include "game_surface_disp.h"
 #include "backg.h"
 
 #include "xjoystick.h"
@@ -32,7 +32,7 @@
 #include "3d/3d_math.h"
 #include "3d/3dgraph.h"
 #include "3d/3dobject.h"
-#include "3d/parser.h"
+#include "fs/parser.h"
 
 #include "actint/item_api.h"
 #include "units/uvsapi.h"
@@ -73,27 +73,23 @@
 #include "palette.h"
 #include "sound/hsound.h"
 
-#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
-#include <locale.h>
-#endif
-
+#include "camera_data.h"
+#include "sqfont.h"
+#include "random.h"
+#include "master_boot_data.h"
+#include "dbg_console.h"
+#include "game_state.h"
+#include "userinput/text_input.h"
 
 #ifndef DBGCHECK
 #define DBGCHECK
 #endif
-
-#define RANDOMIZE
 
 #ifdef MEMORY_STATISTICS
 #define MEMSTAT(a) fmem < "\r\n------->>>>>> " < a < "\r\n";
 #else
 #define MEMSTAT(a)
 #endif
-
-// !!! The same params are in the mechos.cpp
-#define SLOPE_MAX	Pi/6
-#define MAX_ZOOM	384
-#define MIN_ZOOM	128
 
 #ifdef _DEBUG
 XStream fmemory("memstats.dmp", XS_OUT);
@@ -117,7 +113,7 @@ extern int EngineNoise;
 extern int BackgroundSound;
 
 extern int aciGroundPressingEnabled;
-extern int aciKeyboardLocked;
+extern bool aciKeyboardLocked;
 extern int SoundVolumePanning;
 
 #ifdef ACTINT
@@ -129,13 +125,11 @@ extern int NumHumanModel;
 
 extern int EffectInUsePriory,EffectInUse;
 
-extern bool XGR_FULL_SCREEN;
 void iPreInitFirst();
 
 /* --------------------------- PROTOTYPE SECTION --------------------------- */
 void ShowImageMousePress(int fl, int x, int y);
 void ShowImageKeyPress(SDL_Event *k);
-void ComlineAnalyze(int argc,char** argv);
 void restore(void);
 int NetInit(ServerFindChain* p);
 void camera_reset();
@@ -143,18 +137,15 @@ int sqrint(int x);
 void showF(int x0,int y0,int x1,int y1);
 void showCell(void);
 void showRadar(void);
-void costab(void);
 void buildField(void);
 void MechPrepare(void);
 void hObjPrepare(void);
 void cycleTor(int& x,int& y);
-void preCALC(void);
 char* GetTargetName(const char* name);
 void shotFlush(void);
 void LoadingMessage(int flush = 0);
 void vMapInit(void);
 void theEND(void);
-void ilandPrepare(void);
 void aciSetCameraMenu(void);
 void calc_view_factors();
 void gameQuant(void);
@@ -198,25 +189,10 @@ int sdlEventToCode(SDL_Event *event);
 
 /* --------------------------- DEFINITION SECTION -------------------------- */
 
-char* host_name = 0;
-int host_port = DEFAULT_SERVER_PORT;
-
-int network_log = 0;
-
-const int FPS_PERIOD = 50;
+// Data for FPS analyse: counting ticks before debug data updating.
+static constexpr int FPS_PERIOD = 50;
 int fps_frame,fps_start;
 char fps_string[20];
-
-int stop_all_except_me = 0;
-
-int ErrHExcept = 1;
-int RAM16;
-int emode;
-int vSoundON,vSoundOFF;
-int message_mode = 0;
-
-int setTimerLog = 1;
-int GameOverTrigger = -1;
 
 #ifdef MEMORY_STATISTICS
 XStream fmem("MEMORY.DMP",XS_OUT);
@@ -236,7 +212,6 @@ XBuffer msg_buf(16000);
 
 int view_lock = 0;
 int debug_view = 0;
-int StandLog;
 int loadingStatus = 1;
 
 int GameQuantReturnValue = 0;
@@ -249,32 +224,15 @@ int YSIZE = 2*YSIDE + 1;
 int MainRqCounter,AuxRqCounter;
 
 int MuteLog = 0;
-int Verbose;
 int DepthShow;
 
 int SkipIntro = 0;
-
-int PalIterLock = 0;
-
-unsigned char* palbuf,*palbufA,*palbufC,*palbufOrg,*palbufInt,*palbufBlack;
-//zmod
-sqFont sysfont, zchatfont;
-int* SI;
-int* CO;
 
 int zoom_delta;
 int zoom_threshold;
 
 int beebos;
-int idOS,inHighPriority;
 
-const char* roadFNTname = "road.fnt";
-//zmod
-const char* zchatFNTname = "zfont.fnt";
-
-unsigned RNDVAL = 83;
-unsigned realRNDVAL = 83;
-int Geo = 0;
 int Redraw = 1;
 int Pause = 0;
 int FirstDraw = 1;
@@ -282,11 +240,9 @@ int FirstDraw = 1;
 int speed_correction_enabled = 1;
 int prev_frame_time = 0;
 
-iGameMap* curGMap;
-
 const char* mapFName = "wrlds.dat";
 
-int ColorShow = 1,SkipShow = 1;
+int ColorShow = 1;
 int WorldPrm;
 int shotNum;
 
@@ -298,13 +254,11 @@ int SkipCD;
 int CurrentWorld = 0;
 int IsMainMenu = 0;
 
-int inTRall;
 int TimerMode = 1;
 
 extern int* AVI_index;
 
 int TotalDrawFlag = 1;
-int StartMainQuantFlag = 0;
 
 int RecorderMode = 0;
 char* RecorderName = NULL;
@@ -319,343 +273,6 @@ int aciCompleteGameFlag = 0;
 
 int ShowImageMouseFlag = 0;
 int ShowImageKeyFlag = 0;
-
-const char* ErrorVideoMss = "Error video initialization";
-const char* AVInotFound   = "Error video initialization";
-const char* AVInotFoundMSS = "Please ensure that the VANGERS CD-ROM is in the drive!";
-
-const char* nVER = "Patch 4.20";
-
-
-#include "video/winvideo.h"
-sWinVideo winVideo;
-
-void showModal(char* fname, float reelW, float reelH, float screenW, float screenH) {
-	bool playing = true;
-//	MSG msg;
-
-	//flipGDISurface();
-//WORK	winVideo.Open(fname);
-
-	float w = reelW * screenW / 800.0f;
-	float h = reelH * screenH / 600.0f;
-
-/*WORK	winVideo.SetWin(XGR_hWnd, (screenW - w) / 2.0f, (screenH - h) / 2.0f, w, h);
-	winVideo.SetSize(w, h); */
-
-//	winVideo.FullScreen(1);		// 1 - FullScreen, 0 - Window
-
-/*WORK	winVideo.Play();
-	winVideo.HideCursor(1);	*/	// 1 - hide cursor, 0 - unhide cursor
-
-
-//	winVideo.WaitEnd();
-
-/*	while (playing) {
-		if ( PeekMessage(&msg, 0, 0, 0, PM_REMOVE) ) {
-			TranslateMessage( &msg );
-			DispatchMessage( &msg );
-			if (msg.message == WM_KEYDOWN) {
-				playing = false;
-			}
-		} else {
-			if (winVideo.IsComplete()) {
-				playing = false;
-			}
-		}
-	}*/
-
-
-/*WORK	winVideo.Stop();
-	winVideo.Close(); */
-}
-
-
-int xtInitApplication(void) {
-    XGraphWndID = "VANGERS";
-    char *tmp;
-
-#ifdef _DEMO_
-    std::cout<<"\""<<XGraphWndID<<": One For The Road\" Cover Demo by K-D Lab (SDL Version)\n";
-#else
-    if (lang() == GERMAN) {
-        std::cout << "\"" << XGraphWndID << "\" by K-D Lab (SDL Version)\n";
-        std::cout << "Release (DE)\n";
-    } else if (lang() == RUSSIAN) {
-        std::cout << "\"" << XGraphWndID << "\" by K-D Lab (SDL Version)\n";
-        std::cout << "Release (RUS)\n";
-    } else {
-        std::cout << "\"" << XGraphWndID << ": One For The Road\" by K-D Lab (SDL Version)\n";
-        std::cout << "Release (ENG)\n";
-    }
-#ifdef BETA_TESTING
-    std::cout<<nVER<<"\n";
-#endif
-#endif
-
-    _MEM_STATISTIC_("BEGIN WORK WITH MEMORY -> ");
-
-#ifdef MEMORY_STATISTICS
-    memstatInit();
-#endif
-
-//zmod
-#ifdef _ZMOD_DEBUG_
-    ZLog = ZLogOpen();
-#endif
-
-    //stalkerg:NEED SEE!!!
-    //ComlineAnalyze(__internal_argc,__internal_argv);
-
-//	ErrH.SetRestore(restore); #not implement
-//	ErrH.SetFlags(XERR_CTRLBRK);
-
-
-    RNDVAL = 83;
-    realRNDVAL = SDL_GetTicks();
-
-    costab();
-
-    _MEM_STATISTIC_("COS TAB -> ");
-
-    preCALC();
-
-    _MEM_STATISTIC_("PRE CALC -> ");
-
-    ilandPrepare();
-
-    _MEM_STATISTIC_("ILANDPREPARE -> ");
-
-//	vMapPrepare(mapFName,WorldPrm);
-
-    XStream ffo(roadFNTname, XS_IN);
-    void *fo = new char[ffo.size()];
-    ffo.read(fo, ffo.size());
-    ffo.close();
-    sysfont.init(fo);
-
-    //zmod
-    XStream zch_ffo(zchatFNTname, XS_IN);
-    void *zch_fo = new char[zch_ffo.size()];
-    zch_ffo.read(zch_fo, zch_ffo.size());
-    zch_ffo.close();
-    zchatfont.init(zch_fo);
-
-    palTr = new PaletteTransform;
-
-#ifdef CDCHECK
-    int getCDdrives(void);
-    int isCDok(int);
-    int d = getCDdrives();
-    int mask = 1;
-    int res = 0;
-    for(int ii = 0;ii < 26;ii++,mask <<= 1)
-        if(d & mask) res += isCDok(ii);
-    if(!res) ErrH.Abort(AVInotFoundMSS);
-#endif
-
-    SetupPath();
-
-    _MEM_STATISTIC_("FONT -> ");
-
-
-    emode = ExclusiveLog ? XGR_EXCLUSIVE : 0;
-    //emode |= XGR_HICOLOR;
-
-	actintLowResFlag = 1;
-    if (XGR_Init(emode)) ErrH.Abort(ErrorVideoMss);
-
-
-//WORK	sWinVideo::Init();
-//	::ShowCursor(0);
-
-    //zmod
-    if (!SkipIntro) {
-//		showModal( "resource\\video\\intro\\logo1.avi", 512, 384, w, h );
-//		showModal( "resource\\video\\intro\\logo2.avi", 512, 384, w, h );
-//		showModal( "resource\\video\\intro\\intro.avi", 512, 380, w, h );
-    }
-
-//WORK	sWinVideo::Done();
-
-    emode = ExclusiveLog ? XGR_EXCLUSIVE : 0;
-
-/*	switch(videoMode){
-		case 0:
-			if(XGR_ReInit(640,480,emode)) ErrH.Abort(ErrorVideoMss);
-			break;
-		case 1:
-			if(XGR_ReInit(800,600,emode)) ErrH.Abort(ErrorVideoMss);
-			break;
-		case 2:
-			if(XGR_ReInit(1024,768,emode)) ErrH.Abort(ErrorVideoMss);
-			break;
-		}
-
-
-	if(XGR_GetVideoLine(1) - XGR_GetVideoLine(0) != XGR_MAXX)
-		ErrH.Abort("Bad maxx",XGR_GetVideoLine(1) - XGR_GetVideoLine(0));
-*/
-    XGR_Fill(0);
-    LoadingMessage(1);
-
-    _MEM_STATISTIC_("INIT VIDEO -> ");
-
-    InstallSOUND();
-    LoadResourceSOUND("resource/sound/effects/", 0);
-    SetSoundVolume(256);
-
-    if (XJoystickInit()) {
-        std::cout << "Joystick found\n";
-        JoystickMode = JOYSTICK_Joystick;
-    } else {
-        std::cout << "Joystick not found" << std::endl;
-    }
-
-    //XSocketInit();
-#ifdef _DEBUG
-    if(host_name && avaible_servers.talk_to_server(0,host_port,host_name))
-        NetInit(avaible_servers.first());
-#endif
-
-
-    _MEM_STATISTIC_("INIT SOUND -> ");
-
-    // Runtime objects init...
-
-    xtCreateRuntimeObjectTable(RTO_MAX_ID);
-    GameQuantRTO *gqObj = new GameQuantRTO;
-    MainMenuRTO *mmObj = new MainMenuRTO;
-    EscaveRTO *eObj = new EscaveRTO;
-    EscaveOutRTO *eoObj = new EscaveOutRTO;
-    FirstEscaveRTO *fObj = new FirstEscaveRTO;
-    FirstEscaveOutRTO *foObj = new FirstEscaveOutRTO;
-    PaletteTransformRTO *pObj = new PaletteTransformRTO;
-    LoadingRTO1 *lObj1 = new LoadingRTO1;
-    LoadingRTO2 *lObj2 = new LoadingRTO2;
-    LoadingRTO3 *lObj3 = new LoadingRTO3;
-    ShowImageRTO *siObj = new ShowImageRTO;
-    ShowAviRTO *saObj = new ShowAviRTO;
-
-//	  siObj -> SetNumFiles(1);
-//	  siObj -> SetName("resource\\iscreen\\bitmap\\kdlogo.bmp",0);
-//	  siObj -> SetNext(RTO_MAIN_MENU_ID);
-
-    if (lang() == RUSSIAN) {
-        saObj->SetNumFiles(3);
-        //saObj -> SetName("resource\\video\\intro\\logo1.avi",0);
-        //saObj -> SetName("resource\\video\\intro\\logo2.avi",1);
-        //saObj -> SetName("resource\\video\\intro\\intro.avi",2);
-
-        //	saObj -> SetFlag(0,AVI_RTO_HICOLOR);
-//	saObj -> SetFlag(1,AVI_RTO_HICOLOR);
-//	saObj -> SetFlag(2,AVI_RTO_HICOLOR);
-    } else {
-        saObj->SetNumFiles(4);
-        saObj->SetName("resource/video/intro/logo0.avi", 0);
-        saObj->SetName("resource/video/intro/logo1.avi", 1);
-        saObj->SetName("resource/video/intro/logo2.avi", 2);
-        saObj->SetName("resource/video/intro/intro.avi", 3);
-    //znfo commented in zmod
-    //	saObj -> SetFlag(0,AVI_RTO_HICOLOR);
-    //	saObj -> SetFlag(1,AVI_RTO_HICOLOR);
-    //	saObj -> SetFlag(2,AVI_RTO_HICOLOR);
-    //	saObj -> SetFlag(3,AVI_RTO_HICOLOR);
-    //znfo
-    }
-	saObj -> SetNext(RTO_MAIN_MENU_ID);
-
-	xtRegisterRuntimeObject(gqObj);
-	xtRegisterRuntimeObject(mmObj);
-	xtRegisterRuntimeObject(eObj);
-	xtRegisterRuntimeObject(eoObj);
-	xtRegisterRuntimeObject(fObj);
-	xtRegisterRuntimeObject(foObj);
-	xtRegisterRuntimeObject(pObj);
-	xtRegisterRuntimeObject(lObj1);
-	xtRegisterRuntimeObject(lObj2);
-	xtRegisterRuntimeObject(lObj3);
-	xtRegisterRuntimeObject(siObj);
-	//xtRegisterRuntimeObject(saObj);
-
-	if(RecorderMode)
-		XRec.Open(RecorderName,RecorderMode);
-	else
-		RNDVAL = SDL_GetTicks();
-
-	_MEM_STATISTIC_("AFTER FIRST INIT -> ");
-
-#ifdef CDCHECK
-	mask = 1;
-	res = 0;
-	for(ii = 0;ii < 26;ii++,mask <<= 1)
-		if(d & mask) res += isCDok(ii);
-	if(!res) ErrH.Abort(AVInotFoundMSS);
-#endif
-
-	if(!setTimerLog){
-		GameQuantRTO* p = (GameQuantRTO*)xtGetRuntimeObject(RTO_GAME_QUANT_ID);
-		p -> SetTimer(0);
-		}
-	if(RecorderMode){
-		GameQuantRTO* p = (GameQuantRTO*)xtGetRuntimeObject(RTO_GAME_QUANT_ID);
-//		p -> SetTimer(1000/20);
-		speed_correction_enabled = 0;
-		}
-
-
-	//STEAM
-#ifdef _STEAM_API_
-	if ( SteamAPI_RestartAppIfNecessary( k_uAppIdInvalid ) ) {
-		// if Steam is not running or the game wasn't started through Steam, SteamAPI_RestartAppIfNecessary starts the
-		// local Steam client and also launches this game again.
-		
-		// Once you get a public Steam AppID assigned for this game, you need to replace k_uAppIdInvalid with it and
-		// removed steam_appid.txt from the game depot.
-		
-		SDL_Quit();
-	}
-	
-	
-	// Init Steam CEG
-	if ( !Steamworks_InitCEGLibrary() )	{
-		std::cout<<"Steamworks_InitCEGLibrary() failed"<<std::endl;
-		std::cout<<"Fatal Error, Steam must be running to play this game (InitDrmLibrary() failed)."<<std::endl;
-		SDL_Quit();
-	}
-	
-	// Initialize SteamAPI, if this fails we bail out since we depend on Steam for lots of stuff.
-	// You don't necessarily have to though if you write your code to check whether all the Steam
-	// interfaces are NULL before using them and provide alternate paths when they are unavailable.
-	//
-	// This will also load the in-game steam overlay dll into your process.  That dll is normally
-	// injected by steam when it launches games, but by calling this you cause it to always load,
-	// even when not launched via steam.
-	if ( !SteamAPI_Init() )	{
-		std::cout<<"SteamAPI_Init() failed"<<std::endl;
-		std::cout<<"Fatal Error, Steam must be running to play this game (SteamAPI_Init() failed)."<<std::endl;
-		SDL_Quit();
-	}
-	
-	// set our debug handler
-	//SteamClient()->SetWarningMessageHook( &SteamAPIDebugTextHook );
-	
-	// Tell Steam where it's overlay should show notification dialogs, this can be top right, top left,
-	// bottom right, bottom left. The default position is the bottom left if you don't call this.
-	// Generally you should use the default and not call this as users will be most comfortable with
-	// the default position.  The API is provided in case the bottom right creates a serious conflict
-	// with important UI in your game.
-	SteamUtils()->SetOverlayNotificationPosition( k_EPositionTopRight );
-#endif
-#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
-	std::cout<<"Set locale. ";
-	char* res = setlocale(LC_NUMERIC, "POSIX");
-	std::cout<<"Result:"<<res<<std::endl;
-#endif
-	if(SkipIntro)
-		return RTO_MAIN_MENU_ID;
-	return RTO_MAIN_MENU_ID;
-}
 
 extern int activeWTRACK;
 
@@ -686,12 +303,13 @@ _MEM_STATISTIC_("AFTER IQUANTFIRST INIT -> ");
 	}
 	else {
 		iKeyClear();
+
 		XGR_MouseShow();
 	}
 #else
 	aLoadFonts32();
 #endif
-	
+
 	XGR_Obj.set_fullscreen(iGetOptionValue(iFULLSCREEN));
 	iSetResolution(iGetOptionValue(iSCREEN_RESOLUTION));
 _MEM_STATISTIC_("AFTER MAIN MENU INIT -> ");
@@ -702,10 +320,7 @@ int MainMenuRTO::Quant(void)
 #ifdef ISCREEN
 	int code;
 	char* pal;
-//znfo next line was commented in zmod
-//	ShowImageRTO* p;
-	
-	
+
 	MainMenuSoundQuant();
 	if(flags & RTO_QUANT_FLAG){
 		code = iQuantSecond();
@@ -721,14 +336,13 @@ int MainMenuRTO::Quant(void)
 			rtoSetNextID(RTO_LOADING1_ID,RTO_FIRST_ESCAVE_ID);
 			return RTO_LOADING1_ID;
 		}
-		//XGR_Flip();
 		return 0;
 	}
 	else {
 		SetFlag(RTO_QUANT_FLAG);
 		return RTO_PALETTE_TRANSFORM_ID;
 	}
-	
+
 #else
 	return RTO_LOADING1_ID;
 #endif
@@ -738,20 +352,20 @@ void MainMenuRTO::Finit(void)
 {
 	XGR_Obj.set_is_scaled_renderer(false);
 #ifdef ISCREEN
-	
+
 	if(flags & RTO_FINIT_FLAG){
-		//actintLowResFlag = !iGetOptionValue(iSCREEN_RESOLUTION);
-		actintLowResFlag = 0;
 		SoundVolumePanning = !iGetOptionValue(iPANNING_ON);
 		aciGroundPressingEnabled = iGetOptionValue(iDESTR_MODE);
 		EngineNoise = !iGetOptionValue(iMECH_SOUND);
 		BackgroundSound = !iGetOptionValue(iBACK_SOUND);
 		iFinitQuant();
 		ClearFlag(RTO_ALL_FLAGS);
-		
+
 	}
 	else
+	{
 		SetFlag(RTO_FINIT_FLAG);
+	}
 	XGR_MouseHide();
 #endif
 _MEM_STATISTIC_("AFTER MAIN MENU FINIT -> ");
@@ -759,11 +373,14 @@ _MEM_STATISTIC_("AFTER MAIN MENU FINIT -> ");
 
 void LoadingRTO1::Init(int id)
 {
-	RAM16 = 0;//iGetOptionValue(iDETAIL_SETTING);
-	if(!MuteLog && EffectInUsePriory){
-		if(!iGetOptionValue(iSOUND_ON)){
+	if(!MuteLog && EffectInUsePriory)
+	{
+		if(!iGetOptionValue(iSOUND_ON))
+		{
 			SetSoundVolume(iGetOptionValue(iSOUND_VOLUME_CUR)*256/iGetOptionValue(iSOUND_VOLUME_MAX));
-		} else {
+		} 
+		else 
+		{
 			MuteLog = 1; EffectInUsePriory = EffectInUse = 0;
 		}
 	}
@@ -811,6 +428,8 @@ void LoadingRTO1::Init(int id)
 		palTr -> quant();
 		SDL_Delay(10);
 	}
+
+
 	LoadingMessage(1);
 	diagenPrepare();
 _MEM_STATISTIC_("AFTER LOADING RTO1 INIT -> ");
@@ -853,7 +472,7 @@ int EscaveOutRTO::Quant(void)
 	if(val){
 		if(iAbortGameFlag){
 			iAbortGameMode = 2;
-			return RTO_LOADING3_ID;
+			return RTO_LOAD_GAMEOVER_ID;
 		}
 		else
 			return NextID;
@@ -901,7 +520,7 @@ int FirstEscaveOutRTO::Quant(void)
 	if(val){
 		if(iAbortGameFlag){
 			iAbortGameMode = 0;
-			return RTO_LOADING3_ID;
+			return RTO_LOAD_GAMEOVER_ID;
 		}
 		else
 			return NextID;
@@ -925,7 +544,7 @@ void FirstEscaveOutRTO::Finit(void)
 _MEM_STATISTIC_("AFTER FIRST ESCAVE FINIT -> ");
 }
 
-void LoadingRTO2::Init(int id)
+void LoadSurfaceRTO::Init(int id)
 {
 #ifdef ISCREEN
 	FinishFirstShopPrepare(aciLoadLog);
@@ -963,17 +582,17 @@ _MEM_STATISTIC_("AFTER TABLE OPEN  -> ");
 
 #ifdef ACTINT
 	if (XGR_Obj.get_screen_scale_x() == 1) {
-		curGMap = new iGameMap(aScrDisp -> curIbs -> CenterX,aScrDisp -> curIbs -> CenterY,XSIDE,YSIDE);
+		curSurfaceDisp = new GameSurfaceDispatcher(aScrDisp -> curIbs -> CenterX,aScrDisp -> curIbs -> CenterY,XSIDE,YSIDE);
 	} else {
-		curGMap = new iGameMap(XGR_MAXX / 2, XGR_MAXY / 2, XGR_MAXX / 2, XGR_MAXY / 2);
+		curSurfaceDisp = new GameSurfaceDispatcher(XGR_MAXX / 2, XGR_MAXY / 2, XGR_MAXX / 2, XGR_MAXY / 2);
 	}
 	COMPAS_RIGHT = DEFAULT_COMPAS_RIGHT;
 #else
-	curGMap = new iGameMap(XGR_MAXX/2,XGR_MAXY/2,XSIDE,YSIDE);
+	curSurfaceDisp = new GameSurfaceDispatcher(XGR_MAXX/2,XGR_MAXY/2,XSIDE,YSIDE);
 #endif
 	Redraw = 1;
 
-_MEM_STATISTIC_("AFTER curGMap  -> ");
+_MEM_STATISTIC_("AFTER curSurfaceDisp  -> ");
 	loadingStatus = 0;
 
 	vMap -> quant();
@@ -981,12 +600,10 @@ _MEM_STATISTIC_("AFTER curGMap  -> ");
 	uvsAddStationaryObjs();
 
 	uvsRestoreVanger();
-	
+
 #ifndef NEW_TNT
 	RestoreBarell();
 #endif
-	gameQuant(); gameQuant();
-	StartMainQuantFlag = 1;
 	gameQuant();
 #ifndef NEW_TNT
 	RestoreFlagBarell();
@@ -1002,9 +619,10 @@ _MEM_STATISTIC_("AFTER curGMap  -> ");
 	XGR_SetPal(palbuf,0,255);
 #endif
 
-	if(idOS == 1) vMap -> lockMem();
 	XGR_Flush(0,0,XGR_MAXX,XGR_MAXY);
 _MEM_STATISTIC_("AFTER LOADING RTO2 INIT -> ");
+
+    dbgConsole.init();
 }
 
 void FirstEscaveRTO::Init(int id)
@@ -1032,7 +650,7 @@ _MEM_STATISTIC_("AFTER PREPARE MENU INIT -> ");
 _MEM_STATISTIC_("AFTER FIRST ESCAVE RTO INIT -> ");
 }
 
-int LoadingRTO2::Quant(void)
+int LoadSurfaceRTO::Quant(void)
 {
 	//XGR_Flip();
 	if(!(flags & RTO_QUANT_FLAG)){
@@ -1046,7 +664,7 @@ int LoadingRTO2::Quant(void)
 #endif
 }
 
-void LoadingRTO2::Finit(void)
+void LoadSurfaceRTO::Finit(void)
 {
 	ClearFlag(RTO_ALL_FLAGS);
 _MEM_STATISTIC_("AFRET LOADING RTO2 FINIT -> ");
@@ -1103,39 +721,42 @@ void GameQuantRTO::Finit() {
 int GameQuantRTO::Quant(void)
 {
 	int ret = 0;
-	if(Pause <= 1 || NetworkON){
+	if(!Pause || globalGameState.inNetwork)
+	{
 		if(Pause) Pause++;
 
 		gameQuant();
 //		DBGCHECK
 		frame++;
-		if(++fps_frame == FPS_PERIOD) {
+		if(++fps_frame == FPS_PERIOD)
+        {
 			sprintf(fps_string,"%.1f",(double)FPS_PERIOD/(SDL_GetTicks() - (int)fps_start)*1000);
 #ifdef _DEBUG
 			network_analysis(network_analysis_buffer,0);
 #else
-			if(curGMap -> prmFlag & PRM_FPS && NetworkON)
+			if(curSurfaceDisp -> prmFlag & PRM_FPS && globalGameState.inNetwork)
 				short_network_analysis(network_analysis_buffer);
 #endif
 			fps_frame = 0;
 			fps_start = SDL_GetTicks();
+        }
 
-
-			}
-		if(Redraw){
+		if(Redraw)
+        {
 			XGR_Flush(0,0,XGR_MAXX,XGR_MAXY);
 			Redraw = 0;
 			frame = 0;
 			_Timer_ = SDL_GetTicks();
 			fps_start = SDL_GetTicks();
-			}
+        }
+
 //		if(!PalIterLock && !palTr -> quant()) pal_iter();
 		if(!PalIterLock) PalCD.Quant();
-		if(vSoundOFF){ vSoundOFF = 0; EffectsOff(); }
-		if(vSoundON){ vSoundON = 0; EffectsOn(); }
-		}
-	else {
-		if(GameQuantReturnValue || acsQuant()){
+	}
+	else 
+	{
+		if(GameQuantReturnValue || acsQuant())
+		{
 			Pause = 0;
 		}
 	}
@@ -1216,7 +837,7 @@ int PaletteTransformRTO::Quant(void)
 	return 0;
 }
 
-void LoadingRTO3::Init(int id)
+void LoadGameoverRTO::Init(int id)
 {
 	ShowImageRTO* p = (ShowImageRTO*)xtGetRuntimeObject(RTO_SHOW_IMAGE_ID);
 	p -> SetNumFiles(1);
@@ -1257,23 +878,17 @@ void LoadingRTO3::Init(int id)
 	SetNext(RTO_SHOW_IMAGE_ID);
 	rtoSetNextID(RTO_SHOW_IMAGE_ID,RTO_MAIN_MENU_ID);
 
-	GameOverTrigger = GameOverID;
-	aciInitEndGame(GameOverID);
+	aciInitEndGame(globalGameState.gameoverTrigger);
 }
 
-int LoadingRTO3::Quant(void)
+int LoadGameoverRTO::Quant(void)
 {
 	return NextID;
 }
 
-void LoadingRTO3::Finit(void)
+void LoadGameoverRTO::Finit(void)
 {
 	EffectsOff();
-
-	/*TODO stalkerg
-	if(XGR_MAXX != 800){
-		if(XGR_ReInit(800,600,emode)) ErrH.Abort(ErrorVideoMss);
-	}*/
 }
 
 void xtDoneApplication(void)
@@ -1286,7 +901,7 @@ void restore(void)
 	KDWIN::destroy_server();
 #ifdef _DEBUG
 	network_analysis(network_analysis_buffer,1);
-	fout < network_analysis_buffer.address();
+	fout < network_analysis_buffer.buf;
 #endif
 #ifdef MEMORY_STATISTICS
 	memStart = 0;
@@ -1391,189 +1006,12 @@ void PalettePrepare(void) {
 	};
 };
 
-void ComlineAnalyze(int argc,char** argv)
-{
-	int i,j;
-	for(i = 1;i < argc;i++)
-		if(argv[i][0] == '/'){
-			j = 0;
-			while(argv[i][j] == '/' || argv[i][j] == '-'){
-				switch(argv[i][j + 1]){
-#ifdef zRECORDER_ENABLED
-					case 'W':
-					case 'w':
-						RecorderMode = XRC_RECORD_MODE;
-						RecorderName = argv[i] + 2;
-						SkipIntro = 1;
-						break;
-					case 'P':
-					case 'p':
-						RecorderMode = XRC_PLAY_MODE;
-						RecorderName = argv[i] + 2;
-						SkipIntro = 1;
-						break;
-#endif
-					case 'X':
-					case 'x':
-						ExclusiveLog = 1;
-						DIBLog = 0;
-						break;
-					case 'M':
-					case 'm':
-						MuteLog = 1;
-						break;
-					case 'U':
-					case 'u':
-						MMXsuppress = 1;
-						break;
-					case 'H':
-					case 'h':
-						inHighPriority = 1;
-						break;
-					case 'A':
-					case 'a':
-						DIBLog = 1;
-						ExclusiveLog = 0;
-						break;
-					case 't':
-						setTimerLog = 0;
-//						speed_correction_enabled = 1;
-						break;
-
-#ifdef _DEMO_
-						if(argv[i][j + 2] == 'e' && argv[i][j + 3] == 'e' && argv[i][j + 4] == 'b' && argv[i][j + 5] == 'o' && argv[i][j + 6] == 's' && argv[i][j + 7] == '$') beebos = 100000;
-#else
-						if(argv[i][j + 2] == 'E' && argv[i][j + 3] == 'E' && argv[i][j + 4] == 'b' && argv[i][j + 5] == 'o' && argv[i][j + 6] == 's' && argv[i][j + 7] == '!') beebos = 500000;
-#endif
-						break;
-					case 'R':
-					case 'r':
-						if(!strcmp(argv[i] + 1,"RUSSIAN") || !strcmp(argv[i] + 1,"russian")){
-						    setLang(RUSSIAN);
-						}
-						break;
-					case '&':
-						if(argv[i][j + 2] == '^') SkipCD = 1;
-						break;
-#ifdef _DEBUG
-					case 'q':
-						host_port = atoi(argv[i] + (j + 2));
-						break;
-					case 'N':
-						extern char* iProxyServer;
-						iProxyServer = argv[i] + (j + 2);
-						break;
-					case 'n':
-						network_log = 1;
-						//message_mode = 2;
-						host_name = argv[i] + (j + 2);
-						break;
-
-					case 'G':
-					case 'g':
-						WorldPrm = atoi(argv[i] + j + 2);
-						j += strlen(argv[i] + j + 2);
-						break;
-					case 'S':
-					case 's':
-						if(!stricmp(argv[i] + 1,"SKIPINTRO"))
-							SkipIntro = 1;
-						else
-							NumHumanModel = atoi(argv[i] + j + 2) + 1;
-						break;
-					case 'I':
-					case 'i':
-						TimerMode = 1;
-						break;
-#else
-					case 'S':
-					case 's':
-						if(!strcasecmp(argv[i] + 1,"SKIPINTRO")) {
-						    std::cout<<"Skip intro\n";
-							SkipIntro = 1;
-                        }
-						break;
-#endif
-					}
-				j+=2;
-				}
-			}
-		else
-			//mapFName = strupr(strdup(argv[i]));
-			mapFName = strdup(argv[i]);
-}
-
-void costab(void)
-{
-	SI = new int[PIx2];
-	CO = new int[PIx2];
-	for(int i = 0;i < PIx2;i++){
-		SI[i] = round(UNIT*sin(GTOR(i)));
-		CO[i] = round(UNIT*cos(GTOR(i)));
-		}
-}
-
-//Render poster by stalkerg
-//extern void camera_quant(int X,int Y,int Turn,double V_abs);
-//void creat_poster_pixels_copy(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect) {
-//	int x,y, src_x, src_y, dst_x, dst_y;
-//	for (y = 0;y < srcrect->h; y++) {
-//		for (x = 0;x < srcrect->w; x++) {
-//			dst_y = dstrect->y+y;
-//			dst_x = dstrect->x+x;
-//			src_y = srcrect->y+y;
-//			src_x = srcrect->x+x;
-//			if (dst_y<dst->h&&dst_x<dst->w&&src_y<src->h&&src_x<src->w) {
-//				((unsigned char*)dst->pixels)[dst_y*dst->w+dst_x] =
-//					((unsigned char*)src->pixels)[src_y*src->w+src_x];
-//			}
-//		}
-//	}
-//}
-//void creat_poster() {
-//	int iter, iter2;
-//
-//	SDL_Surface *surface;
-//	SDL_Rect srcrect, dstrect;
-//	srcrect.w = 256;
-//	srcrect.h = 256;
-// 	srcrect.x = curGMap->xside-128;
-// 	srcrect.y = curGMap->yside-128;
-//	dstrect.w = 256;
-//	dstrect.h = 256;
-//
-//
-//    surface = SDL_CreateRGBSurface(0, map_size_x, map_size_y, 8,
-//		0, 0, 0, 0);
-//	surface->format = XGR_Obj.XGR_ScreenSurface->format;
-//
-//	for (iter=0; iter<map_size_y/256;iter++) {
-//		for (iter2=0; iter2<map_size_x/256;iter2++) {
-//
-//			dstrect.x = 256*iter2;
-//			dstrect.y = 256*iter;
-//			std::cout<<"dstrect.x:"<<dstrect.x<<" dstrect.y:"<<dstrect.y<<std::endl;
-//
-//			camera_quant(256*iter2, 256*iter, 0, 0);
-//			/*actIntQuant();
-//			uvsQuant();
-//			BackD.restore();
-//			MLquant();*/
-//			std::cout<<"TurnSecX:"<<TurnSecX<<" ViewX:"<<ViewX<<" ViewY:"<<ViewY<<" curGMap->xc:"<<curGMap->xc<<" curGMap->yc:"<<curGMap->yc
-//			<<" curGMap->xside:"<<curGMap->xside<<" curGMap->yside:"<<curGMap->yside<<std::endl;
-//			vMap -> scaling(TurnSecX,ViewX,ViewY,curGMap->xc,curGMap->yc,curGMap->xside,curGMap->yside);
-//
-//			creat_poster_pixels_copy(XGR_Obj.XGR32_ScreenSurface, &srcrect, surface, &dstrect);
-//		}
-//	}
-//
-//	SDL_SaveBMP(surface, "./poster.bmp");
-//}
-
 void KeyCenter(SDL_Event *key)
 {
 	extern int entry_scan_code;
 	SDL_Keymod mod;
+
+    text_input::inputFromSDL(*key);
 
 	if(aciKeyboardLocked) {
 #ifdef ACTINT
@@ -1583,31 +1021,39 @@ void KeyCenter(SDL_Event *key)
 	}
 
 	entry_scan_code = sdlEventToCode(key);
-	switch(entry_scan_code) {
-		case SDL_SCANCODE_ESCAPE:
+	switch(entry_scan_code)
+	{
+    case SDL_SCANCODE_GRAVE:
+        dbgConsole.isOpen ^= 1;
+
+        if(!aciKeyboardLocked)
+        {
+            aciKeyboardLocked = dbgConsole.isOpen;
+        }
+        break;
+    case SDL_SCANCODE_ESCAPE:
 #ifdef ESCAPE_EXIT
-			disconnect_from_server();
-			ErrH.Exit();
+        disconnect_from_server();
+        ErrH.Exit();
 #endif
-			std::cout<<"road.KeyCenter:"<<key<<std::endl;
-			if(!Pause) {
-				Pause = 1;
-			}
-				
-//				  GameQuantReturnValue = RTO_LOADING3_ID;
-			break;
+		if(!Pause)
+		{
+      	  	Pause = 1;
+		}
+//				  GameQuantReturnValue = RTO_LOAD_GAMEOVER_ID;
+        break;
 #ifndef ACTINT
-		case SDL_SCANCODE_F1:
-			curGMap -> change(-3,-2);
-			break;
-		case SDL_SCANCODE_F2:
-			curGMap -> change(3,2);
-			break;
+    case SDL_SCANCODE_F1:
+        curSurfaceDisp -> change(-3,-2);
+        break;
+    case SDL_SCANCODE_F2:
+        curSurfaceDisp -> change(3,2);
+        break;
 #endif
 #ifdef _DEBUG
-		case SDL_SCANCODE_F12:
-			DBGCHECK
-			break;
+    case SDL_SCANCODE_F12:
+        DBGCHECK
+        break;
 #endif
 #ifdef SCREENSHOT
 //  		case SDL_SCANCODE_F4:
@@ -1617,200 +1063,57 @@ void KeyCenter(SDL_Event *key)
 //			shotFlush();
 //			break;
 #endif
-		case SDL_SCANCODE_F:
-			mod = SDL_GetModState();
-			if (mod&KMOD_CTRL) {
-				curGMap -> prmFlag ^= PRM_FPS;
-			}
-#ifdef _DEBUG
-			else
-				message_mode++;
-#endif
-			break;
-		case SDL_SCANCODE_F5:
-			if(!Pause){
-				camera_rotate_enable = 1 - camera_rotate_enable;
-				aciSetCameraMenu();
-			}
-			break;
-		case SDL_SCANCODE_F6:
-			if(!Pause){
-				camera_moving_xy_enable = 1 - camera_moving_xy_enable;
-				camera_moving_z_enable = 1 - camera_moving_z_enable;
-				aciSetCameraMenu();
-			}
-			break;
-		case SDL_SCANCODE_F7:
-			if(!Pause){
-				camera_slope_enable = 1 - camera_slope_enable;
-				aciSetCameraMenu();
-			}
-			break;
-		}
-	
+    case SDL_SCANCODE_F:
+        mod = SDL_GetModState();
+        if (mod&KMOD_CTRL) {
+            curSurfaceDisp -> prmFlag ^= PRM_FPS;
+        }
+
+        break;
+    case SDL_SCANCODE_F5:
+        if(!Pause){
+            camera_rotate_enable = 1 - camera_rotate_enable;
+            aciSetCameraMenu();
+        }
+        break;
+    case SDL_SCANCODE_F6:
+        if(!Pause){
+            camera_moving_xy_enable = 1 - camera_moving_xy_enable;
+            camera_moving_z_enable = 1 - camera_moving_z_enable;
+            aciSetCameraMenu();
+        }
+        break;
+    case SDL_SCANCODE_F7:
+        if(!Pause){
+            camera_slope_enable = 1 - camera_slope_enable;
+            aciSetCameraMenu();
+        }
+        break;
+    }
+
 	if (iKeyPressed(iKEY_ZOOM_IN)) {
 		if(!Pause){
-			if((camera_zmin -= 8) < curGMap -> xsize*MIN_ZOOM >> 8)
-				camera_zmin = curGMap -> xsize*MIN_ZOOM >> 8;
+			if((camera_zmin -= 8) < curSurfaceDisp -> xsize*MIN_ZOOM >> 8)
+				camera_zmin = curSurfaceDisp -> xsize*MIN_ZOOM >> 8;
 		}
 	}
 	if (iKeyPressed(iKEY_ZOOM_OUT)) {
 		if(!Pause){
-			if((camera_zmin += 8) > curGMap -> xsize*MAX_ZOOM >> 8)
-				camera_zmin = curGMap -> xsize*MAX_ZOOM >> 8;
+			if((camera_zmin += 8) > curSurfaceDisp -> xsize*MAX_ZOOM >> 8)
+				camera_zmin = curSurfaceDisp -> xsize*MAX_ZOOM >> 8;
 		}
 	}
 	if (iKeyPressed(iKEY_ZOOM_STANDART)) {
 		if(!Pause)
-			camera_zmin = curGMap -> xsize;
+			camera_zmin = curSurfaceDisp -> xsize;
 	}
 	if (iKeyPressed(iKEY_SCREENSHOT)) {
 		shotFlush();
 	}
+
 #ifdef ACTINT
 	aKeyTrap(key);
 #endif
-}
-
-iGameMap::iGameMap(int _x,int _y,int _xside,int _yside)
-{
-	std::cout<<"iGameMap::iGameMap"<<std::endl;
-	xside = _xside;
-	yside = _yside;
-	xsize = 2*xside/* + 1*/;
-	ysize = 2*yside/* + 1*/;
-
-	sy = ysize;
-	sx = xsize;
-
-	_xI = _x; _yI = _y;
-	x = _x - sx/2; y = _y - sy/2;
-
-	xc = x + sx/2;
-	yc = y + sy/2;
-
-	ScreenCX = xc;
-	ScreenCY = yc;
-
-	UcutLeft = xc - xside;
-	UcutRight = xc + xside;
-	VcutUp = yc - yside;
-	VcutDown = yc + yside;
-	
-	if (XGR_Obj.get_screen_scale_x() == 1.6f) {
-		UcutRight = (XGR_MAXX - (800 - aScrDisp -> curIbs -> SizeX));
-	}
-
-//	  focus = (xside*540)/180;
-	focus_flt = focus = 512;
-
-/*
-	if(x < getX() + 4) x = getX() + 4;
-	if(y < getY() + 2) y = getY() + 2;
-	if(x + sx + 2 >= getRX()) x = getRX() - sx - 2;
-	if(y + sy + 4 >= getRY()) y = getRY() - sy - 4;
-*/
-	reset();
-
-//	draw(1);
-//	prmFlag |= PRM_INFO;
-}
-
-void iGameMap::change(int Dx,int Dy,int mode,int xcenter,int ycenter)
-{
-	std::cout<<"iGameMap::change"<<std::endl;
-	int xsize_old = xsize;
-	if(mode) {
-		if(xside + Dx > XGR_MAXX/2 - 2 || xside + Dx < 100) {
-			return;
-		}
-		if(yside + Dy > XGR_MAXY/2 - 2 || yside + Dy < 100) {
-			return;
-		}
-
-		xside += Dx;
-		yside += Dy;
-	} else {
-		xside = Dx;
-		yside = Dy;
-	}
-
-	xsize = 2*xside + 0;
-	ysize = 2*yside + 0;
-
-	sy = ysize;
-	sx = xsize;
-
-	if(mode) {
-		x = _xI - sx/2;
-		y = _yI - sy/2;
-	} else {
-		x = xcenter - xside;
-		y = ycenter - yside;
-	}
-
-	xc = x + sx/2;
-	yc = y + sy/2;
-
-	ScreenCX = xc;
-	ScreenCY = yc;
-
-	UcutLeft = xc - xside;
-	UcutRight = xc + xside;
-	VcutUp = yc - yside;
-	VcutDown = yc + yside;
-	
-	if (XGR_Obj.get_screen_scale_x() == 1.6f) {
-		UcutRight = (XGR_MAXX - (I_RES_X - aScrDisp -> curIbs -> SizeX));
-	}
-
-	TurnSecX = TurnSecX*xsize/xsize_old;
-	camera_zmin = camera_zmin*xsize/xsize_old;
-
-	calc_view_factors();
-
-/*
-	if(x < getX() + 4) x = getX() + 4;
-	if(y < getY() + 2) y = getY() + 2;
-	if(x + sx + 2 >= getRX()) x = getRX() - sx - 2;
-	if(y + sy + 4 >= getRY()) y = getRY() - sy - 4;
-*/
-	FirstDraw = 1;
-	Redraw = 1;
-}
-
-void iGameMap::reset(void)
-{
-	std::cout<<"iGameMap::reset"<<std::endl;
-//	ViewX = PlayerInitData.x;
-//	ViewY = PlayerInitData.y;
-
-//	ViewX = XCYCL(854);
-//	ViewY = YCYCL(14826);
-
-	ViewZ=focus;
-	TurnAngle = 0;
-	prmFlag = 0;
-	SlopeAngle = 0;// -Pi/4;
-	DepthShow = 0;
-	camera_zmin = TurnSecX = xsize / XGR_Obj.get_screen_scale_x();
-	TurnSecY = ysize;
-	TurnSideX = TurnSecX >> 1;
-	TurnSideY = TurnSecY >> 1;
-	ScaleMapFlt = 1;
-	ScaleMapInvFlt = 1;
-	ScaleMap = 256;
-	ScaleMapInv = 256;
-
-	if(ViewX == 0 && ViewY == 0) {
-		ViewX = XCYCL(1517);
-		ViewY = YCYCL(15879);
-		vMap -> accept(ViewY - 100, ViewY + 100);
-	} else {
-		vMap -> accept(ViewY - 100, ViewY + 100);
-		GeneralLoadReleaseFlag = 1;
-	}
-	camera_reset();
 }
 
 void calc_view_factors()
@@ -1818,10 +1121,11 @@ void calc_view_factors()
 
 	//if(!(XRec.flags & (XRC_RECORD_MODE | XRC_PLAY_MODE)) && prev_frame_time)
 	//Stalkerg
-	if((speed_correction_enabled | NetworkON) && prev_frame_time){
+	// Ferdi: there was '|' instead of '||'. i think that it is the typo, but need to check it.
+	if((speed_correction_enabled || globalGameState.inNetwork) && prev_frame_time){
 		int dt = SDL_GetTicks() - prev_frame_time;
 		if(dt > 15 && dt < 200) {
-			speed_correction_factor = (double)dt*((double)STANDART_FRAME_RATE/1000.)*speed_correction_tau + speed_correction_factor*(1 - speed_correction_tau);
+			speed_correction_factor = (double)dt*((double)STANDART_FRAME_RATE/1000.0)*speed_correction_tau + speed_correction_factor*(1 - speed_correction_tau);
 		}
 	} else {
 		speed_correction_factor = 1;
@@ -1832,20 +1136,20 @@ void calc_view_factors()
 	prev_frame_time = SDL_GetTicks();
 
 	cycleTor(ViewX,ViewY);
-	TurnSecY = curGMap -> ysize*TurnSecX/curGMap -> xsize;
+	TurnSecY = curSurfaceDisp -> ysize*TurnSecX/curSurfaceDisp -> xsize;
 	TurnSideX = TurnSecX >> 1;
 	TurnSideY = TurnSecY >> 1;
-	ViewZ = focus*TurnSecX/curGMap -> xsize;
-	ScaleMapFlt = (double)TurnSecX/curGMap -> xsize;
-	ScaleMapInvFlt = (double)curGMap -> xsize/TurnSecX;
+	ViewZ = focus*TurnSecX/curSurfaceDisp -> xsize;
+	ScaleMapFlt = (double)TurnSecX/curSurfaceDisp -> xsize;
+	ScaleMapInvFlt = (double)curSurfaceDisp -> xsize/TurnSecX;
 	ScaleMap = round(ScaleMapFlt*256);
 	ScaleMapInv = round(ScaleMapInvFlt*256);
-	DepthShow = SlopeAngle < -PI/512;
+	DepthShow = SlopeAngle < -Pi/512;
 
 	ModulatedNORMAL = (double)NORMAL*light_modulation/256.;
 	Light = Vector(DBV(ModulatedNORMAL,0,ModulatedNORMAL*SHADOWDEEP/256.).norm(ModulatedNORMAL));
 
-	CurrShadowDirection =  DBV(-Cos(TurnAngle),-Sin(TurnAngle),(double)SHADOWDEEP/256.);
+	CurrShadowDirection =  DBV(-fCos(TurnAngle),-fSin(TurnAngle),(double)SHADOWDEEP/256.);
 
 	if(DepthShow){
 		A_g2s = DBM(SlopeAngle,X_AXIS)*DBM(TurnAngle,Z_AXIS);
@@ -1857,8 +1161,8 @@ void calc_view_factors()
 
 	A_g2sZ = A_g2s*DBM(1,1,-1,DIAGONAL);
 
-	sinTurnInvFlt = sinTurnFlt = Sin(TurnAngle);
-	cosTurnInvFlt =cosTurnFlt = Cos(TurnAngle);
+	sinTurnInvFlt = sinTurnFlt = fSin(TurnAngle);
+	cosTurnInvFlt =cosTurnFlt = fCos(TurnAngle);
 	sinTurnFlt *= ScaleMapInvFlt;
 	cosTurnFlt *= ScaleMapInvFlt;
 	sinTurnInvFlt *= ScaleMapFlt;
@@ -1891,250 +1195,18 @@ void calc_view_factors()
 
 void gameQuant(void)
 {
-	curGMap -> draw(1);
+	curSurfaceDisp -> update();
 	if(loadingStatus) LoadingMessage();
-	curGMap -> flush();
+	curSurfaceDisp -> flush();
 }
 
-void iGameMap::flush()
-{
-	XGR_Flush(xc - xside,yc - yside,xsize,ysize);
-}
-
-void iGameMap::draw(int self)
-{
-	static XBuffer status;
-	static int blink,clcnt;
-	
-	if(!MuteLog && ((ConTimer.counter&7) == 0)) {
-		SoundQuant();
-	}
-
-	if(GeneralSystemSkip) {
-		actIntQuant();
-	}
-	
-	uvsQuant();
-
-	if(GeneralSystemSkip && !ChangeWorldSkipQuant){
-		if(curGMap) {
-			BackD.restore();
-			MLquant();
-			//try {
-				GameD.Quant();
-			/*} catch (...) {
-				std::cout<<"ERROR:Some GameD.Quant is error."<<std::endl;
-			}*/
-			
-		}
-
-		if(DepthShow) {
-			if(SkipShow) {
-				//Наклон изображения
-				vMap -> SlopTurnSkip(TurnAngle,SlopeAngle,ViewZ,focus,ViewX,ViewY,xc,yc,xsize/2,ysize/2);
-			} else {
-				vMap -> scaling_3D(A_g2s,ViewZ,focus,ViewX,ViewY,xc,yc,xside,yside,TurnAngle);
-			}
-		} else {
-			if(TurnAngle) {
-				//Вращение
-				vMap -> turning(TurnSecX,-TurnAngle,ViewX,ViewY,xc,yc,xside,yside);
-			} else {
-				vMap -> scaling(TurnSecX,ViewX,ViewY,xc,yc,xside,yside);
-			}
-		}
-		
-		
-		//Отрисовка 3д моделей
-		if(curGMap) {
-			GameD.DrawQuant();
-		}
-
-	/*
-		if(recorder_mode){
-			if(blink){
-				c_rectangle(xc + xside - 80 - 2,yc - yside + 60 - 2,8 + 6,16 + 4,224 + 15,224 + 15,OUTLINED);
-				sysfont.draw(xc + xside - 80,yc - yside + 60,(unsigned char*)(recorder_mode == RECORDER_RECORD ? "W" : "R"),224 + 15,-1);
-				}
-			if(CLOCK() - clcnt > 10){
-				blink = 1 - blink;
-				clcnt = CLOCK();
-				}
-			}
-	*/
-
-
-	if(!FirstDraw) {
-		//zmod chat onscreen
-		if (message_dispatcher.ListSize>0 && message_dispatcher.new_messages) {
-			XBuffer zChat;
-			int zColor = zCOLOR_WHITE;
-			int zCount = 0;
-			MessageElement* msg = message_dispatcher.last();
-   			while (msg && zCount<zCHAT_ROWLIMIT && msg->time+zCHAT_TIMELIMIT>SDL_GetTicks()) {
-				zCount++;
-				switch(msg->color) {
-					case 0:	zColor = zCOLOR_GREEN;	break;
-					case 1:	zColor = zCOLOR_ORANGE;	break;
-					case 2:	zColor = zCOLOR_BLUE;	break;
-					case 3:	zColor = zCOLOR_YELLOW;	break;
-					case 4:	zColor = zCOLOR_RED;	break;
-					case 5:	zColor = zCOLOR_WHITE;	break;
-					case 6:	zColor = zCOLOR_GRAY;	break;
-					case 7:	zColor = zCOLOR_BLACK;	break;
-					case 8:	zColor = zCOLOR_CAMOUFLAGE;	break;
-					case 9:	zColor = zCOLOR_PATROL;	break;
-					default:zColor = zCOLOR_WHITE;
-				}
-				if (msg->message[0]=='$' && msg->message[1]==':')
-					zColor = zCOLOR_RED;
-
-				zChat.init();
-				zChat < msg->message;
-				if (!iChatMUTE) {
-					zchatfont.draw(
-						xc-xside+80,
-						yc-yside+20+(zCHAT_ROWLIMIT*zCHAT_ROWHEIGHT)-(zCount*zCHAT_ROWHEIGHT),
-						(unsigned char*)(zChat.GetBuf()),
-						zColor, 
-						zCOLOR_TRANSPARENT
-					);
-				}
-
-				if(msg == message_dispatcher.first()) break;
-				msg = (MessageElement*)msg->prev;
-  			}
-
-			message_dispatcher.new_messages = zCount;
-		}
-
-		// All Debug Messages should be placed here
-		if(prmFlag & PRM_FPS) {
-			sysfont.draw(xc + xside - 150,yc - yside + 80,(unsigned char*)fps_string,224 + 15,-1);
-			status.init();
-			status <= ViewX < " " <= ViewY/* < ":" <= ActD.NumResolve*/;
-			sysfont.draw(xc + xside - 150,yc - yside + 96,(unsigned char*)status.GetBuf(),224 + 15,-1);
-			if(NetworkON)
-				sysfont.drawtext(xc - xside + 3,yc - yside + 32,network_analysis_buffer.address(),255,-1);
-			#ifdef SICHER_DEBUG
-				status.init();
-				status < "Speed_correction_factor: " <= speed_correction_factor < "\n";
-				sysfont.drawtext(xc - xside + 3,yc + yside - 60,status.address(),255,-1);
-			#endif
-		}
-
-		switch(message_mode % 3){
-			case 0:
-				break;
-
-			case 1:
-				status.init();
-				if(ActD.Active){
-					status <= ActD.Active->R_curr.x < "," <= ActD.Active->R_curr.y < "," <= ActD.Active->R_curr.z < ";" <= ActD.Active->radius;
-					sysfont.draw(xc - xside + 3,yc - yside + 3,(unsigned char*)status.GetBuf(),224 + 15,-1);
-					sysfont.draw(xc + xside - 80,yc - yside + 3,(unsigned char*)fps_string,224 + 15,-1);
-					status.init();
-					status <= (ActD.UnitStorage[ACTION_VANGER].Max - ActD.UnitStorage[ACTION_VANGER].ObjectPointer);
-					sysfont.draw(UcutRight - 200,VcutDown - 70,(unsigned char*)status.GetBuf(),224 + 15,-1);
-					}
-				sysfont.drawtext(xc - xside + 3,yc - yside + 32,msg_buf.address(),255,-1);
-				break;
-
-			case 2:
-				if(!NetworkON)
-					message_mode = 0;
-				status.init();
-				status.SetDigits(8);
-				status < "Frame: "      <= frame < "\n";
-				status < "Time: " <= (double)GLOBAL_CLOCK()/256. < " sec\n";
-				sysfont.drawtext(xc + xside - 120,yc - yside + 32,status.address(),255,-1);
-				sysfont.drawtext(xc - xside + 3,yc - yside + 32,network_analysis_buffer.address(),255,-1);
-				break;
-			}
-		}
-
-		msg_buf.init();
-
-		if(StandLog) {
-			ScreenQuant();
-		}
-
-		FirstDraw = 0;
-//2D Rendring in game.
-#ifdef ACTINT
-		XGR_Obj.set_2d_render_buffer();
-		//XGR_Obj.fill(2);
-		if(GeneralSystemSkip) {
-			aScrDisp -> redraw();
-		}
-		aScrDisp -> flush();
-		//aScrDisp->pal_flush();
-		XGR_Obj.set_default_render_buffer();
-		aScrDisp -> text_redraw();
-#endif
-	};
-	
-}
-
-void preCALC(void)
-{
-//	precalc_sqr3_matr();
-}
-
-void PrintError(char* error,char* msg)
+void PrintError(char* error, char* msg)
 {
 	std::cout<<"--------------------------------\n";
 	std::cout<<error<<"\n";
 	std::cout<<msg<<"\n";
 	std::cout<<"--------------------------------\n";
 }
-
-/*
-void PaletteTransform::set(uchar* _from,uchar* _to,int _n0,int _sz,int* _event)
-{
-	n0 = _n0;
-	sz = _sz;
-	event = _event;
-	if(!_from)
-		memset(from + 3*n0,0,3*sz);
-	else
-		memcpy(from + 3*n0,_from + 3*n0,3*sz);
-	if(!_to)
-		memset(to + 3*n0,0,3*sz);
-	else
-		memcpy(to + 3*n0,_to + 3*n0,3*sz);
-	memset(delta + 3*n0,0,3*sz);
-	int i,j;
-	for(i = 0,j = 3*n0;i < 3*sz;i++,j++){
-		if(to[j] > from[j]) delta[j] = 2 + (((int)to[j] - (int)from[j]) >> 5);
-		else if(to[j] < from[j]) delta[j] = -2 - (((int)from[j] - (int)to[j]) >> 5);
-		}
-	inProgress = 1;
-}
-
-void PaletteTransform::quant(void)
-{
-	if(!inProgress) return;
-
-	uchar* pf = from + 3*n0;
-	uchar* pt = to + 3*n0;
-	char* pd = delta + 3*n0;
-	int max = 3*sz;
-	int log = 0;
-	while(max--){
-		if(*pd){
-			log = 1;
-			if(abs((int)*pf - (int)*pt) <= abs(*pd))
-				*pf = *pt, *pd = 0;
-			else
-				*pf += *pd;
-			}
-		pf++; pt++; pd++;
-		}
-	if(!log){ inProgress = 0; if(event) *event = 0; }
-	XGR_SetPal(from,n0,sz);
-}
-*/
 
 void ShowImageRTO::Init(int id)
 {
@@ -2159,10 +1231,10 @@ void ShowImageRTO::Init(int id)
 		if(Flags[curFile] & IMG_RTO_CD_IMAGE){
 			*XBuf < iVideoPathDefault < fileNames[curFile];
 
-			if(!fh.open(XBuf -> address(),XS_IN)){
+			if(!fh.open(XBuf -> buf,XS_IN)){
 				XBuf -> init();
 				*XBuf < iVideoPath < fileNames[curFile];
-				if(!fh.open(XBuf -> address(),XS_IN)){
+				if(!fh.open(XBuf -> buf,XS_IN)){
 					Flags[curFile] |= IMG_RTO_NO_IMAGE;
 				}
 				else
@@ -2175,7 +1247,7 @@ void ShowImageRTO::Init(int id)
 			*XBuf < fileNames[curFile];
 	}
 
-	pname = strdup(XBuf -> address());
+	pname = strdup(XBuf -> buf);
 	memcpy(pname + strlen(pname) - 3,"pal",3);
 
 	char* pal = new char[768];
@@ -2189,7 +1261,7 @@ void ShowImageRTO::Init(int id)
 	XGR_SetPal(tpal,0,255);
 
 	if(!(Flags[curFile] & IMG_RTO_NO_IMAGE)){
-		ff.open(XBuf -> address(),XS_IN);
+		ff.open(XBuf -> buf,XS_IN);
 		ff > sx > sy;
 
 		if(!(Flags[curFile] & IMG_RTO_KEEP_IMAGE)){
@@ -2226,7 +1298,7 @@ void ShowImageRTO::Init(int id)
 	ShowImageMouseFlag = 0;
 	ShowImageKeyFlag = 0;
 
-	switch(GameOverTrigger){
+	switch(globalGameState.gameoverTrigger){
 		case GAME_OVER_EXPLOSION:
 			LastStartWTRACK(ST_GAMEOVER);
 			break;
@@ -2251,7 +1323,8 @@ void ShowImageRTO::Init(int id)
 		case GAME_OVER_NETWORK:
 			break;
 		}
-	GameOverTrigger = -1;
+
+	globalGameState.gameoverTrigger
 #endif
 _MEM_STATISTIC_("AFTER SHOW IMAGE RTO INIT -> ");
 }
@@ -2283,13 +1356,13 @@ void ShowAviRTO::Init(int id)
 	*XBuf < iVideoPathDefault < fileNames[curFile];
 
 //	OLD XTOOL
-//	if(!AVIopen(XBuf -> address(),AVI_NOTIMER | AVI_NODRAW | AVI_NOPALETTE | AVI_NO_SOUND,0,&aviBuf)){
-	if(!AVIopen(XBuf -> address(),AVI_NOTIMER | AVI_NODRAW | AVI_NOPALETTE,0,&aviBuf)){
+//	if(!AVIopen(XBuf -> buf,AVI_NOTIMER | AVI_NODRAW | AVI_NOPALETTE | AVI_NO_SOUND,0,&aviBuf)){
+	if(!AVIopen(XBuf -> buf,AVI_NOTIMER | AVI_NODRAW | AVI_NOPALETTE,0,&aviBuf)){
 		XBuf -> init();
 		*XBuf < iVideoPath < fileNames[curFile];
 //		OLD XTOOL
-//		if(!AVIopen(XBuf -> address(),AVI_NOTIMER | AVI_NODRAW | AVI_NOPALETTE | AVI_NO_SOUND,0,&aviBuf)){
-		if(!AVIopen(XBuf -> address(),AVI_NOTIMER | AVI_NODRAW | AVI_NOPALETTE,0,&aviBuf)){
+//		if(!AVIopen(XBuf -> buf,AVI_NOTIMER | AVI_NODRAW | AVI_NOPALETTE | AVI_NO_SOUND,0,&aviBuf)){
+		if(!AVIopen(XBuf -> buf,AVI_NOTIMER | AVI_NODRAW | AVI_NOPALETTE,0,&aviBuf)){
 			aviBuf = NULL;
 		}
 	}
@@ -2336,15 +1409,15 @@ void ShowAviRTO::Init(int id)
 
 				PalEvidence(tpal,pal);
 
-				if(!AVIopen(XBuf -> address(),0,0,&aviBuf))
+				if(!AVIopen(XBuf -> buf,0,0,&aviBuf))
 					ErrH.Abort(AVInotFoundMSS);
 			}
 			else {
 				AVIstop(aviBuf);
 				AVIclose(aviBuf);
 //				OLD XTOOL
-//				if(!AVIopen(XBuf -> address(),AVI_HICOLOR,0,&aviBuf))
-				if(!AVIopen(XBuf -> address(),AVI_LOOPING,0,&aviBuf))
+//				if(!AVIopen(XBuf -> buf,AVI_HICOLOR,0,&aviBuf))
+				if(!AVIopen(XBuf -> buf,AVI_LOOPING,0,&aviBuf))
 					ErrH.Abort(AVInotFoundMSS);
 			}
 			AVIplay(aviBuf,x,y);
@@ -2471,7 +1544,7 @@ _MEM_STATISTIC_("AFTER SHOW IMAGE RTO 4 FINIT -> ");
 
 void set_map_to_fullscreen()
 {
-	curGMap -> change(
+	curSurfaceDisp -> change(
 		XGR_MAXX / 2,
 		XGR_MAXY / 2,
 		0,
@@ -2485,14 +1558,14 @@ void set_map_to_fullscreen()
 void set_map_to_ibs(ibsObject* ibs)
 {
 	if (XGR_Obj.get_screen_scale_x() == 1) {
-		curGMap -> change(
+		curSurfaceDisp -> change(
 			ibs->SideX,
 			ibs->SideY,
 			0,
 			ibs->CenterX,
 			ibs->CenterY);
 		Redraw = 1;
-		
+
 		COMPAS_RIGHT = DEFAULT_COMPAS_RIGHT;
 	} else {
 		set_map_to_fullscreen();
@@ -2600,21 +1673,24 @@ void memstatDumpLeak(void)
 
 void LoadingMessage(int flush)
 {
-	if(flush){
-		char col255[3] = { 60,40,0 }; XGR_SetPal(col255,255,1);
-		char col0[3] = { 0,0,0 }; XGR_SetPal(col0,0,1);
+	if(flush)
+	{
+		char col255[3] = { 60,40,0 };
+		XGR_SetPal(col255,255,1);
+
+		char col0[3] = { 0,0,0 };
+		XGR_SetPal(col0,0,1);
+
 		XGR_Fill(0);
 	}
+
 	char* str = getRC();
 	sysfont.draw(8,XGR_MAXY - 35,(unsigned char*)str,255,-1);
 	XBuffer buf;
 	if (lang() == RUSSIAN) {
         buf < Convert(zSTR_LOADING_800_RU);
 	} else if (lang() == GERMAN) {
-        if(XGR_MAXX == 800)
-            buf < "(C)1997-2014. Alle Rechte vorbehalten. Release Version 1.3. Gleich geht's weiter...";
-        else
-            buf < "Spiel wird geladen. Gleich geht's weiter...";
+        buf < "(C)1997-2014. Alle Rechte vorbehalten. Release Version 1.3. Gleich geht's weiter...";
 	} else {
         buf < "(C)1997-2014 All Rights Reserved. Release Version 1.3 Loading. Please wait...";
 	}
@@ -2622,9 +1698,6 @@ void LoadingMessage(int flush)
 	sysfont.draw(8,XGR_MAXY - 20,(unsigned char*)(buf.GetBuf()),255,-1);
 	XGR_LineTo(8,XGR_MAXY - 45,len*8 + 5 + 16,2,255);
 	XGR_LineTo(8 + len*8 + 11,XGR_MAXY - 45 - 7,2*7,3,255);
-	//if(flush){
-	//	XGR_Flush(0,0,XGR_MAXX,XGR_MAXY);
-	//}
 }
 
 void theEND(void)
@@ -2636,62 +1709,6 @@ void theEND(void)
 //	if(Dead) ShowImage("resource\\iscreen\\bitmap\\corpse.bmp");
 //	ShowImage("resource\\iscreen\\bitmap\\email.bmp");
 #endif
-}
-
-void sqFont::init(void* d)
-{
-	char* p = (char*)d;
-	memcpy(this,p,8);
-	data = new void*[num];
-	for(int i = 0;i < num;i++)
-		data[i] = p + 8 + sy*i;
-}
-
-void sqFont::draw(int x,int y,unsigned char* s,int fore,int back)
-{
-	while(*s){
-		drawchar(x,y,*s,fore,back);
-		s++;
-		x += sx;
-		}
-}
-
-void sqFont::drawtext(int x,int y,char* s,int fore,int back)
-{
-	char c;
-	int i = x;
-	while((c = *s) != 0){
-		switch(c){
-			default:
-				drawchar(i,y,*s,fore,back);
-				i += sx;
-				break;
-			case '\n':
-				y += sy;
-				i = x;
-				break;
-			case '\t':
-				i += 4*sx;
-				break;
-				}
-		s++;
-		}
-}
-
-
-void sqFont::drawchar(int x,int y,int ch,int fore,int back)
-{
-    if(x < 0 || y < 0 || x + sx >= XGR_MAXX || y + sy >= XGR_MAXY) return;
-	unsigned char* p = (unsigned char*)data[ch];
-	int i,j,m;
-	for(j = 0;j < sy;j++)
-		for(i = 0,m = 1 << sx;i < sx;i++,m >>= 1){
-            if(p[j] & m) 
-				XGR_SetPixel(x + i,y + j,fore);
-			else
-                if(back != -1) 
-					XGR_SetPixel(x + i,y + j,back);
-			}
 }
 
 void rtoSetNextID(int id,int next)
@@ -2736,17 +1753,6 @@ ShowAviRTO::ShowAviRTO(void)
 	Timer = RTO_IMAGE_TIMER;
 }
 
-void SetupPath(void)
-{
-#if defined(BETA_TESTING) || defined(CDCHECK)
-	char* path = getVideoPath();
-	if(!path) ErrH.Abort("Software is NOT properly installed. Please, reinstall the Game!");
-	extern char* iVideoPath;
-	strcat(path,"\\");
-	iVideoPath = path;
-#endif
-}
-
 char* getRC(void)
 {
 #ifdef _DEMO_
@@ -2754,7 +1760,7 @@ char* getRC(void)
 #else
 #ifdef BETA_TESTING
 	static char* str = getOwner();
-	if(!str) ErrH.Abort("Software is NOT properly registered. Please, address to developers!");
+	if(!str) ErrH.Abort("Software is NOT properly registered. Please, buf to developers!");
 	return str;
 #else
     static XBuffer b(128);

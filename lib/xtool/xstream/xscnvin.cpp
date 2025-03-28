@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #endif
 
+#ifndef STD_PORT
+
 XStream& XStream::operator<= (char var)
 {
 	char* s = port_itoa(var,_ConvertBuffer,radix);
@@ -80,3 +82,62 @@ XStream& XStream::operator<= (long double var)
 	write(_ConvertBuffer,len);
 	return *this;
 }
+
+#else // STD PORT IMPLEMENTATION
+
+XStream& XStream::operator<= (char var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (unsigned char var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (short var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (unsigned short var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (int var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (unsigned var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (long var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (unsigned long var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (float var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (double var)
+{
+	_STREAM_PORT_IN();
+}
+
+XStream& XStream::operator<= (long double var)
+{
+	_STREAM_PORT_IN();
+}
+
+#endif

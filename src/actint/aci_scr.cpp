@@ -10,6 +10,7 @@
 #include "a_consts.h"
 #include "acsconst.h"
 
+#include "../locale/aci_dict.h"
 
 #include "../network.h"
 #include "../iscreen/iscreen.h"
@@ -23,11 +24,6 @@
 
 extern int iMouseX;
 extern int iMouseY;
-
-extern int NetworkON;
-
-extern char* aciSTR_ON;
-extern char* aciSTR_OFF;
 
 extern iScreenOption** iScrOpt;
 
@@ -1158,7 +1154,7 @@ int aciScreenDispatcher::Quant(int flush_log)
 	else
 		flushLine -> clear();
 
-	if(!obj_flag && !NetworkON){
+	if(!obj_flag && !globalGameState.inNetwork){
 		//KDWIN::Sleep(100);
 	}
 
@@ -1760,39 +1756,36 @@ void aciScreenInputField::init(void)
 	flags &= ~ACS_ACTIVE_STRING;
 }
 
-void aciScreenInputField::change_state(void)
+void aciScreenInputField::toggle_state(void)
 {
-	if(!strcmp(string,aciSTR_OFF)){
-		strcpy(string,aciSTR_ON);
+	if(!strcmp(string, AciDict::optionOff))
+	{
+		strcpy(string, AciDict::optionOn);
 	}
 	else {
-		strcpy(string,aciSTR_OFF);
+		strcpy(string, AciDict::optionOff);
 	}
+
 	flags |= ACS_REDRAW_OBJECT;
 }
 
-void aciScreenInputField::set_state(int v)
+void aciScreenInputField::set_state(bool newState)
 {
-	if(v){
-		strcpy(string,aciSTR_ON);
-	}
-	else {
-		strcpy(string,aciSTR_OFF);
-	}
+	strcpy(string, newState ? AciDict::optionOn : AciDict::optionOff);
+
 	flags |= ACS_REDRAW_OBJECT;
 }
 
-int aciScreenInputField::get_state(void)
+bool aciScreenInputField::get_state(void)
 {
-	if(!strcmp(string,aciSTR_OFF))
-		return 0;
-	return 1;
+	// will return 0 if equals, which means its off which means its false. and vice versa
+	return strcmp(string, AciDict::optionOff);
 }
 
 void acsChangeStrState(int id)
 {
 	aciScreenInputField* p = (aciScreenInputField*)acsScrD -> GetObject(id);
-	if(p) p -> change_state();
+	if(p) p -> toggle_state();
 }
 
 void acsSetStrState(int id,int state)

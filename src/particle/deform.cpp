@@ -4,7 +4,7 @@
 
 #include "../common.h"
 #include "../backg.h"
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 
 #include "../terra/vmap.h"
 

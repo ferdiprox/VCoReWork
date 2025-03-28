@@ -1,6 +1,8 @@
+#pragma once
 
-#ifndef __3D__3DGRAPH_H__
-#define __3D__3DGRAPH_H__
+#include "3d_math.h"
+
+#include "xbuffer.h"
 
 /*******************************************************************************
 		3D graphical structs and constants
@@ -24,10 +26,7 @@ const int  SCREEN_LEN_Y = 3;
 #define DRAW_SX 	256
 #define DRAW_SY 	256
 
-#ifdef _ROAD_
 #define COMPACT_3D
-#endif
-
 
 enum {
 	DRAW_DEFAULT,
@@ -432,4 +431,3 @@ inline void Vertex::fast_convert_z()
 	zscr_8 = ((unsigned char)(MUL_CHAR(A_convert_8.a[6],x_8) + MUL_CHAR(A_convert_8.a[7],y_8) +
 		  MUL_CHAR(A_convert_8.a[8],z_8) + z_global_offset));
 }
-#endif

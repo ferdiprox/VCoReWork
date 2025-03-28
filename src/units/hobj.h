@@ -1,7 +1,7 @@
-#ifndef __UNITS__HOBJ_H
-#define __UNITS__HOBJ_H
+#pragma once
 
-#include "../3d/parser.h"
+#include "../fs/parser.h"
+#include "../3d/3dobject.h"
 
 #define SIMPLE_PARTICLE_ON
 #define PARTICLE_ON
@@ -239,8 +239,6 @@ void CheckActiveJump(BaseObject* p);
 extern uchar** WorldPalData;
 extern int WorldPalNum;
 extern int WorldPalCurrent;
-
-extern int PalIterLock;
 
 extern int GeneralMapReload;
 extern int GeneralLoadReleaseFlag;
@@ -498,8 +496,3 @@ struct PassageImageType
 extern int PassageBmpNum;
 extern int PassageBmpPrev;
 extern PassageImageType* PassageImageData;
-
-//!!!!!!!!!!!!!!
-//extern XStream StorageLog;
-//!!!!!!!!!!!!!!!!!!!
-#endif

@@ -71,7 +71,7 @@ struct GeneralObject
 
 	virtual void NetEvent(int type,int id,int creator,int time,int x,int y,int radius);
 	virtual void Send(void);
-	void GetUser(void);	
+	void GetUser(void);
 #else
 	virtual void Touch(GeneralObject* p){}
 #endif
@@ -230,9 +230,9 @@ struct Object : BaseObject {
 	Object* data_in_slots[MAX_SLOTS];
 	Vector R_slots[MAX_SLOTS];
 	int location_angle_of_slots[MAX_SLOTS];
-	
+
 	char prm_name[128];
-	
+
 	Object* old_appearance_storage;
 
 
@@ -314,7 +314,7 @@ struct Object : BaseObject {
 	// Car's params
 	double speed_factor;
 	double mobility_factor;
-	
+
 	// Devices params
 	double water_speed_factor;
 	double air_speed_factor;
@@ -389,7 +389,7 @@ struct Object : BaseObject {
 	void controls(int mode,int param = 0);
 	void set_3D(int mode,int x,int y,int z,int dz,int angle,int speed);
 	void impulse(int angle,int distance,int slope = Pi/4,int lever_arm = 0);
-	void impulse(const DBV& direct,int distance,int lever_arm = 0);
+	void impulse(const DBV& direct, double distance, int shakePower = 0);
 	void jump();
 	void direct_keyboard_control();
 	void direct_joystick_control();

@@ -13,11 +13,13 @@
 #include "../actint/mlconsts.h"
 #include "../actint/credits.h"
 
-#include "../3d/parser.h"
+#include "../fs/parser.h"
 #include "../units/uvsapi.h"
 #include "../units/compas.h"
 #include "univang.h"
 
+#include "../random.h"
+#include "../game_state.h"
 
 /*#ifdef DIAGEN_TEST
 #	include "../diagen/inp.h"
@@ -43,7 +45,8 @@
 #define LINK_SYMBOL_RIGHT	'}'
 #define COMMAND_SYMBOL		'@'
 
-struct FileBox {
+struct FileBox 
+{
 	int cN;
 	char** names;
 	char** data;
@@ -63,14 +66,13 @@ struct FileBox {
 	void add(char* fname,char* buf,int len);
 	void save(void);
 #endif
-	};
+};
 
 /* --------------------------- PROTOTYPE SECTION --------------------------- */
 extern int RACE_WAIT;
 //extern int aciCurCredits;
 extern int aciEscaveDead;
 extern int aciEscaveEmpty;
-extern int NetworkON;
 extern int uvsCurrentWorldUnableBefore;
 
 //#ifndef DIAGEN_TEST
@@ -79,7 +81,7 @@ extern uvsGamerResult GamerResult;
 
 void dg_SendEvent(int code);
 void aciOpenWorldLink(int,int);
-void uvsSetTownName(const char* _name_ ); 
+void uvsSetTownName(const char* _name_ );
 char* uvsGetLarvaWorld(int n);
 int uvsgetDGdata(int code);
 int getPreviousCycle(int cycle);
@@ -102,7 +104,6 @@ void dgLog(char* string);
 void dataList(int val = -1);
 void loadList(void);
 void saveList(void);
-void showmap(void);
 /* --------------------------- DEFINITION SECTION -------------------------- */
 static char dgSyntaxError[] = "dgFile syntax error";
 
@@ -139,15 +140,15 @@ const char *DiagenTextName() {
 
 #ifdef DIAGEN_TEST
 int DGdata[DG_EXTERNS::MAX];
-//int NetworkON = 0;
 //int aciEscaveDead;
 //int aciEscaveEmpty;
 #endif
 
-union dual_char {
+union dual_char 
+{
 	char c[2];
 	unsigned short sh;
-	};
+};
 
 char* ConvertUTF8(const char* s,int back = 0) {
 	static char* buffer = NULL;
@@ -219,7 +220,7 @@ char* Convert(const char* s,int back = 0) {
 				buffer[i]=s[i];
 			else
 				buffer[i]=' ';
-			
+
 		}
 	} else {
 		for (i=0;i<len;i++) {
@@ -242,237 +243,120 @@ char* Convert(const char* s,int back = 0) {
 	return buffer;
 }
 
-std::string cp866_to_cp1251(std::string in) {
-	if(lang() != RUSSIAN) {
-		return in;
+std::string cp866_to_cp1251(std::string inputString) 
+{
+	if(lang() != RUSSIAN) 
+	{
+		return inputString;
 	}
+
 #ifdef WIN32
-	return in;
+	return inputString;
 #endif
-	unsigned int i;
-	for (i = 0; i < in.length(); i++) {
-		if ((unsigned char)in[i]>=128&&(unsigned char)in[i]<=175)
-			in[i]=(char)((unsigned char)in[i]+64);
-		else if ((unsigned char)in[i]>=224&&(unsigned char)in[i]<=239)
-			in[i]=(char)((unsigned char)in[i]+16);
-		else if ((unsigned char)in[i]==241)
-			in[i]=(char)((unsigned char)184); //маленькое ё
-		else if ((unsigned char)in[i]==240)
-			in[i]=(char)((unsigned char)168); //большое Ё
-		else if ((unsigned char)in[i]==252)
-			in[i]=(char)((unsigned char)185); //знак №
-		else if ((unsigned char)in[i]<128)
-			in[i]=in[i];
-		else
-			in[i]=' ';
+
+	unsigned char uc;
+	for (unsigned int i = 0; i < inputString.size(); i++) 
+	{
+		char& c = inputString[i];
+		uc = c;
+
+		if (uc >= 128 && uc <= 175)
+			c += 64;
+		else if (uc >= 224 && uc <= 239)
+			c += 16;
+		else if (uc == 241)
+			c = 184; // lower case 'ё'
+		else if (uc == 240)
+			c = 168; // upper case 'Ё'
+		else if (uc == 252)
+			c = 185; // '№' symbol
+		else if (uc > 128)
+			c = ' '; // some unknown bullshit, reset to space
 	}
-	return in;
+
+	return inputString;
 }
 
-std::string cp1251_to_utf8(std::string in_string) {
-	if(lang() != RUSSIAN) {
-		return in_string;
+static constexpr int cp1251_to_utf8_tableSize = 128;
+static const int cp1251_to_utf8_table[cp1251_to_utf8_tableSize]
+{
+	0x82D0,0x83D0,0x9A80E2,0x93D1,0x9E80E2,0xA680E2,0xA080E2,0xA180E2,
+	0xAC82E2,0xB080E2,0x89D0,0xB980E2,0x8AD0,0x8CD0,0x8BD0,0x8FD0,
+	0x92D1,0x9880E2,0x9980E2,0x9C80E2,0x9D80E2,0xA280E2,0x9380E2,0x9480E2,
+	0,0xA284E2,0x99D1,0xBA80E2,0x9AD1,0x9CD1,0x9BD1,0x9FD1,
+	0xA0C2,0x8ED0,0x9ED1,0x88D0,0xA4C2,0x90D2,0xA6C2,0xA7C2,
+	0x81D0,0xA9C2,0x84D0,0xABC2,0xACC2,0xADC2,0xAEC2,0x87D0,
+	0xB0C2,0xB1C2,0x86D0,0x96D1,0x91D2,0xB5C2,0xB6C2,0xB7C2,
+	0x91D1,0x9684E2,0x94D1,0xBBC2,0x98D1,0x85D0,0x95D1,0x97D1,
+	0x90D0,0x91D0,0x92D0,0x93D0,0x94D0,0x95D0,0x96D0,0x97D0,
+	0x98D0,0x99D0,0x9AD0,0x9BD0,0x9CD0,0x9DD0,0x9ED0,0x9FD0,
+	0xA0D0,0xA1D0,0xA2D0,0xA3D0,0xA4D0,0xA5D0,0xA6D0,0xA7D0,
+	0xA8D0,0xA9D0,0xAAD0,0xABD0,0xACD0,0xADD0,0xAED0,0xAFD0,
+	0xB0D0,0xB1D0,0xB2D0,0xB3D0,0xB4D0,0xB5D0,0xB6D0,0xB7D0,
+	0xB8D0,0xB9D0,0xBAD0,0xBBD0,0xBCD0,0xBDD0,0xBED0,0xBFD0,
+	0x80D1,0x81D1,0x82D1,0x83D1,0x84D1,0x85D1,0x86D1,0x87D1,
+	0x88D1,0x89D1,0x8AD1,0x8BD1,0x8CD1,0x8DD1,0x8ED1,0x8FD1
+};
+
+std::string cp1251_to_utf8(std::string inputString) 
+{
+	if(lang() != RUSSIAN) 
+	{
+		return inputString;
 	}
 #ifdef WIN32
-	return in_string;
+	return inputString;
 #endif
-	
-	char *out_mem = new char[in_string.length()*3+3];
-	char *out = out_mem;
-	const char *in = in_string.c_str();
-	
-	static const int table[128] = {
-        0x82D0,0x83D0,0x9A80E2,0x93D1,0x9E80E2,0xA680E2,0xA080E2,0xA180E2,
-        0xAC82E2,0xB080E2,0x89D0,0xB980E2,0x8AD0,0x8CD0,0x8BD0,0x8FD0,
-        0x92D1,0x9880E2,0x9980E2,0x9C80E2,0x9D80E2,0xA280E2,0x9380E2,0x9480E2,
-        0,0xA284E2,0x99D1,0xBA80E2,0x9AD1,0x9CD1,0x9BD1,0x9FD1,
-        0xA0C2,0x8ED0,0x9ED1,0x88D0,0xA4C2,0x90D2,0xA6C2,0xA7C2,
-        0x81D0,0xA9C2,0x84D0,0xABC2,0xACC2,0xADC2,0xAEC2,0x87D0,
-        0xB0C2,0xB1C2,0x86D0,0x96D1,0x91D2,0xB5C2,0xB6C2,0xB7C2,
-        0x91D1,0x9684E2,0x94D1,0xBBC2,0x98D1,0x85D0,0x95D1,0x97D1,
-        0x90D0,0x91D0,0x92D0,0x93D0,0x94D0,0x95D0,0x96D0,0x97D0,
-        0x98D0,0x99D0,0x9AD0,0x9BD0,0x9CD0,0x9DD0,0x9ED0,0x9FD0,
-        0xA0D0,0xA1D0,0xA2D0,0xA3D0,0xA4D0,0xA5D0,0xA6D0,0xA7D0,
-        0xA8D0,0xA9D0,0xAAD0,0xABD0,0xACD0,0xADD0,0xAED0,0xAFD0,
-        0xB0D0,0xB1D0,0xB2D0,0xB3D0,0xB4D0,0xB5D0,0xB6D0,0xB7D0,
-        0xB8D0,0xB9D0,0xBAD0,0xBBD0,0xBCD0,0xBDD0,0xBED0,0xBFD0,
-        0x80D1,0x81D1,0x82D1,0x83D1,0x84D1,0x85D1,0x86D1,0x87D1,
-        0x88D1,0x89D1,0x8AD1,0x8BD1,0x8CD1,0x8DD1,0x8ED1,0x8FD1
-    };
-    while (*in)
-        if (*in & 0x80) {
-            int v = table[(int)(0x7f & *in++)];
-            if (!v)
-                continue;
-            *out++ = (char)v;
-            *out++ = (char)(v >> 8);
-            if (v >>= 16)
-                *out++ = (char)v;
-        }
-        else
-            *out++ = *in++;
-    *out = 0;
-	
-	std::string string_out(out_mem);
-	delete[] out_mem;
-	return string_out;
+
+	char *rawOutputBuffer = new char[inputString.size()*3+3];
+	char *rawOutPointer = rawOutputBuffer;
+
+	for(int i = 0; i < inputString.size(); i++)
+	{
+		char& c = inputString[i];
+
+		if(c & 0x80)
+		{
+			int utfTableIndex = 0x7f & c;
+			if(utfTableIndex >= cp1251_to_utf8_tableSize || utfTableIndex < 0)
+			{
+				continue;
+			}
+			int asUtf = cp1251_to_utf8_table[utfTableIndex];
+			
+			c = inputString[++i];
+
+			*rawOutPointer++ = asUtf;
+			*rawOutPointer++ = asUtf >> 8;
+			if(asUtf >>= 16)
+			{
+				*rawOutPointer = asUtf;
+			}
+
+			continue;
+		}
+
+		*rawOutPointer++ = c;
+	}
+
+	std::string outputString(rawOutputBuffer);
+	delete[] rawOutputBuffer;
+	return outputString;
 }
 
 #ifdef DIAGEN_TEST
 static char* strLine = (char*) "------------------------";
-static int CommandMax;
-char* Command[16];
 XStream ffsave(1);
 
-void ParseCommand(char* s)
+void console_clear() 
 {
-	int ind = 0;
-	while(1){
-		while(*s && (*s == ' ' || *s == '\t')) s++; if(!*s) return;
-		Command[ind++] = s;
-		while(*s && !(*s == ' ' || *s == '\t')) s++; if(!*s) return;
-		*s++ = '\0';
-		}
-	CommandMax = ind;
-}
-
-void doCommand(void)
-{
-	char* c = Command[0];
-	if(!strcmp(c,"GO")) dgD -> startSession(strdup(Convert(Command[1],1)));
-	else if(!strcmp(c,"FINISH")) dgD -> endSession();
-	else if(!strcmp(c,"STATUS")) dgD -> getStatus();
-	else if(!strcmp(c,"ASK")) dgD -> getAnswer(Command[1]);
-	else if(!strcmp(c,"ESTATUS")) dgD -> eStatus = atoi(Command[1]);
-	else if(!strcmp(c,"BSTATUS")) dgD -> bStatus = atoi(Command[1]);
-	else if(!strcmp(c,"ZSTATUS")) dgD -> zStatus = atoi(Command[1]);
-	else if(!strcmp(c,"SAVE")) dgD -> save(ffsave);
-	else if(!strcmp(c,"LOAD")) dgD -> load(ffsave);
-	else if(!strcmp(c,"DATA")){
-		DGdata[atoi(Command[1])] = atoi(Command[2]);
-		saveList();
-		}
-	else if(!strcmp(c,"DATALIST")) dataList();
-	else if(!strcmp(c,"DATALIST0")) dataList(0);
-	else if(!strcmp(c,"MAP")) showmap();
-	else if(!strcmp(c,"VISIT")){
-		dgRoom* r = dgD -> seekR(Command[1],1);
-		if(r){
-			r -> visitCounter = atoi(Command[2]);
-			r -> comingCounter = atoi(Command[3]);
-			}
-		}
-	else std::cout << "\nError: unknown command...\n";
-}
-
-void console_clear() {
 #ifdef WIN32
 	system("CLS");
 #else
 	// Assume POSIX
-	system ("clear");
+	system("clear");
 #endif
 }
-
-void showmap(void)
-{
-	if(!dgD -> currentR) return;
-	int sx = dgD -> currentR -> gridSX;
-	int sy = dgD -> currentR -> gridSY;
-	uchar* map = dgD -> currentR -> status;
-	int i,j;
-	console_clear();
-	for(j = 0;j < sy;j++){
-		for(i = 0;i < sx;i++)
-			switch(map[j*sx + i]){
-				case DG_CELLSTATUS::EMPTY:
-					std::cout << " ";
-					break;
-				case DG_CELLSTATUS::DORMANT:
-					std::cout << "D";
-					break;
-				case DG_CELLSTATUS::USED:
-					std::cout << "U";
-					break;
-				case DG_CELLSTATUS::WAITING:
-					std::cout << "W";
-					break;
-				case DG_CELLSTATUS::OPENED:
-					std::cout << "O";
-					break;
-				case DG_CELLSTATUS::EXPLODED:
-					std::cout << "E";
-					break;
-				}
-			std::cout << "\n";
-		}
-}
-
-void diagenEventHandle(int code)
-{
-	char* s = NULL;
-	int i;
-	switch(code){
-		case DG_GET_NEXT_PHRASE:
-			dgD -> getNextPhrase();
-			break;
-		case DG_SKIP_ALL:
-			for(i = 0;i < 24;i++) dgD -> getNextPhrase();
-			break;
-		case DG_GET_QUERY_LIST:
-			console_clear();
-			std::cout << strLine << strLine << "\n";
-			s = dgD -> getQprefix();
-			if(s) std::cout << cp1251_to_utf8(cp866_to_cp1251(s)) << ":\n\n";
-			s = dgD -> findQfirst();
-			while(s){
-//				dgLog(s);
-				std::cout << cp1251_to_utf8(cp866_to_cp1251(s)) << "\n";
-				s = dgD -> findQnext();
-				}
-			s = dgD -> getQpostfix();
-			if(s) std::cout << "\n" << cp1251_to_utf8(cp866_to_cp1251(s)) << "\n";
-			std::cout << strLine << strLine << "\n\n";
-			break;
-		case DG_TEST_QUERY:
-			if(!dgD -> varAtom){
-				console_clear();
-				std::cout << strLine << strLine << "\n";
-				s = dgD -> findQfirst();
-				while(s){
-					std::cout << cp1251_to_utf8(cp866_to_cp1251(s)) << "\n";
-					dgD -> getAnswer(s);
-					s = dgD -> findQnext();
-					}
-				std::cout << strLine << strLine << "\n\n";
-				}
-			break;
-		case DG_ENTER_COMMAND:
-			console_clear();
-			//TODO stalkerg
-			//inpS.initString();
-			std::cout << "Command:\n";
-			break;
-		case DG_GET_COMMAND:
-			//TODO stalkerg
-			//s = inpS.getString();
-			console_clear();
-			if(s && *s){
-				std::cout << "Accept command (" << s << ")...\n";
-				ParseCommand(s);
-				doCommand();
-				}
-			break;
-		}
-}
-
-//TODO stalkerg redifined func
-//char* uvsGetLarvaWorld(int n){ return "Glorx"; }
-//char* StringOfBoozeeniada(void){ return "BooZZZ"; }
-//int getSpobsState(void){ return 1; }
-//int getThreallState(void){ return 1; }
-//int isSpummyDeath(void){ return 0; }
-//int aciWorldLinkExist(int w1,int w2,int flag){ return 0; }
 
 #endif
 
@@ -648,7 +532,7 @@ char* detect_text(char *ret) {
 			}
 		}
 	}
-	
+
 	if(*ret2 == SUBJ_SYMBOL || *ret2 == COMMAND_SYMBOL) {
 		return ret;
 	}
@@ -663,7 +547,7 @@ void dgFile::load(char* fname,int _len, bool verbose)
 #ifdef DIAGEN_TEST
 		external = 0;
 		XStream ff(fname,XS_IN);
-		buf = new char[(len = ff.size()) + 1];
+		buf = new char[(len = ff.size) + 1];
 		ff.read(buf,len);
 		ff.close();
 		buf[len] = '\0';
@@ -771,14 +655,14 @@ void dgFile::load(char* fname,int _len, bool verbose)
 	while(1){
 		p = getElement(DGF_NONE,1);
 		if(!p) break;
-		
+
 #ifdef SAVE_SINGE_LANGUAGE
 		if(!skip){
 			p2 = detect_text(p);
 			if(!(*p2 == SUBJ_SYMBOL || *p2 == COMMAND_SYMBOL || *p2 == '<' || *p2 == '#')) {
 				if(!((lang() != RUSSIAN && ISEALPHA(*p2)) || (lang() == RUSSIAN && !ISEALPHA(*p2)))) continue;
 			}
-			
+
 		}
 #endif
 		l = strlen(p);
@@ -803,14 +687,14 @@ char* dgFile::getElement(int DualElements,int empty_available)
 		return NULL;
 		}
 	char* ret = p;
-	
-	
+
+
 	while(index < len && *p) p++, index++;
 
 #if defined(DIAGEN_TEST) || !defined(SINGLE_LANGUAGE)
 	char* ret2 = ret; //(stalkerg) Для определения символа по которому можно понять язык
 	char* elem;
-	
+
 	if(DualElements == DGF_DUAL) {
 		if (*ret2) {
 			if (*ret2 == '$' && *(ret2+1) == '(') {
@@ -827,7 +711,7 @@ char* dgFile::getElement(int DualElements,int empty_available)
 		if (!(*ret2)) {
 			ErrH.Abort("Nope closing bracket for variable",XERR_USER,-1,"");
 		}
-		
+
 		if(*ret2 == SUBJ_SYMBOL || *ret2 == COMMAND_SYMBOL) {
 			return ret;
 		}
@@ -864,10 +748,10 @@ char* dgAtom::read(dgFile* pf,char* s)
 		switch(*p){
 			case LINK_SYMBOL:
 				qlinks = p + 1;
-				do { 
-					qlMax++; 
-					cutLink(p); 
-					p = pf -> getElement(DGF_DUAL,1); 
+				do {
+					qlMax++;
+					cutLink(p);
+					p = pf -> getElement(DGF_DUAL,1);
 					} while(p && *p == LINK_SYMBOL);
 				break;
 			case COMMAND_SYMBOL:
@@ -984,8 +868,8 @@ void dgMolecule::accept(dgFile* _dgf)
 }
 
 char* dgMolecule::getPhrase(int noHandle)
-{ 
-	char* ret = curA ? curA -> data : NULL; 
+{
+	char* ret = curA ? curA -> data : NULL;
 	if(!ret) {
 		return NULL;
 	}
@@ -1065,8 +949,8 @@ dgQuery* dgQuery::delink(dgQuery*& tail)
 }
 
 int dgQuery::getIndex(void)
-{ 
-	int n = lindex; 
+{
+	int n = lindex;
 	if(solidQ) {
 		for(int i = 0;i < nanswer;i++) {
 			if(levels[i] == *dgLevel) {
@@ -1078,7 +962,7 @@ int dgQuery::getIndex(void)
 		if(n + 1 < nanswer && levels[n + 1] <= *dgLevel)
 			lindex = ++n;
 	}
-	return n; 
+	return n;
 }
 
 // ----------------------------------- dgCell ------------------------------------
@@ -1172,7 +1056,7 @@ struct Q3 { int id; const char* name; } ArgData[] = {
 	{ DG_EXTERNS::ZYK_TOTAL, "ZYK_TOTAL" },
 	{ DG_EXTERNS::ZYK_RATING, "ZYK_RATING" },
 
-	{ DG_EXTERNS::INV_BAD_CIRT, "INV_BAD_CIRT" }, 
+	{ DG_EXTERNS::INV_BAD_CIRT, "INV_BAD_CIRT" },
 	{ DG_EXTERNS::INV_GOOD_CIRT, "INV_GOOD_CIRT" },
 	{ DG_EXTERNS::INV_NYMBOS, "INV_NYMBOS" },
 	{ DG_EXTERNS::INV_PHLEGMA, "INV_PHLEGMA" },
@@ -1187,7 +1071,7 @@ struct Q3 { int id; const char* name; } ArgData[] = {
 	{ DG_EXTERNS::INV_KERNOBOO, "INV_KERNOBOO" },
 	{ DG_EXTERNS::INV_WEEZYK, "INV_WEEZYK" },
 	{ DG_EXTERNS::INV_RUBBOX,  "INV_RUBBOX" },
-	{ DG_EXTERNS::INV_BAD_LARVA, "INV_BAD_LARVA" }, 
+	{ DG_EXTERNS::INV_BAD_LARVA, "INV_BAD_LARVA" },
 	{ DG_EXTERNS::INV_GOOD_LARVA, "INV_GOOD_LARVA" },
 
 	{ DG_EXTERNS::INV_MESSIAH, "INV_MESSIAH" },
@@ -1574,17 +1458,17 @@ int dgCell::expressACCESS(int endreq,char*& p,int& uplogic)
 	int result = analyzeACCESS(p),r;
 	p = Access.getElement(DGF_NONE,1);
 	while(p){
-		if(!strcmp(p,")")){ 
+		if(!strcmp(p,")")){
 			if(!endreq)
 				ErrH.Abort("Unexpected ')'");
 			p = Access.getElement(DGF_NONE,1);
-			return result; 
+			return result;
 			}
-		else if(!strcmp(p,"(")){ 
+		else if(!strcmp(p,"(")){
 			if(endreq)  ErrH.Abort("Unexpected '('");
 			p = Access.getElement(DGF_NONE);
 			uplogic = logic;
-			return result; 
+			return result;
 			}
 		else if(!strcasecmp(p,"AND")){ logic = 1; p = Access.getElement(DGF_NONE); }
 		else if(!strcasecmp(p,"OR")){ logic = 0; p = Access.getElement(DGF_NONE); }
@@ -1802,7 +1686,7 @@ int dgCell::doCMD(int startup)
 					break;
 				case CMD::BBR_PRIZE_GIFT:
 					aciCurCredits = aciGetCurCredits();
-					aciCurCredits += 5000;					
+					aciCurCredits += 5000;
 					aciUpdateCurCredits(aciCurCredits);
 					break;
 				case CMD::PENALTY1000:
@@ -1853,16 +1737,16 @@ int dgCell::doCMD(int startup)
 					dg_SendEvent(AML_LAMPASSO_THEEND);
 					break;
 				case CMD::TRANSITION2V:
-					uvsSetTownName("VigBoo"); 
+					uvsSetTownName("VigBoo");
 					break;
 				case CMD::TRANSITION2L:
-					uvsSetTownName("Lampasso"); 
+					uvsSetTownName("Lampasso");
 					break;
 				case CMD::TRANSITION2O:
-					uvsSetTownName("Ogorod"); 
+					uvsSetTownName("Ogorod");
 					break;
 				case CMD::TRANSITION2B:
-					uvsSetTownName("B-Zone"); 
+					uvsSetTownName("B-Zone");
 					break;
 				case CMD::CHANGE2RAFFA:
 					dg_SendEvent(AML_CHANGE_TO_RAFFA);
@@ -1942,7 +1826,7 @@ void dgRoom::read(dgFile* pf)
 	startY = atoi(pf -> getElement(DGF_NONE));
 	int MPstartX = atoi(pf -> getElement(DGF_NONE));
 	int MPstartY = atoi(pf -> getElement(DGF_NONE));
-	if(NetworkON){
+	if(globalGameState.inNetwork){
 		startX = MPstartX;
 		startY = MPstartY;
 		}
@@ -1982,7 +1866,7 @@ void dgRoom::acceptTEXT(void)
 		(pm = new dgMolecule(getSubj(p,m))) -> link(mtail);
 		pm -> mood = m;
 		p = dgf -> getElement(DGF_DUAL);
-		
+
 		while(p){
 			if(*p == SUBJ_SYMBOL) break;
 			(pa = new dgAtom) -> link(pm -> tail);
@@ -2028,7 +1912,7 @@ void dgRoom::acceptQUERY(void)
 {
 	static dgAtom* adim[64];
 	static int ldim[64];
-	
+
 	//std::cout<<"dgRoom::acceptQUERY "<<getDGname(roomName,".query")<<std::endl;
 	dgFile* pf = new dgFile(getDGname(roomName,".query"));
 
@@ -2168,7 +2052,7 @@ void dgRoom::endSession(void)
 					case DG_CELLSTATUS::OPENED:
 						if(grid[ind] -> isLooping)
 							setSTATUS(i,j,DG_CELLSTATUS::WAITING);
-						else {	
+						else {
 							explodeState(i,j);
 							setSTATUS(i,j,DG_CELLSTATUS::USED);
 							}
@@ -2209,11 +2093,11 @@ void dgRoom::locateActiveMolecule(void)
 				currentM -> reset();
 #ifdef DIAGEN_TEST
 				if(!checkStatus) std::cout << "\n   Molecule [" << currentM -> name << "] involved (mood " << currentM -> mood << "):" << "\n";
-#endif	
+#endif
 				if(grid[cIndex] -> doCMD()) explodeState(cIndex%gridSX,cIndex/gridSX);
 #ifdef DIAGEN_TEST
 				if(!checkStatus) std::cout << "\n";
-#endif	
+#endif
 				status[cIndex] = repeatable ? DG_CELLSTATUS::HALFLIFE : DG_CELLSTATUS::EXPLODED;
 				return;
 			}
@@ -2358,7 +2242,7 @@ dgMolecule* dgRoom::seekM(const char* _name)
 	XBuffer buf;
 	buf < _name < "/" < roomName;
 	ErrH.Abort("Molecule not found",XERR_USER,-1,buf.GetBuf());
-#else		
+#else
 //	ErrH.Abort("Molecule not found",XERR_USER,-1,_name);
 #endif
 	return NULL;
@@ -2406,14 +2290,14 @@ char* DiagenDispatcher::getQempty(void) {
 	return currentR ? Convert(currentR -> seekM("Empty Question") -> tail -> data) : NULL;
 }
 char* DiagenDispatcher::getQend(void) {
-	return currentR ? (!ClearStatus ? currentR -> seekM("Empty Molecule") -> tail -> data : (char *)"") : NULL; 
+	return currentR ? (!ClearStatus ? currentR -> seekM("Empty Molecule") -> tail -> data : (char *)"") : NULL;
 }
 char* DiagenDispatcher::getQblock(void) {
 	return currentR ? Convert(currentR -> seekM("Block Molecule") -> tail -> data) : NULL;
 }
 char* DiagenDispatcher::getQout(void) {
 	dgMood = 3;
-	return currentR ? Convert(currentR -> seekM("Out Molecule") -> tail -> data) : NULL; 
+	return currentR ? Convert(currentR -> seekM("Out Molecule") -> tail -> data) : NULL;
 }
 char* DiagenDispatcher::getQdead(void)
 {
@@ -2428,7 +2312,7 @@ void DiagenDispatcher::init(void)
 	FBox = new FileBox;
 #ifndef DIAGEN_TEST
 	FBox -> load();
-#endif	
+#endif
 	dgFile* pf = new dgFile(getDGname("room",".lst"), 0, true);
 	char* p = NULL;
 	dgRoom* pr;
@@ -2473,7 +2357,7 @@ void DiagenDispatcher::init(void)
 }
 
 char* DiagenDispatcher::findQfirst(void)
-{ 
+{
 	if(varAtom)
 		return Convert(varAtom -> variants[cVind = 0]);
 	else {
@@ -2484,7 +2368,7 @@ char* DiagenDispatcher::findQfirst(void)
 }
 
 char* DiagenDispatcher::findQnext(void)
-{ 
+{
 	if(varAtom){
 		if(++cVind >= varAtom -> nvariant) return NULL;
 		return Convert(varAtom -> variants[cVind]);
@@ -2511,7 +2395,7 @@ void DiagenDispatcher::startSession(const char* rname)
 	checkSession(rname);
 	if(dgAbortStatus) std::cout << "This session will be aborted!\n";
 	std::cout << "\n";
-#endif	
+#endif
 	(currentR = r) -> startSession();
 	if(!isLoading){
 		if(currentR != lastR) currentR -> visitCounter++;
@@ -2580,7 +2464,7 @@ char* DiagenDispatcher::getNextPhrase(void) {
 		phr = m -> getPhrase(currentR->bios == 4);
 		varAtom = m -> getVariantsAtom();
 //#ifndef DIAGEN_TEST
-		if(varAtom) 
+		if(varAtom)
 			dg_SendEvent(AML_GET_QUESTION);
 //#endif
 		m->goNext();
@@ -2790,7 +2674,8 @@ char* DiagenDispatcher::getInvText(int type,int id,char* from,char* to)
 	static XBuffer buf(64);
 	dgMolecule* m;
 	buf.init();
-	switch(type){
+	switch(type)
+	{
 		case DG_POPONKA:
 			buf < "Poponka " <= id;
 			m = invR -> seekM(buf.GetBuf());
@@ -2807,7 +2692,7 @@ char* DiagenDispatcher::getInvText(int type,int id,char* from,char* to)
 			buf < "Final " <= id;
 			m = invR -> seekM(buf.GetBuf());
 			return Convert(m -> tail -> data);
-		}
+	}
 	return NULL;
 }
 
@@ -2825,14 +2710,15 @@ void FileBox::load(void)
 	lens = new int[cN];
 	data = new char*[cN];
 	uchar l;
-	for(int i = 0;i < cN;i++){
+	for(int i = 0;i < cN;i++)
+	{
 		ff > l; l++;
 		names[i] = new char[l];
 		ff.read(names[i],l);
 		ff > lens[i];
 		data[i] = new char[lens[i]];
 		ff.read(data[i],lens[i]);
-		}
+	}
 }
 
 char* FileBox::get(char* fname,int& len)
@@ -2862,7 +2748,7 @@ void FileBox::save(void)
 {
 	static int ret = 0;
 	if(ret) return;
-	
+
 	XStream ff("diagen_new.text",XS_OUT); //see definition of DIAGEN_TEXT
 
 	ff.write("DG",2);
@@ -2880,14 +2766,15 @@ void FileBox::save(void)
 #endif
 
 void dgInThreall(void)
-{ 
-	dgD -> startSession("Threall"); 
+{
+	dgD -> startSession("Threall");
 }
 void dgOutThreall(void)
-{ 
-	dgD -> endSession(); 
+{
+	dgD -> endSession();
 }
+
 char* dgGetThreallPhrase(void)
-{ 
-	return dgD -> getNextPhrase(); 
+{
+	return dgD -> getNextPhrase();
 }

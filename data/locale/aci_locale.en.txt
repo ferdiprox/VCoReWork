@@ -1,0 +1,52 @@
+
+optionOn: "ON"
+optionOff: "OFF"
+
+shopUndefinedPrice: "Cost: UNDEFINED"
+shopPricePrefix: "Cost: "
+
+shopBrokenMechosDescr: "Broken..."
+
+shopMechosEnergyPrm: "Energy Shield:"
+shopMechosEnergyRestorePrm: "Restoring Speed:"
+shopMechosArmorPrm: "Armor:"
+shopMechosVelocityPrm: "Velocity:"
+shopMechosSpiralPrm: "Spiral Capacity:"
+shopMechosAirReservePrm: "Air Reserve:"
+
+shopWeaponDamagePrm: "Damage:"
+shopWeaponLoadPrm: "Load:"
+shopWeaponShotsPrm: "Shots/Sec:"
+shopWeaponBurstPrm: "Burst:"
+
+shopDeviceWorkTimePrm: "Working Time:"
+
+shopAmmoInPackPrm: "In Pack:"
+
+shopNotEnoughCashString: "Not enough cash"
+
+uiPickupItemsOff: "Pick-up items OFF"
+uiPickupWeaponsOff: "Pick-up weapons OFF"
+
+invPutThis: "Put this"
+
+mpSetupFirstWarePrm: "Ware #1"
+mpSetupSecondWarePrm: "Ware #2"
+mpSetupCheckpointsPrm: "Checkpoint"
+
+saveSlotEmpty: "EMPTY SLOT"
+saveSlotUnnamed: "UNNAMED"
+saveSlotAutosave: "AUTOSAVE"
+
+mpGamePlayerWins: "wins"
+mpGamePlayerLosses: "losses"
+
+mpGameRestrictions: "Game restrictions:"
+mpGameStatistics: "Statistics:"
+
+playerStatLuck: "LUCK"
+playerStatDominance: "DOMINANCE"
+
+timeSeconds: "sec"
+timeMinutes: "mintes"
+timeDay: "Day"

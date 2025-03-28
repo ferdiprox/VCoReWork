@@ -1,3 +1,4 @@
+#pragma once
 
 enum actintItemTypes
 {
@@ -314,19 +315,6 @@ void aciInitEndGame(int id);
 int aciTextQuant(void);
 char* aciLoadPackedFile(XStream& fh,int& sz);
 
-enum GameOverStatus
-{
-	GAME_OVER_EXPLOSION = 1,
-	GAME_OVER_INFERNAL_LOCKED,
-	GAME_OVER_SPOBS_LOCKED,
-	GAME_OVER_ALL_LOCKED,
-	GAME_OVER_LUCKY,
-	GAME_OVER_LAMPASSO,
-	GAME_OVER_ABORT,
-	GAME_OVER_NETWORK
-};
-
-extern int GameOverID;
 extern char* GameOverText;
 
 void XpeditionOFF(int type);

@@ -1,15 +1,13 @@
 #include "../global.h"
 #include "lang.h"
 
-//#include "..\win32f.h"
-
 #include "../3d/3d_math.h"
 #include "../3d/3dgraph.h"
 #include "../3d/3dobject.h"
-#include "../3d/parser.h"
+#include "../fs/parser.h"
 
 #include "../common.h"
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 #include "../backg.h"
 
 #include "../actint/item_api.h"
@@ -39,10 +37,9 @@
 
 #include "../sound/hsound.h"
 #include "magnum.h"
+#include "../random.h"
 
-
-extern int RAM16;
-extern iGameMap* curGMap;
+extern GameSurfaceDispatcher* curSurfaceDisp;
 extern uchar* FireColorTable;
 
 const char DEBRIS_LIFE_TIME = 100;
@@ -123,27 +120,18 @@ void ItemsDispatcher::Init(Parser& in)
 	MaxUnit = new int[MAX_ITEMS_OBJECT];
 	UnitStorage = new StorageType[MAX_ITEMS_OBJECT];
 
-	in.search_name("NumItems");
+	in.searchName("NumItems");
 
-	if(RAM16){
-		for(i = 0;i < MAX_ITEMS_OBJECT;i++){
-			MaxUnit[i] = in.get_int();
-			MaxUnit[i] /= 2;
-			if(MaxUnit[i] == 0) MaxUnit[i] = 1;
-			Total += MaxUnit[i];
-		};
-	}else{
-		for(i = 0;i < MAX_ITEMS_OBJECT;i++){
-			MaxUnit[i] = in.get_int();
-			Total += MaxUnit[i];
-		};
+	for(i = 0;i < MAX_ITEMS_OBJECT;i++){
+		MaxUnit[i] = in.get_int();
+		Total += MaxUnit[i];
 	};
 
-	in.search_name("UnitEnergy");
+	in.searchName("UnitEnergy");
 	UnitEnergy = in.get_int();
-	in.search_name("UnitArmor");
+	in.searchName("UnitArmor");
 	UnitArmor = in.get_int();
-	in.search_name("UnitDeletaEnergy");
+	in.searchName("UnitDeletaEnergy");
 	UnitDeltaEnergy = in.get_int();
 
 	UnitData = new GeneralObject*[Total];
@@ -169,7 +157,7 @@ void ItemsDispatcher::Init(Parser& in)
 		};
 	};
 
-	dp.search_name("NumDeviceType");
+	dp.searchName("NumDeviceType");
 	NumDeviceType = dp.get_int();
 	DeviceTypeData = new StuffObject*[NumDeviceType];
 
@@ -177,7 +165,7 @@ void ItemsDispatcher::Init(Parser& in)
 	for(j =0;j < MAX_ITEM_TYPE;j++) StuffItemLink[j] = (StuffObject*)0x83838383;
 
 	for(i = 0;i < NumDeviceType;i++){
-		dp.search_name("DeviceID");
+		dp.searchName("DeviceID");
 		name = dp.get_name();
 		if(!strcmp("Gun",name)){
 			DeviceTypeData[i] = new GunDevice;
@@ -196,7 +184,7 @@ void ItemsDispatcher::Init(Parser& in)
 
 		DeviceTypeData[i]->DataID = i;
 
-		dp.search_name("UvsDeviceName");
+		dp.searchName("UvsDeviceName");
 		name = dp.get_name();
 		for(j = 0;j < MAX_ITEM_TYPE;j++){
 			if(!strcmp(uvsItemTable[j]->name,name)){
@@ -212,14 +200,14 @@ void ItemsDispatcher::Init(Parser& in)
 			StuffItemLink[0] = DeviceTypeData[i];
 			DeviceTypeData[i]->uvsDeviceType = 0;
 			DeviceTypeData[i]->ActIntBuffer.type = uvsItemTable[0]->SteelerTypeEmpty;
-		};		
+		};
 		DeviceTypeData[i]->DeviceLoad(dp);
 	};
 };
 
 void ItemsDispatcher::Free(void)
 {
-	int i;	
+	int i;
 	for(i = 0;i < NumDeviceType;i++)
 		delete DeviceTypeData[i];
 	delete[] DeviceTypeData;
@@ -249,22 +237,22 @@ void ItemsDispatcher::Open(Parser& in)
 	GeneralMousePoint = Vector(83,0,0);
 
 	NumVisibleItem = Total;
-	if(!NetworkON){
+	if(!globalGameState.inNetwork){
 		for(i = 0;i < ProtoCryptTableSize[CurrentWorld];i++){
 			if(ProtoCryptTable[CurrentWorld][i].Enable){
 				if(ProtoCryptTable[CurrentWorld][i].SensorType == 2 || ProtoCryptTable[CurrentWorld][i].SensorType == 6){
 					for(j = 0;j < ITEM_LUCK_MAX;j++){
 						if((int)(RND(100)) <= aiCutLuck){
 							if(!RND(8))
-								uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x + (ITEM_LUCK_RADIUS*CO[RND(PI*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.y + (ITEM_LUCK_RADIUS*SI[RND(PI*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(6),CurrentWorld);
-							else 
-								uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x + (ITEM_LUCK_RADIUS*CO[RND(PI*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.y + (ITEM_LUCK_RADIUS*SI[RND(PI*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(2),CurrentWorld);
+								uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x + (ITEM_LUCK_RADIUS*IntCosIntTable[RND(Pi*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.y + (ITEM_LUCK_RADIUS*IntSinIntTable[RND(Pi*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(6),CurrentWorld);
+							else
+								uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x + (ITEM_LUCK_RADIUS*IntCosIntTable[RND(Pi*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.y + (ITEM_LUCK_RADIUS*IntSinIntTable[RND(Pi*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(2),CurrentWorld);
 						};
 					};
 				}else{
 					if(ProtoCryptTable[CurrentWorld][i].SensorType == 1 || ProtoCryptTable[CurrentWorld][i].SensorType == 7)
 						uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x,ProtoCryptTable[CurrentWorld][i].R_curr.y,ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(ProtoCryptTable[CurrentWorld][i].SensorType),CurrentWorld);
-					else 
+					else
 						uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x,ProtoCryptTable[CurrentWorld][i].R_curr.y,ProtoCryptTable[CurrentWorld][i].R_curr.z,ProtoCryptTable[CurrentWorld][i].z0,CurrentWorld);
 				};
 			};
@@ -282,12 +270,12 @@ void ItemsDispatcher::Open(Parser& in)
 
 void ItemsDispatcher::LarvaHilator(void)
 {
-	StuffObject* p;	
+	StuffObject* p;
 	p = (StuffObject*)Tail;
-	while(p){		
+	while(p){
 		if(p->ActIntBuffer.type == ACI_CONLARVER){
 			uvsFreeDolly(p->R_curr.x,p->R_curr.y,p->ActIntBuffer.data0);
-			p->ActIntBuffer.data1 = p->ActIntBuffer.data0 = 0;					
+			p->ActIntBuffer.data1 = p->ActIntBuffer.data0 = 0;
 			p->ActIntBuffer.type = uvsSetItemType(p->uvsDeviceType,p->ActIntBuffer.data0,p->ActIntBuffer.data1);
 		};
 		p = (StuffObject*)(p->NextTypeList);
@@ -297,7 +285,7 @@ void ItemsDispatcher::LarvaHilator(void)
 
 void ItemsDispatcher::Close(void)
 {
-	int i;	
+	int i;
 	StuffObject* p;
 	StuffObject* pp;
 	uvsItem* g;
@@ -305,7 +293,7 @@ void ItemsDispatcher::Close(void)
 	p = (StuffObject*)Tail;
 	FreeList(WorldTable[GameD.cWorld]->Pitem);
 
-	if(NetworkON){
+	if(globalGameState.inNetwork){
 		while(p){
 			pp = (StuffObject*)(p->NextTypeList);
 			DeleteItem(p);
@@ -322,7 +310,7 @@ void ItemsDispatcher::Close(void)
 			pp = (StuffObject*)(p->NextTypeList);
 			if(p->ActIntBuffer.type == ACI_CONLARVER){
 				uvsFreeDolly(p->R_curr.x,p->R_curr.y,p->ActIntBuffer.data0);
-				p->ActIntBuffer.data1 = p->ActIntBuffer.data0 = 0;					
+				p->ActIntBuffer.data1 = p->ActIntBuffer.data0 = 0;
 				p->ActIntBuffer.type = uvsSetItemType(p->uvsDeviceType,p->ActIntBuffer.data0,p->ActIntBuffer.data1);
 
 				g = new uvsItem(p->uvsDeviceType);
@@ -335,7 +323,7 @@ void ItemsDispatcher::Close(void)
 //				uvsKronDeleteItem(p->uvsDeviceType,p->ActIntBuffer.data0,p->ActIntBuffer.data1);
 			}else{
 				if(p->CreateMode != STUFF_CREATE_RELAX){
-					if(((int)(RND(100)) < aiCutLuck || p->Hour == ConTimer.hour || p->ActIntBuffer.type == ACI_TABUTASK_SUCCESSFUL || p->ActIntBuffer.type == ACI_TABUTASK || CurrentWorld >= MAIN_WORLD_MAX) && 
+					if(((int)(RND(100)) < aiCutLuck || p->Hour == ConTimer.hour || p->ActIntBuffer.type == ACI_TABUTASK_SUCCESSFUL || p->ActIntBuffer.type == ACI_TABUTASK || CurrentWorld >= MAIN_WORLD_MAX) &&
 					   (p->ActIntBuffer.type != ACI_ZEEX && p->ActIntBuffer.type != ACI_BEEBOORAT && p->ActIntBuffer.type != ACI_ELEEPOD && p->ActIntBuffer.type != ACI_TABUTASK_FAILED && p->ActIntBuffer.type != ACI_BOORAWCHIK)){
 						g = new uvsItem(p->uvsDeviceType);
 						g->param1 = p->ActIntBuffer.data0;
@@ -350,11 +338,11 @@ void ItemsDispatcher::Close(void)
 						if((ProtoCryptTable[CurrentWorld][i].SensorType == 3 || ProtoCryptTable[CurrentWorld][i].SensorType == 5 || (ProtoCryptTable[CurrentWorld][i].SensorType == 4 && ProtoCryptTable[CurrentWorld][i].z0 == UVS_ITEM_TYPE::SPUMMY)) && ProtoCryptTable[CurrentWorld][i].z0 == p->uvsDeviceType){
 							if(getDistY(ProtoCryptTable[CurrentWorld][i].R_curr.y,p->R_curr.y) < p->radius && getDistX(ProtoCryptTable[CurrentWorld][i].R_curr.x,p->R_curr.x) < p->radius)
 								ProtoCryptTable[CurrentWorld][i].Enable = 1;
-						};					
-					};				
+						};
+					};
 				};
 			};
-			
+
 			DeleteItem(p);
 			p = pp;
 		};
@@ -370,7 +358,7 @@ void ItemsDispatcher::Close(void)
 	};
 
 	for(i = 0;i < Total;i++) UnitData[i]->Close();
-	for(i = 0;i < MAX_ITEMS_OBJECT;i++) UnitStorage[i].Check();	
+	for(i = 0;i < MAX_ITEMS_OBJECT;i++) UnitStorage[i].Check();
 };
 
 
@@ -383,7 +371,7 @@ void Item2ShopAction(int type)
 				uvsKronDeleteItem(ProtoCryptTable[i][j].z0,0,0);
 				ProtoCryptTable[i][j].Enable = 0;
 				return;
-			};			
+			};
 		};
 	};
 };
@@ -394,17 +382,17 @@ void ItemsDispatcher::Quant(void)
 	StuffObject* p;
 	StuffObject* np;
 	StuffObject* pp;
-	VangerUnit* v;	
+	VangerUnit* v;
 
-	
-	if(NetworkON) CryptQuant();
+
+	if(globalGameState.inNetwork) CryptQuant();
 
 	NumVisibleItem = 0;
 	n = Tail;
 	while(n){
 		n->Quant();
 		n = n->NextTypeList;
-	};	
+	};
 
 	p = (StuffObject*)Tail;
 	while(p){
@@ -426,7 +414,7 @@ void ItemsDispatcher::Quant(void)
 								aciSendEvent2actint(ACI_PUT_ITEM,&(p->ActIntBuffer));
 								if(ActD.Active && v == ActD.Active)
 									SOUND_TAKE_ITEM(getDistX(ActD.Active->R_curr.x,p->R_curr.x))
-							};						
+							};
 							break;
 						case CHECK_DEVICE_ADD:
 							ObjectDestroy(p);
@@ -440,7 +428,7 @@ void ItemsDispatcher::Quant(void)
 							};
 							DeleteItem(p);
 							if(ActD.Active && v == ActD.Active)
-								SOUND_TAKE_ITEM(getDistX(ActD.Active->R_curr.x,p->R_curr.x))						
+								SOUND_TAKE_ITEM(getDistX(ActD.Active->R_curr.x,p->R_curr.x))
 							break;
 						case CHECK_DEVICE_OUT:
 							p->Owner = NULL;
@@ -496,12 +484,12 @@ void DebrisObject::Quant(void)
 		cycleTor(R_curr.x,R_curr.y);
 	}else{
 		if(Time > DEBRIS_LIFE_TIME)
-			Status |= SOBJ_DISCONNECT;			
+			Status |= SOBJ_DISCONNECT;
 	};
 };
 
 void DebrisObject::DrawQuant(void)
-{	
+{
 	draw();
 };
 
@@ -522,15 +510,15 @@ void StuffObject::Quant(void)
 	int lv;
 	int update_log = 0;
 
-	if(NetworkON && (Status & SOBJ_WAIT_CONFIRMATION)) NetOwnerQuant();
+	if(globalGameState.inNetwork && (Status & SOBJ_WAIT_CONFIRMATION)) NetOwnerQuant();
 	lv = Visibility;
-	GetVisible();	
+	GetVisible();
 
 	if(Status & SOBJ_WAIT_CONFIRMATION) return;
 
 	if(ActIntBuffer.type == ACI_CONLARVER && Hour != ConTimer.hour/* && Minutes == ConTimer.min*/){
 		uvsFreeDolly(R_curr.x,R_curr.y,ActIntBuffer.data0);
-		ActIntBuffer.data1 = ActIntBuffer.data0 = 0;					
+		ActIntBuffer.data1 = ActIntBuffer.data0 = 0;
 		ActIntBuffer.type = uvsSetItemType(uvsDeviceType,ActIntBuffer.data0,ActIntBuffer.data1);
 		FindDolly = 0;
 		SetStuffColor();
@@ -595,7 +583,7 @@ void StuffObject::Quant(void)
 					EffD.CreateDeform(R_curr,DEFORM_ALL,PASSING_WAVE_PROCESS);
 					device_modulation = 0;
 				};
-				break;				 
+				break;
 			default:
 				if((ActIntBuffer.type == ACI_ROTTEN_KERNOBOO || ActIntBuffer.type == ACI_ROTTEN_PIPETKA || ActIntBuffer.type == ACI_ROTTEN_WEEZYK || ActIntBuffer.type == ACI_DEAD_ELEECH) && (dynamic_state & GROUND_COLLISION))
 					Status |= SOBJ_DISCONNECT;
@@ -654,7 +642,7 @@ int StuffObject::GetTouchSensor(const char* name)
 	st = FindSensor(name);
 	if(st){
 		if(R_curr.z > ((SensorDataType*)(st))->z0 - radius && R_curr.z  < ((SensorDataType*)(st))->z1 + radius){
-			dx = getDistX(R_curr.x,st->R_curr.x);			
+			dx = getDistX(R_curr.x,st->R_curr.x);
 			dy = getDistY(R_curr.y,st->R_curr.y);
 			l = radius + st->radius;
 			if((dx*dx + dy*dy) < l*l)
@@ -668,8 +656,10 @@ void StuffObject::DrawQuant(void)
 {
 	if(Status & SOBJ_WAIT_CONFIRMATION) return;
 	if(ActIntBuffer.type != ACI_CONLARVER && ActIntBuffer.type != ACI_EMPTY_CONLARVER){
-		CycleTime = rPI(CycleTime + PI / 12);
-		scale_size = original_scale_size + original_scale_size*Sin(CycleTime) / 8.;
+		CycleTime += Pi / 12;
+		CycleTime &= ANGLE_CLAMP_MASK;
+
+		scale_size = original_scale_size + original_scale_size*fSin(CycleTime) / 8.;
 	};
 	draw();
 };
@@ -685,7 +675,7 @@ void StuffObject::CreateStuff(const Vector& _v,StuffObject* p,int cMode)
 	R_curr = _v;
 	Status = 0;
 	cycleTor(R_curr.x,R_curr.y);
-	set_active(0);	
+	set_active(0);
 	GetVisible();
 	switch_analysis(0);
 	CreateMode = cMode;
@@ -726,13 +716,13 @@ void StuffObject::CreateStuff(const Vector& _v,StuffObject* p,int cMode)
 			xImpulse = R_curr.x;
 			yImpulse = R_curr.y;
 			break;
-	};	
+	};
 
 	SetStuffColor();
 
 	switch(ActIntBuffer.type){
 		case  ACI_KERNOBOO:
-		case ACI_PIPETKA:			
+		case ACI_PIPETKA:
 			archimedean = 255;
 			break;
 		case ACI_ELEEPOD:
@@ -744,7 +734,7 @@ void StuffObject::CreateStuff(const Vector& _v,StuffObject* p,int cMode)
 		case ACI_PROTRACTOR:
 		case ACI_MECHANIC_MESSIAH:
 		case ACI_FUNCTION83:
-		case ACI_SPUMMY:			
+		case ACI_SPUMMY:
 			CreateArtefactTarget(this);
 			break;
 		default:
@@ -754,7 +744,7 @@ void StuffObject::CreateStuff(const Vector& _v,StuffObject* p,int cMode)
 
 	OutFlag = 0;
 	NetOwner = 0;
-	if(NetworkON){
+	if(globalGameState.inNetwork){
 		NetID = CREATE_STUFF_NET_ID(NID_STUFF);
 		NetDeviceID = CREATE_STUFF_NET_ID(NID_DEVICE);
 		NETWORK_OUT_STREAM.create_permanent_object(NetID,xImpulse,yImpulse,radius);
@@ -769,7 +759,7 @@ void StuffObject::CreateStuff(const Vector& _v,StuffObject* p,int cMode)
 		NETWORK_OUT_STREAM < (short)(R_curr.x);
 		NETWORK_OUT_STREAM < (short)(R_curr.y);
 		NETWORK_OUT_STREAM < (int)(NetOwner);
-		NETWORK_OUT_STREAM.end_body();		
+		NETWORK_OUT_STREAM.end_body();
 	};
 };
 
@@ -794,7 +784,7 @@ void StuffObject::CreateDevice(Vector v,VangerUnit* own,StuffObject* p)
 	Time = 0;
 	FindDolly = 0;
 
-	if(NetworkON && (Owner->Status & SOBJ_ACTIVE)){
+	if(globalGameState.inNetwork && (Owner->Status & SOBJ_ACTIVE)){
 		NetID = CREATE_STUFF_NET_ID(NID_STUFF);
 		NetDeviceID = CREATE_STUFF_NET_ID(NID_DEVICE);
 		NETWORK_OUT_STREAM.create_permanent_object(NetDeviceID,xImpulse,yImpulse,radius);
@@ -809,7 +799,7 @@ void StuffObject::CreateDevice(Vector v,VangerUnit* own,StuffObject* p)
 		NETWORK_OUT_STREAM < (short)(R_curr.x);
 		NETWORK_OUT_STREAM < (short)(R_curr.y);
 		NETWORK_OUT_STREAM < (int)(NetOwner);
-		NETWORK_OUT_STREAM.end_body();		
+		NETWORK_OUT_STREAM.end_body();
 	};
 };
 
@@ -836,11 +826,11 @@ void StuffObject::DeviceIn(void)
 		case ACI_SPUMMY:
 			DeleteArtefactTarget(this);
 			break;
-//		case ACI_MECHOSCOPE:			
+//		case ACI_MECHOSCOPE:
 //			break;
 	};
 
-	if(NetworkON && (Owner->Status & SOBJ_ACTIVE)){
+	if(globalGameState.inNetwork && (Owner->Status & SOBJ_ACTIVE)){
 		NETWORK_OUT_STREAM.delete_object(NetID);
 		NETWORK_OUT_STREAM < (uchar)(1);
 		NETWORK_OUT_STREAM.end_body();
@@ -877,7 +867,7 @@ void GunDevice::DeviceIn(void)
 					SOUND_DEGRADATOR_SHOT(getDistX(ActD.Active->R_curr.x,Owner->R_curr.x));
 				break;
 			case ACI_MECHOSCOPE:
-				if(NetworkON){
+				if(globalGameState.inNetwork){
 					if(PrevOwner && PrevOwner != Owner && (Owner->Status & SOBJ_ACTIVE) && PrevOwner->Visibility == VISIBLE && !(PrevOwner->Status & SOBJ_WAIT_CONFIRMATION)){
 						if(!(Owner->VangerChanger) && !(PrevOwner->VangerChanger)){
 							Owner->NetChanger = GET_STATION(PrevOwner->NetID);
@@ -941,8 +931,8 @@ void GunDevice::Quant(void)
 			};
 		};
 	};
-	StuffObject::Quant();	
-};	
+	StuffObject::Quant();
+};
 
 void GunDevice::DeviceQuant(void)
 {
@@ -988,7 +978,7 @@ void GunDevice::DeviceOut(Vector v1,int flag,Vector v2)
 				EffD.CreateDeform(Owner->R_curr,DEFORM_ALL,PASSING_WAVE_PROCESS);
 				break;
 			case ACI_DEGRADATOR:
-				Owner->scale_size = Owner->original_scale_size;				
+				Owner->scale_size = Owner->original_scale_size;
 				EffD.CreateDeform(Owner->R_curr,DEFORM_ALL,PASSING_WAVE_PROCESS);
 				break;
 		};
@@ -1000,7 +990,7 @@ void GunDevice::DeviceOut(Vector v1,int flag,Vector v2)
 const int DEVICE_OUT_NORMAL = 70;
 
 void StuffObject::ImpulseAction(Vector v1,int flag,Vector v2)
-{	
+{
 	R_curr = v1;
 	cycleTor(R_curr.x,R_curr.y);
 	GetVisible();
@@ -1017,7 +1007,7 @@ void StuffObject::ImpulseAction(Vector v1,int flag,Vector v2)
 
 	switch(ActIntBuffer.type){
 		case  ACI_KERNOBOO:
-		case ACI_PIPETKA:			
+		case ACI_PIPETKA:
 			archimedean = 255;
 			break;
 		case ACI_ELEEPOD:
@@ -1037,7 +1027,7 @@ void StuffObject::ImpulseAction(Vector v1,int flag,Vector v2)
 			DollyPoint.set(R_curr,15,8);
 		};
 		set_3D(SET_3D_DIRECT_PLACE,R_curr.x,R_curr.y,R_curr.z,0,0,0);
-		precise_impulse(R_curr,v2.x,v2.y);		
+		precise_impulse(R_curr,v2.x,v2.y);
 	}else
 		set_3D(SET_3D_DIRECT_PLACE,R_curr.x,R_curr.y,R_curr.z,0,0,0);
 };
@@ -1045,12 +1035,12 @@ void StuffObject::ImpulseAction(Vector v1,int flag,Vector v2)
 void StuffObject::DeviceOut(Vector v1,int flag,Vector v2)
 {
 	int d;
-	
+
 	if(LightData){
 		LightData->Destroy();
 		LightData = NULL;
-	};	
-	
+	};
+
 	R_curr = v1;
 	Status = 0;
 	cycleTor(R_curr.x,R_curr.y);
@@ -1068,7 +1058,7 @@ void StuffObject::DeviceOut(Vector v1,int flag,Vector v2)
 
 	switch(ActIntBuffer.type){
 		case  ACI_KERNOBOO:
-		case ACI_PIPETKA:			
+		case ACI_PIPETKA:
 			archimedean = 255;
 			break;
 		case ACI_ELEEPOD:
@@ -1080,15 +1070,15 @@ void StuffObject::DeviceOut(Vector v1,int flag,Vector v2)
 		case ACI_PROTRACTOR:
 		case ACI_MECHANIC_MESSIAH:
 		case ACI_FUNCTION83:
-		case ACI_SPUMMY:			
+		case ACI_SPUMMY:
 			CreateArtefactTarget(this);
 			break;
 		default:
 			archimedean = 0;
 			break;
-	};	
+	};
 
-	if(!NetworkON || (Owner->Status & SOBJ_ACTIVE)){
+	if(!globalGameState.inNetwork || (Owner->Status & SOBJ_ACTIVE)){
 		if(flag){
 			if(ActIntBuffer.type == ACI_EMPTY_CONLARVER){
 				FindDolly = 1;
@@ -1104,7 +1094,7 @@ void StuffObject::DeviceOut(Vector v1,int flag,Vector v2)
 						if(v2.y == -1){
 							v2.x = XCYCL(R_curr.x + GeneralMousePoint.x);
 							v2.y = YCYCL(GeneralMousePoint.y + R_curr.y);
-						};					
+						};
 					}else{
 						if(v2.y == -1){
 							v2.x = XCYCL(R_curr.x + MAX_STUFF_SCATTER - RND(2*MAX_STUFF_SCATTER));
@@ -1128,14 +1118,14 @@ void StuffObject::DeviceOut(Vector v1,int flag,Vector v2)
 				DollyPoint.set(R_curr,15,8);
 			};
 			set_3D(SET_3D_DIRECT_PLACE,R_curr.x,R_curr.y,R_curr.z,0,0,0);
-			precise_impulse(R_curr,v2.x,v2.y);		
+			precise_impulse(R_curr,v2.x,v2.y);
 		}else
 			set_3D(SET_3D_DIRECT_PLACE,R_curr.x,R_curr.y,R_curr.z,0,0,0);
 	};
 
 	Owner->DelDevice(this);
 	ItemD.ConnectTypeList(this);
-	GameD.ConnectBaseList(this);	
+	GameD.ConnectBaseList(this);
 
 	PUT_GLOBAL_EVENT(AI_EVENT_DROP,ID,this,Owner);
 
@@ -1148,7 +1138,7 @@ void StuffObject::DeviceOut(Vector v1,int flag,Vector v2)
 	};
 	OutFlag = flag;
 
-	if(NetworkON && (Owner->Status & SOBJ_ACTIVE)){
+	if(globalGameState.inNetwork && (Owner->Status & SOBJ_ACTIVE)){
 		NETWORK_OUT_STREAM.delete_object(NetDeviceID);
 		NETWORK_OUT_STREAM < (uchar)(1);
 		NETWORK_OUT_STREAM.end_body();
@@ -1166,7 +1156,7 @@ void StuffObject::DeviceOut(Vector v1,int flag,Vector v2)
 		NETWORK_OUT_STREAM < (short)(R_curr.y);
 		NETWORK_OUT_STREAM < (int)(NetOwner);
 		NETWORK_OUT_STREAM.end_body();
-	};	
+	};
 	Owner = NULL;
 };
 
@@ -1202,13 +1192,13 @@ void StuffObject::DeviceQuant(void){ };
 
 void StuffObject::DeviceLoad(Parser& in)
 {
-	in.search_name("ModelID");
+	in.searchName("ModelID");
 	ModelID = ModelD.FindModel(in.get_name());
 
-	in.search_name("SizeID");
+	in.searchName("SizeID");
 	SizeID = in.get_int();
 
-//	in.search_name("ActiveInterfaceID");
+//	in.searchName("ActiveInterfaceID");
 //	ActIntBuffer.type = in.get_int();
 };
 
@@ -1262,7 +1252,7 @@ void BulletObject::CreateBullet(Vector fv,Vector tv,GeneralObject* target,WorldB
 	CraterType = p->CraterType;
 
 	vTail = R_curr;
-	
+
 	vDelta = vTarget = Vector(0,0,0);
 	FrameCount = 0;
 //	OwnerTouchFlag = BULLET_OWNER_TOUCH | BULLET_OWNER_CHECK;
@@ -1321,7 +1311,7 @@ void BulletObject::CreateBullet(GunSlot* p,WorldBulletTemplate* n)
 
 	if(BulletID == BULLET_TYPE_ID::LASER)
 		vDelta = Vector(Speed,3 - RND(6),0)*p->mFire;
-	else 
+	else
 		vDelta = Vector(Speed,0,0)*p->mFire;
 
 	if(TargetObject && (BulletMode & BULLET_CONTROL_MODE::AIM)){
@@ -1360,8 +1350,8 @@ void BulletObject::Event(int type)
 			if(CurrentWorld != 1){
 				y0 = R_curr.y - EXPLOSION_BARELL_RADIUS;
 				y1 = R_curr.y + EXPLOSION_BARELL_RADIUS;
-				i = FindFirstStatic(y0,y1,(StaticObject**)TntSortedData,TntTableSize);				
-				
+				i = FindFirstStatic(y0,y1,(StaticObject**)TntSortedData,TntTableSize);
+
 				if(i > -1){
 					do{
 						st = TntSortedData[i];
@@ -1400,13 +1390,13 @@ void BulletObject::Event(int type)
 								};
 							}else{
 								for(i = 0;i < 6;i++){
-									vCheck = Vector(20,0,30)*DBM((int)RND(PI*2),Z_AXIS);
+									vCheck = Vector(20,0,30)*DBM((int)RND(Pi*2),Z_AXIS);
 									vCheck += R_curr;
 									vCheck.x = XCYCL(vCheck.x);
 									vCheck.y = YCYCL(vCheck.y);
 									EffD.CreateParticle(ExtShowType,R_curr,vCheck,ShowType);
 //									EffD.CreateParticleTime(ExtShowType,R_curr,vCheck,ShowType,10);
-								};							
+								};
 							};
 							if(CraterType >= 0) MapD.CreateCrater(R_curr,CraterType);
 						};
@@ -1435,15 +1425,15 @@ void BulletObject::Event(int type)
 							};
 						}else{
 							for(i = 0;i < 6;i++){
-								vCheck = Vector(20,0,30)*DBM((int)RND(PI*2),Z_AXIS);
+								vCheck = Vector(20,0,30)*DBM((int)RND(Pi*2),Z_AXIS);
 								vCheck += R_curr;
 								vCheck.x = XCYCL(vCheck.x);
 								vCheck.y = YCYCL(vCheck.y);
 	//							EffD.CreateParticle(ExtShowType,R_curr,vCheck,ShowType);
 								EffD.CreateParticleTime(ExtShowType,R_curr,vCheck,ShowType,15);
-							};							
-						};						
-					};					
+							};
+						};
+					};
 				};
 				if(CraterType >= 0) MapD.CreateCrater(R_curr,CraterType);
 			}else{
@@ -1514,7 +1504,7 @@ void BulletObject::TimeOutQuant(void)
 			case BULLET_TARGET_MODE::RANDOM:
 				if(RND(100) < 10) vTarget = Vector(BMAX_TARGET_VECTOR - RND(BMAX_TARGET_VECTOR2),BMAX_TARGET_VECTOR - RND(BMAX_TARGET_VECTOR2),BMAX_TARGET_VECTOR - RND(BMAX_TARGET_VECTOR2));
 				break;
-			case BULLET_TARGET_MODE::WALL:				
+			case BULLET_TARGET_MODE::WALL:
 				v.x = getDistX(R_curr.x,vWallTarget.x);
 				v.y = getDistY(R_curr.y,vWallTarget.y);
 				vTarget.x = v.x - v.y;
@@ -1533,7 +1523,7 @@ void BulletObject::TimeOutQuant(void)
 
 	vTail = R_curr;
 	R_curr += vDelta;
-	cycleTor(R_curr.x,R_curr.y);	
+	cycleTor(R_curr.x,R_curr.y);
 
 	Time--;
 	Power -= DeltaPower;
@@ -1545,7 +1535,7 @@ void BulletObject::TimeOutQuant(void)
 				v = Vector(getDistX(R_curr.x,g->vR.x),getDistY(R_curr.y,g->vR.y),0);
 				d = v.vabs();
 				if(d < PALLADIUM_RADIUS){
-					vDelta = Vector(Speed,0,0)*DBM(PI/2 + v.psi(),Z_AXIS);
+					vDelta = Vector(Speed,0,0)*DBM(Pi/2 + v.psi(),Z_AXIS);
 					R_curr = vTail;
 					R_curr += vDelta;
 					cycleTor(R_curr.x,R_curr.y);
@@ -1583,17 +1573,17 @@ void BulletObject::TimeOutQuant(void)
 			Event(BULLET_EVENT_ID::HIDE_LIFE_TIME_DESTROY);
 	};
 
-//	if(ShowID == BULLET_SHOW_TYPE_ID::PARTICLE){ 
+//	if(ShowID == BULLET_SHOW_TYPE_ID::PARTICLE){
 //		EffD.CreateParticle(ExtShowType,vTail,R_curr,ShowType);
-//		if(BulletScale) 
+//		if(BulletScale)
 //			EffD.CreateParticle(ExtShowType,vTail,R_curr,ShowType);
 //	};
 };
-		
+
 void BulletObject::Quant(void)
-{	
+{
 	if(Status & SOBJ_DISCONNECT) return;
-	
+
 	GetVisible();
 	TimeOutQuant();
 	if(Visibility == UNVISIBLE){
@@ -1618,10 +1608,13 @@ void BulletObject::Touch(GeneralObject* p)
 		if(Owner) PUT_GLOBAL_EVENT(AI_EVENT_COLLISION,ID_BULLET,Owner,(VangerUnit*)(p));
 
 		if(BulletMode & BULLET_CONTROL_MODE::IMPULSE){
-			if(/*(BulletMode & BULLET_CONTROL_MODE::FLY) && */(ShowID != BULLET_SHOW_TYPE_ID::CRATER))
-				((VangerUnit*)(p))->impulse(vDelta,Power / BULLET_IMPULSE_POWER,Power / BULLET_IMPULSE_ARM);
-			else{
-				((VangerUnit*)(p))->impulse(Vector(0,0,64),4*Power / BULLET_IMPULSE_POWER,4*Power / BULLET_IMPULSE_ARM);
+			if(ShowID == BULLET_SHOW_TYPE_ID::CRATER)
+            {
+                ((VangerUnit*)(p))->impulse(Vector(0,0,64),4*Power / BULLET_IMPULSE_POWER,4*Power / BULLET_IMPULSE_ARM);
+            }
+			else
+            {
+                ((VangerUnit*)(p))->impulse(vDelta,Power / BULLET_IMPULSE_POWER,Power / BULLET_IMPULSE_ARM);
 			};
 		};
 
@@ -1630,7 +1623,7 @@ void BulletObject::Touch(GeneralObject* p)
 
 		((VangerUnit*)(p))->BulletCollision(Power,Owner);
 
-		if(!(BulletMode & BULLET_CONTROL_MODE::UNTOUCH))				
+		if(!(BulletMode & BULLET_CONTROL_MODE::UNTOUCH))
 			Event(BULLET_EVENT_ID::TOUCH);
 	};
 	R_prev = vTail;
@@ -1639,12 +1632,12 @@ void BulletObject::Touch(GeneralObject* p)
 void BulletObject::DrawQuant(void)
 {
 	int tx,ty,s;
-	Vector vCheck;	
+	Vector vCheck;
 
 	switch(ShowID){
-		case BULLET_SHOW_TYPE_ID::PARTICLE:			
+		case BULLET_SHOW_TYPE_ID::PARTICLE:
 			EffD.CreateParticle(ExtShowType,R_prev,R_curr,ShowType);
-			if(BulletScale) 
+			if(BulletScale)
 				EffD.CreateParticle(ExtShowType,R_prev,R_curr,ShowType);
 			break;
 		case BULLET_SHOW_TYPE_ID::FIREBALL:
@@ -1654,9 +1647,9 @@ void BulletObject::DrawQuant(void)
 			s *= BulletScale;
 			EffD.FireBallData[ShowType].Show(tx,ty,R_curr.z,s,FrameCount);
 			EffD.FireBallData[ShowType].CheckOut(FrameCount);
-			if(LightData) 
+			if(LightData)
 				LightData->set_position(XCYCL(R_curr.x + vDelta.x),YCYCL(R_curr.y + vDelta.y),R_curr.z);
-			else 
+			else
 				LightData = MapD.CreateLight(R_curr.x,R_curr.y,R_curr.z,40,32,LIGHT_TYPE::DYNAMIC);
 			break;
 		case BULLET_SHOW_TYPE_ID::DEFORM:
@@ -1672,15 +1665,15 @@ void BulletObject::DrawQuant(void)
 			if(MapLevel && (vDelta.x != 0 || vDelta.y != 0 || vDelta.z != 0)){
 				if(ExtShowType){
 					if(BulletScale){
-						if(LightData) 
+						if(LightData)
 							LightData->set_position(R_prev.x,R_prev.y,R_prev.z + 63);
-						else 
+						else
 							LightData = MapD.CreateLight(R_curr.x,R_curr.y,R_curr.z,20,32,LIGHT_TYPE::STATIC);
 
 						MapD.CreateLavaSpot(R_curr,5,5,20,10,0,0,1,8,83,0,4,1,ExtShowType);
 					}else MapD.CreateLavaSpot(R_curr,5,2,10,7,0,0,2,7,83,0,4,1,ExtShowType);
 				}else MapD.CreateLavaSpot(R_curr,5,2,10,7,0,0,2,7,83,0,4,1,83);
-			};				
+			};
 			break;
 		case BULLET_SHOW_TYPE_ID::LASER:
 			vCheck = Vector(getDistX(R_prev.x,R_curr.x),getDistY(R_prev.y,R_curr.y),R_prev.z - R_curr.z);
@@ -1703,7 +1696,7 @@ void GunDevice::DeviceLoad(Parser& in)
 //	char* name;
 
 	StuffObject::DeviceLoad(in);
-	in.search_name("GunID");
+	in.searchName("GunID");
 
 	pData = &GameBulletData[in.get_int()];
 
@@ -1723,7 +1716,7 @@ int DevicetStorageID[MAX_DEVICE_TYPE] = {ITEM_GUN_DEVICE,ITEM_CHANGER,ITEM_OTHER
 /*void addDevice(int x,int y,int z,uvsItem* uvsD,ActionUnit* Owner,int net_mode,int nid)
 {
 	StuffObject* n = (StuffObject*)0x83838383;
-	StuffObject* p = (StuffObject*)0x69696969;	
+	StuffObject* p = (StuffObject*)0x69696969;
 	int l;
 
 	l = uvsD->type;
@@ -1732,7 +1725,7 @@ int DevicetStorageID[MAX_DEVICE_TYPE] = {ITEM_GUN_DEVICE,ITEM_CHANGER,ITEM_OTHER
 	if(p){
 		if(Owner) p->CreateDevice(Owner,n);
 		else p->CreateStuff(Vector(x,y,z),n);
-		
+
 		p->ActIntBuffer.data0 = uvsD->param1;
 		p->ActIntBuffer.data1 = uvsD->param2;
 
@@ -1753,7 +1746,7 @@ StuffObject* addDevice(int x,int y,int z,int device_type,int param1,int param2,V
 {
 	StuffObject* n = NULL;
 	StuffObject* p = NULL;
-	GeneralObject* g;	
+	GeneralObject* g;
 	GeneralObject* gg;
 	int t;
 
@@ -1782,7 +1775,7 @@ StuffObject* addDevice(int x,int y,int z,int device_type,int param1,int param2,V
 		else{
 			if(cMode == STUFF_CREATE_NONE){
 				if(z == ITEM_DEFAULT_Z) p->CreateStuff(Vector(x,y,z),n,STUFF_CREATE_NONE);
-				else 
+				else
 					p->CreateStuff(Vector(x,y,z),n,STUFF_CREATE_RELAX);
 			}else p->CreateStuff(Vector(x,y,z),n,cMode);
 		};
@@ -1790,7 +1783,7 @@ StuffObject* addDevice(int x,int y,int z,int device_type,int param1,int param2,V
 		if(p->StuffType == DEVICE_ID_GUN)
 			((GunDevice*)(p))->CreateGun();
 	};
-	
+
 	return p;
 };
 
@@ -1828,7 +1821,7 @@ void JumpBallObject::CreateBullet(GunSlot* p,WorldBulletTemplate* n)
 	archimedean = 0;
 
 	if(Mode == BULLET_TARGET_MODE::CONTROL){
-		vCheck = Vector(-(n->Speed),0,0)*DBM((int)(PI/4 - RND(PI/2)),Z_AXIS);
+		vCheck = Vector(-(n->Speed),0,0)*DBM((int)(Pi/4 - RND(Pi/2)),Z_AXIS);
 		vCheck *= p->mFire;
 		vCheck *= n->LifeTime + Owner->Speed;
 		vCheck /= n->Speed;
@@ -1899,11 +1892,11 @@ void JumpBallObject::Quant(void)
 			};
 			Status |= SOBJ_DISCONNECT;
 			if(Mode == BULLET_TARGET_MODE::CONTROL)	CreateDestroyEffect(R_curr,MAP_POINT_CRATER03,DT_DEFORM02,DEFORM_WATER_ONLY,-1,DT_FIRE_BALL02);
-			else CreateDestroyEffect(R_curr,MAP_POINT_CRATER10,DT_DEFORM02,DEFORM_WATER_ONLY,EFF_EXPLOSION03,-1);			
+			else CreateDestroyEffect(R_curr,MAP_POINT_CRATER10,DT_DEFORM02,DEFORM_WATER_ONLY,EFF_EXPLOSION03,-1);
 			if(ActD.Active)
 				SOUND_EXPLOSION_CRUSTER(getDistX(ActD.Active->R_curr.x,R_curr.x));
 		};
-	}else Status |= SOBJ_DISCONNECT;	
+	}else Status |= SOBJ_DISCONNECT;
 };
 
 void JumpBallObject::DrawQuant(void)
@@ -1925,7 +1918,7 @@ void JumpBallObject::Touch(GeneralObject* p)
 			if(ActD.Active)
 				SOUND_BARREL_DESTROY(getDistX(ActD.Active->R_curr.x,R_curr.x))
 		}else{
-			EffD.CreateExplosion(R_curr + Vector(0,0,20),EFF_EXPLOSION03);						
+			EffD.CreateExplosion(R_curr + Vector(0,0,20),EFF_EXPLOSION03);
 			if(ActD.Active)
 				SOUND_EXPLOSION_CRUSTER(getDistX(ActD.Active->R_curr.x,R_curr.x));
 		};
@@ -1991,7 +1984,7 @@ int aciGetScreenItem(int x,int y)
 	mp = NULL;
 	rz = -1;
 	S2G(x,y,tx,ty);
-	
+
 	if (ActD.Active) {
 		GeneralMousePoint = Vector(getDistX(tx, ActD.Active->R_curr.x), getDistY(ty, ActD.Active->R_curr.y), 0);
 	}
@@ -2012,7 +2005,7 @@ int aciGetScreenItem(int x,int y)
 		p = (BaseObject*)(p->NextTypeList);
 	};
 	if(mp) return ((StuffObject*)(mp))->ActIntBuffer.type;
-	return -1;	
+	return -1;
 };
 
 void SkyFarmerObject::Init(void)
@@ -2040,7 +2033,7 @@ void SkyFarmerObject::CreateSkyFarmer(int x_pos,int y_pos,int x_speed,int y_spee
 	GetVisible();
 	set_active(0);
 //	switch_analysis(1);
-	
+
 	Object::operator = (ModelD.ActiveModel(ModelD.FindModel("SkyFarmer")));
 
 	skyfarmer_start(R_curr.x,R_curr.y,random(Pi*2));
@@ -2103,7 +2096,7 @@ void SkyFarmerObject::Quant(void)
 	R_prev = R_curr;
 	cycleTor(R_curr.x,R_curr.y);
 	Timer++;
-	
+
 	vTrack = Vector(getDistX(TargetObject->R_curr.x,R_curr.x),getDistY(TargetObject->R_curr.y,R_curr.y),0);
 	d = vTrack.vabs();
 
@@ -2144,7 +2137,7 @@ void addFarmer(int x_pos,int y_pos,int x_speed,int y_speed,int corn_type,int cor
 	(FarmerD.CreateSkyFarmer())->CreateSkyFarmer(x_pos,y_pos,x_speed,y_speed,corn_type,corn,time);
 };
 
-//ind2 == -1 
+//ind2 == -1
 int uvsapiDestroyItem(int ind,int ind2)
 {
 	VangerUnit* n;
@@ -2154,7 +2147,7 @@ int uvsapiDestroyItem(int ind,int ind2)
 	GeneralObject* tp;
 	StuffObject* tg;
 
-	GamerOwnerLog = 0;	
+	GamerOwnerLog = 0;
 	p = ItemD.Tail;
 	while(p){
 //		if(p->ID != ID_STUFF)
@@ -2230,7 +2223,7 @@ int uvsapiDestroyItem(int ind,int ind2)
 				g = n->DeviceData;
 				while(g){
 					tg = g->NextDeviceList;
-					if(g->uvsDeviceType == ind){	
+					if(g->uvsDeviceType == ind){
 						g->uvsDeviceType = ind2;
 						g->ActIntBuffer.type = uvsSetItemType(g->uvsDeviceType,g->ActIntBuffer.data0,g->ActIntBuffer.data1);
 						if(n->Status & SOBJ_ACTIVE){
@@ -2266,23 +2259,23 @@ void WorldBulletTemplate::Init(Parser& in)
 {
 	char* name;
 
-	in.search_name("BulletID");
+	in.searchName("BulletID");
 	name = in.get_name();
 	BulletID = Name2Int(name,BULLET_ID_NAME,MAX_BULLET_ID);
 
-	in.search_name("LifeTime");
+	in.searchName("LifeTime");
 	LifeTime = in.get_int();
 
-	in.search_name("FirstPower");
+	in.searchName("FirstPower");
 	Power = (in.get_int() << 16) / 100;
 
-	in.search_name("LastPower");
+	in.searchName("LastPower");
 	DeltaPower = (((in.get_int() << 16) / 100) - Power) / LifeTime;
 
-	in.search_name("CraterType");
+	in.searchName("CraterType");
 	CraterType = in.get_int();
 
-	in.search_name("BulletMode");
+	in.searchName("BulletMode");
 	name = in.get_name();
 	if(!strcmp(name,"{")){
 		BulletMode = 0;
@@ -2294,29 +2287,29 @@ void WorldBulletTemplate::Init(Parser& in)
 	}else BulletMode = BULLET_CONTROL_MODE_VALUE[Name2Int(name,BULLET_CONTROL_MODE_NAME,MAX_BULLET_CONTROL_MODE_NAME)];
 
 	if(BulletID != BULLET_TYPE_ID::CHAIN_GUN){
-		in.search_name("Speed");
+		in.searchName("Speed");
 		Speed = in.get_int();
-		in.search_name("ShowID");
+		in.searchName("ShowID");
 		name = in.get_name();
 		ShowID = Name2Int(name,BULLET_SHOW_ID_NAME,MAX_BULLET_SHOW_ID_NAME);
-		in.search_name("ShowType");
+		in.searchName("ShowType");
 		ShowType = in.get_int();
-		in.search_name("ExtentionShowType");
+		in.searchName("ExtentionShowType");
 		ExtShowType = in.get_int();
-		in.search_name("Precision");
+		in.searchName("Precision");
 		Precision = in.get_int();
-		in.search_name("TargetMode");
+		in.searchName("TargetMode");
 		name = in.get_name();
 		TargetMode = Name2Int(name,BULLET_TARGET_MODE_NAME,MAX_BULLET_TARGET_MODE_NAME);
-		in.search_name("BulletScale");
+		in.searchName("BulletScale");
 		BulletScale = in.get_int();
-		in.search_name("AltOffset");
+		in.searchName("AltOffset");
 		AltOffset = in.get_int();
-		in.search_name("BulletRadius");
+		in.searchName("BulletRadius");
 		BulletRadius = in.get_int();
-		in.search_name("TapeSize");
+		in.searchName("TapeSize");
 		TapeSize = in.get_int();
-		in.search_name("WaitTime");
+		in.searchName("WaitTime");
 		WaitTime = WeaponWaitTime * in.get_int() >> 8;
 	};
 	Time = 0;
@@ -2345,7 +2338,7 @@ void ClefObject::CreateClef(void)
 	};
 	cycleTor(R_curr.x,R_curr.y);
 	GetVisible();
-	set_active(0);	
+	set_active(0);
 	switch_analysis(0);
 	ID = ID_DEBRIS;
 	Status = 0;
@@ -2359,7 +2352,7 @@ void ClefObject::Quant(void)
 	lv = Visibility;
 	GetVisible();
 	if(Visibility == VISIBLE){
-		if(lv == UNVISIBLE) 
+		if(lv == UNVISIBLE)
 			set_3D(SET_3D_TO_THE_LOWER_LEVEL,R_curr.x,R_curr.y,0,0,0,0);
 		R_prev = R_curr;
 		analysis();
@@ -2420,7 +2413,7 @@ void FishWarrior::Quant(void)
 	GetVisible();
 
 //zmod 1.21
-	if (NetworkON && zStatus==1)
+	if (globalGameState.inNetwork && zStatus==1)
 		Visibility = UNVISIBLE;
 
 	if(Visibility == VISIBLE){
@@ -2488,8 +2481,8 @@ void FishWarrior::Quant(void)
 
 		analysis();
 
-		RotMat = A_l2g*DBM(PI/2,Z_AXIS);
-		angle = rPI((int)RTOG(atan2(RotMat.a[1],RotMat.a[0])));
+		RotMat = A_l2g*DBM(Pi/2,Z_AXIS);
+		angle = ((int)realAng2Int(atan2(RotMat.a[1],RotMat.a[0]))) & ANGLE_CLAMP_MASK;
 		s = (int)V.y;
 
 		if(Speed == s){
@@ -2497,8 +2490,8 @@ void FishWarrior::Quant(void)
 				Speed = MaxSpeed;
 		};
 
-		a = rPI(vDelta.psi() - angle);
-		if(a > PI) a -= 2*PI;
+		a = (vDelta.psi() - angle) & ANGLE_CLAMP_MASK;
+		if(a > Pi) a -= PiX2;
 		d = Speed - s;
 
 		if(a > 0){
@@ -2514,7 +2507,7 @@ void FishWarrior::Quant(void)
 	};
 
 //zmod 1.21
-	if (NetworkON) {
+	if (globalGameState.inNetwork) {
 		if(Time-- <= 0) {
 			switch (zStatus) {
 				case 0:
@@ -2570,14 +2563,14 @@ void FishWarrior::Touch(GeneralObject *p)
 		CreateDestroyEffect(R_curr,MAP_POINT_CRATER09,DT_DEFORM02,DEFORM_WATER_ONLY,EFF_EXPLOSION01,-1);
 		Status |= SOBJ_DISCONNECT;
 	}
-*/	
+*/
 
 	if(p->ID != ID_VANGER) return;
 	if(((VangerUnit*)(p))->BeebonationFlag) return;
 	((VangerUnit*)(p))->BulletCollision(Power,NULL);
 	CreateDestroyEffect(R_curr,MAP_POINT_CRATER09,DT_DEFORM02,DEFORM_WATER_ONLY,EFF_EXPLOSION01,-1);
 
-	if (!NetworkON) {
+	if (!globalGameState.inNetwork) {
 		Status |= SOBJ_DISCONNECT;
 	} else {
 		Time = 30;
@@ -2600,15 +2593,16 @@ void HordeSource::Quant(void)
 	if(Status & SOBJ_DISCONNECT) return;
 	GetVisible();
 	if(Visibility == VISIBLE) analysis();
-	Time = rPI(Time + PI / 8);
+	Time += Pi / 8;
+	Time &= ANGLE_CLAMP_MASK;
 };
 
 void HordeSource::DrawQuant(void)
 {
 	if(Status & SOBJ_DISCONNECT) return;
-//	draw();	
-	scale_size = original_scale_size + original_scale_size*Sin(Time) / 8.;
-	pixel_draw();	
+//	draw();
+	scale_size = original_scale_size + original_scale_size*fSin(Time) / 8.;
+	pixel_draw();
 };
 
 void HordeSource::Touch(GeneralObject* p)
@@ -2667,7 +2661,7 @@ void HordeSource::CreateSource(Vector v,int nModel,int r,int z)
 	HordeRadius =  r;
 	zHorde = z;
 	Time = 0;
-	
+
 	DataID = nModel;
 };
 
@@ -2720,8 +2714,8 @@ void HordeObject::Quant(void)
 				vTarget = R_curr << 8;
 				for(i = 0,p = Data;i < NumParticle;i++,p++){
 					r = RND(radius8);
-					phi = rPI(RND(2*PI));
-					p->vR = vTarget + Vector(round(Cos(phi)*r),round(Sin(phi)*r),0);
+					phi = RND(PiX2) & ANGLE_CLAMP_MASK;
+					p->vR = vTarget + Vector(round(fCos(phi)*r),round(fSin(phi)*r),0);
 					p->vD = Vector(0,0,0);
 					p->Color = 1;
 				};
@@ -2761,13 +2755,13 @@ void HordeObject::Quant(void)
 								TargetObject = NULL;
 								update_log = 1;
 							};
-							
+
 							d = vTarget.vabs();
 							if(d){
 								vDelta += vTarget*Precision / d;
 								d = vDelta.vabs();
 								if(d > Speed) vDelta = vDelta * Speed / d;
-							};						
+							};
 						};
 
 						R_curr += vDelta;
@@ -2784,7 +2778,7 @@ void HordeObject::Quant(void)
 								vDelta /= d;
 								R_curr += vDelta;
 								cycleTor(R_curr.x,R_curr.y);
-							};								
+							};
 							break;
 						};
 						g = g->Next;
@@ -2823,7 +2817,7 @@ void HordeObject::Quant(void)
 								};
 							};
 							n = (VangerUnit*)(n->NextTypeList);
-						};					
+						};
 					};
 				};
 				break;
@@ -2834,7 +2828,7 @@ void HordeObject::Quant(void)
 				if(TargetObject->Status & SOBJ_DISCONNECT){
 					TargetObject = NULL;
 					update_log = 1;
-				}else{						
+				}else{
 					if(!(TargetObject->dynamic_state & (GROUND_COLLISION | WHEELS_TOUCH | TOUCH_OF_WATER)) && TargetObject && TargetObject->ExternalDraw && TargetObject->draw_mode == NORMAL_DRAW_MODE && !(TargetObject->BeebonationFlag)){
 						vTarget = Vector(getDistX(vZone.x,R_curr.x),getDistY(vZone.y,R_curr.y),vZone.z - R_curr.z);
 						d = vTarget.vabs();
@@ -2857,7 +2851,7 @@ void HordeObject::Quant(void)
 					}else vDelta = Vector(0,0,0);
 
 					R_curr += vDelta;
-					cycleTor(R_curr.x,R_curr.y);					
+					cycleTor(R_curr.x,R_curr.y);
 				};
 			}else{
 				vTarget = Vector(getDistX(vZone.x,R_curr.x),getDistY(vZone.y,R_curr.y),vZone.z - R_curr.z);
@@ -2885,7 +2879,7 @@ void HordeObject::DrawQuant(void)
 
 	//std::cout<<"HordeObject::DrawQuant "<<ActD.Active<<std::endl;
 	if(Status & SOBJ_DISCONNECT) return;
-	
+
 	if(ActD.Active)
 		SOUND_HORDE(getDistX(ActD.Active->R_curr.x,R_curr.x));
 
@@ -2946,7 +2940,7 @@ void HordeObject::Touch(GeneralObject* p)
 		((VangerUnit*)(p))->BulletCollision(Power,NULL);
 	};
 };
-   
+
 BulletObject* BulletList::CreateBullet(void)
 {
 	BulletObject* p;
@@ -2994,7 +2988,7 @@ void SkyFarmerList::Init(void)
 {
 	int i;
 	uvsElement* l;
-	char sign[8];	
+	char sign[8];
 	int FlyCount,CheckFlyCount;
 	XStream ff;
 
@@ -3032,10 +3026,10 @@ void SkyFarmerList::Free(void)
 	GeneralObject* p;
 	GeneralObject* pp;
 
-//	FreeFarmer(WorldTable[GameD.cWorld]->Panymal);	
+//	FreeFarmer(WorldTable[GameD.cWorld]->Panymal);
 	p = Tail;
 	while(p){
-		pp = p->NextTypeList;		
+		pp = p->NextTypeList;
 		l = new uvsFlyFarmer(((SkyFarmerObject*)(p))->CornType,WorldTable[CurrentWorld]);
 //		l->timer = ((SkyFarmerObject*)(p))->Timer;
 		l->timer = 0;
@@ -3068,7 +3062,7 @@ void HordeList::Init(void)
 {
 	int i,max;
 //zmod 1.21
-	if(NetworkON){
+	if(globalGameState.inNetwork){
 		double kmax = (1.-zMod_flood_level_delta)/2;
 		switch(CurrentWorld){
 			case WORLD_FOSTRAL:
@@ -3085,7 +3079,7 @@ void HordeList::Init(void)
 	}else{
 		switch(CurrentWorld){
 			case WORLD_WEEXOW:
-			case WORLD_ARKONOY:		
+			case WORLD_ARKONOY:
 				for(i = 0;i < MAX_HORDE_OBJECT;i++)
 					(CreateHorde())->CreateHorde(Vector(RND(map_size_x),RND(map_size_y),270),20,240,400,NULL);
 				break;
@@ -3104,10 +3098,10 @@ HordeObject* HordeList::CreateHorde(void)
 
 void HordeSourceList::Init(void)
 {
-	int i,max;	
+	int i,max;
 	UnitBaseListType::Init();
-//zmod 1.21 
-	if(NetworkON){
+//zmod 1.21
+	if(globalGameState.inNetwork){
 		double kmax = (1.+zMod_flood_level_delta)/2;
 		switch(CurrentWorld){
 			case WORLD_FOSTRAL:
@@ -3166,25 +3160,25 @@ void HordeSourceList::Quant(void)
 
 void FishWarriorList::Init(void)
 {
-/* 
+/*
 //zmod 1.17 as it was before
 	int i;
-	if(CurrentWorld == WORLD_WEEXOW && !NetworkON){
+	if(CurrentWorld == WORLD_WEEXOW && !globalGameState.inNetwork){
 		Data = new FishWarrior[MAX_FISH_WARRIOR];
 		for(i = 0;i < MAX_FISH_WARRIOR;i++){
 			Data[i].Init();
-			Data[i].CreateFish(Vector(RND(map_size_x),RND(map_size_y),10),20,RND(2*PI),5,2000,FISH_WARRIOR_PATROL,ModelD.FindModel("FishWarrior"),NULL,100 << 16);
+			Data[i].CreateFish(Vector(RND(map_size_x),RND(map_size_y),10),20,RND(2*Pi),5,2000,FISH_WARRIOR_PATROL,ModelD.FindModel("FishWarrior"),NULL,100 << 16);
 			ConnectTypeList(&Data[i]);
 		};
 	}else Data = NULL;
 */
 	int i;
-	if(!NetworkON){
+	if(!globalGameState.inNetwork){
 		if(CurrentWorld == WORLD_WEEXOW){
 			Data = new FishWarrior[MAX_FISH_WARRIOR];
 			for(i = 0;i < MAX_FISH_WARRIOR;i++){
 				Data[i].Init();
-				Data[i].CreateFish(Vector(RND(map_size_x),RND(map_size_y),10),20,RND(2*PI),5,2000,FISH_WARRIOR_PATROL,ModelD.FindModel("FishWarrior"),NULL,100 << 16);
+				Data[i].CreateFish(Vector(RND(map_size_x),RND(map_size_y),10),20,RND(2*Pi),5,2000,FISH_WARRIOR_PATROL,ModelD.FindModel("FishWarrior"),NULL,100 << 16);
 				ConnectTypeList(&Data[i]);
 			};
 		} else Data = NULL;
@@ -3194,7 +3188,7 @@ void FishWarriorList::Init(void)
 		max /= 2;
 		switch(CurrentWorld){
 			case WORLD_GLORX:
-				if (z_my_server_data.mod_id == Z_MODS_FORMULAV_ID) 
+				if (z_my_server_data.mod_id == Z_MODS_FORMULAV_ID)
 					max = 512;
 			case WORLD_WEEXOW:
 				if (z_my_server_data.mod_id == Z_MODS_NEPTUN_ID) //zmod 1.20 neptun fix
@@ -3205,7 +3199,7 @@ void FishWarriorList::Init(void)
 					Data[i].CreateFish(
 						Vector(NetRnd.Get(map_size_x),NetRnd.Get(map_size_y),10),
 						20,
-						NetRnd.Get(2*PI),
+						NetRnd.Get(2*Pi),
 						5,
 						1200 + RND(1200),
 						FISH_WARRIOR_PATROL,
@@ -3220,7 +3214,7 @@ void FishWarriorList::Init(void)
 				Data = NULL;
 				break;
 		};//switch
-	};//networkon
+	};//globalGameState.inNetwork
 };
 
 void FishWarriorList::FreeUnit(GeneralObject* p)
@@ -3399,7 +3393,7 @@ void StuffObject::NetEvent(int type,int id,int creator,int x,int y)
 			}else{
 				NetID = id;
 				NetDeviceID = t;
-			};			
+			};
 
 			ID = ID_STUFF;
 			GetDevice(ItemD.DeviceTypeData[DataID]);
@@ -3452,7 +3446,7 @@ void StuffObject::NetEvent(int type,int id,int creator,int x,int y)
 
 			switch(ActIntBuffer.type){
 				case  ACI_KERNOBOO:
-				case ACI_PIPETKA:			
+				case ACI_PIPETKA:
 					archimedean = 255;
 					break;
 				default:
@@ -3469,7 +3463,7 @@ void StuffObject::NetEvent(int type,int id,int creator,int x,int y)
 					ItemD.ConnectTypeList(this);
 					GameD.ConnectBaseList(this);
 				};
-			}else{				
+			}else{
 				ItemD.ConnectTypeList(this);
 				GameD.ConnectBaseList(this);
 
@@ -3490,9 +3484,9 @@ void StuffObject::NetEvent(int type,int id,int creator,int x,int y)
 						break;
 				};
 				GetVisible();
-				
+
 //				R_curr.x = xImpulse;
-//				R_curr.y = yImpulse;				
+//				R_curr.y = yImpulse;
 			};
 //			if(Owner && !NetOwner) NetStuffLog < "\nBad Create Owner";
 			break;
@@ -3510,10 +3504,10 @@ void StuffObject::NetEvent(int type,int id,int creator,int x,int y)
 					};
 					Owner->DelDevice(this);
 					Storage->Deactive(this);
-				}else 
+				}else
 					Status |= SOBJ_DISCONNECT;
 			}else Status |= SOBJ_WAIT_CONFIRMATION;
-			break;		
+			break;
 	};
 };
 
@@ -3544,7 +3538,7 @@ void ItemsDispatcher::NetDevice(int type,int id)
 			if(p->NetDeviceID == id) break;
 			p = (StuffObject*)(p->NextTypeList);
 		};
-		
+
 		if(p){
 			if(p->Status & SOBJ_DISCONNECT)	NETWORK_IN_STREAM.ignore_event();
 			else p->NetEvent(type,id,NETWORK_IN_STREAM.current_creator(),NETWORK_IN_STREAM.current_x(),NETWORK_IN_STREAM.current_y());
@@ -3570,7 +3564,7 @@ void ItemsDispatcher::NetEvent(int type,int id)
 	p = (StuffObject*)(GetNetObject(id));
 	if(p){
 		if(p->Status & SOBJ_DISCONNECT)	NETWORK_IN_STREAM.ignore_event();
-		else p->NetEvent(type,id,NETWORK_IN_STREAM.current_creator(),NETWORK_IN_STREAM.current_x(),NETWORK_IN_STREAM.current_y());		
+		else p->NetEvent(type,id,NETWORK_IN_STREAM.current_creator(),NETWORK_IN_STREAM.current_x(),NETWORK_IN_STREAM.current_y());
 	}else{
 		v = (VangerUnit*)(ActD.Tail);
 		while(v){
@@ -3585,7 +3579,7 @@ void ItemsDispatcher::NetEvent(int type,int id)
 
 		if(p){
 			if(p->Status & SOBJ_DISCONNECT)	NETWORK_IN_STREAM.ignore_event();
-			else p->NetEvent(type,id,NETWORK_IN_STREAM.current_creator(),NETWORK_IN_STREAM.current_x(),NETWORK_IN_STREAM.current_y());		
+			else p->NetEvent(type,id,NETWORK_IN_STREAM.current_creator(),NETWORK_IN_STREAM.current_x(),NETWORK_IN_STREAM.current_y());
 		}else{
 			if(type == UPDATE_OBJECT){
 				NETWORK_IN_STREAM > t;
@@ -3604,7 +3598,7 @@ void DebrisObject::vExplosion(Object* parent,int debris_index)
 	Object::operator = (*parent);
 	n_models = 1;
 	models = model = &(parent -> debris[debris_index]);
-	
+
 	m = density*model -> volume*pow(scale_size,3);
 	J_inv = (model -> J*(pow(scale_size,2)/model -> volume)).inverse();
 	body_color_shift++;
@@ -3635,7 +3629,7 @@ void GloryPlace::Init(int ind)
 	//zMod fixed
 
 	//zNfo - GloryPlace
-	
+
 	//Formula-V
 	if (z_my_server_data.mod_id == Z_MODS_FORMULAV_ID) {
 		World = WORLD_GLORX;
@@ -3646,8 +3640,8 @@ void GloryPlace::Init(int ind)
 		case 3:	R_curr.x =   80;	R_curr.y = 7281;	break;
 		}
 		return;
-	} 
-	
+	}
+
 	//Trak-Trial
 	if (z_my_server_data.mod_id == Z_MODS_TRAKTRIAL_ID) {
 		World = WORLD_NECROSS;
@@ -3657,7 +3651,7 @@ void GloryPlace::Init(int ind)
 		}
 		return;
 	}
-	
+
 	//khoxrun
 	if (z_my_server_data.mod_id == Z_MODS_KHOXRUN_ID) {
 		World = WORLD_KHOX;
@@ -3694,7 +3688,7 @@ void GloryPlace::Init(int ind)
 	R_curr.x = GloryRnd.aiRnd(WorldTable[World]->x_size);
 	if(World < MAIN_WORLD_MAX - 1)
 		R_curr.y = 300 + GloryRnd.aiRnd(WorldTable[World]->y_size - 600);
-	else	
+	else
 		R_curr.y = GloryRnd.aiRnd(WorldTable[World]->y_size);
 };
 
@@ -3722,14 +3716,14 @@ void GloryPlace::Quant(void)
 				return;
 			};
 		};
-		
+
 		if(ActD.Active){
 			if(!LightData)
 				LightData = MapD.CreateLight(R_curr.x,R_curr.y,255,GLORY_PLACE_RADIUS,32,LIGHT_TYPE::DYNAMIC | LIGHT_TYPE::TOR);
 
 			dx = getDistX(ActD.Active->R_curr.x,R_curr.x);
 			dy = getDistY(ActD.Active->R_curr.y,R_curr.y);
-			if((dx*dx + dy*dy) < GLORY_PLACE_RADIUS*GLORY_PLACE_RADIUS && 
+			if((dx*dx + dy*dy) < GLORY_PLACE_RADIUS*GLORY_PLACE_RADIUS &&
 				((ActD.Active->dynamic_state & GROUND_COLLISION) || (ActD.Active->dynamic_state & TRACTION_WHEEL_TOUCH) || (ActD.Active->dynamic_state & STEER_WHEEL_TOUCH))){
 					if(LightData){
 						LightData->Destroy();
@@ -3738,14 +3732,14 @@ void GloryPlace::Quant(void)
 					MapD.CreateLight(R_curr.x,R_curr.y,R_curr.z,GLORY_PLACE_RADIUS,32,LIGHT_TYPE::STATIONARY);
 					for(i = 0;i < 5;i++)
 						EffD.CreateDeform(Vector(XCYCL(R_curr.x + GLORY_PLACE_RADIUS - RND(2*GLORY_PLACE_RADIUS)),YCYCL(R_curr.y + GLORY_PLACE_RADIUS - RND(2*GLORY_PLACE_RADIUS)),255),DEFORM_ALL,PASSING_WAVE_PROCESS);
-					Enable = 0;					
+					Enable = 0;
 					UsedCheckNum++;
 					NetStatisticUpdate(NET_STATISTICS_CHECKPOINT);
 					if(UsedCheckNum >= GloryPlaceNum)
 						NetStatisticUpdate(NET_STATISTICS_END_RACE);
 					send_player_body(my_player_body);
 					SOUND_SUCCESS();
-			};		
+			};
 		};
 	};
 };
@@ -3827,14 +3821,14 @@ void aiPromptLuckMessage(int d)
 
 void ShowTaskMessage(int l)
 {
-	if(NetworkON) return;
+	if(globalGameState.inNetwork) return;
 	aiMessageQueue.SendTabuTask(l);
 };
 
 void ShowDominanceMessage(int d) //znfo
 {
 //#ifndef ZMOD_BETA
-	if(NetworkON) return; 
+	if(globalGameState.inNetwork) return;
 //#endif
 	aiMessageQueue.SendDominance(d);
 };
@@ -3842,7 +3836,7 @@ void ShowDominanceMessage(int d) //znfo
 void ShowLuckMessage(int l) //znfo
 {
 //#ifndef ZMOD_BETA
-	if(NetworkON) return; 
+	if(globalGameState.inNetwork) return;
 //#endif
 	aiMessageQueue.SendLuck(l);
 };
@@ -3891,11 +3885,11 @@ void ChangeItemData(int d)
 				switch(p->ActIntBuffer.type){
 					case ACI_TABUTASK_FAILED:
 						SOUND_FAILED();
-//						ShowTaskMessage(-TabuTable[p->ActIntBuffer.data1 & 0xffff]->luck);						
+//						ShowTaskMessage(-TabuTable[p->ActIntBuffer.data1 & 0xffff]->luck);
 						break;
 					case ACI_TABUTASK_SUCCESSFUL:
 						SOUND_SUCCESS();
-//						ShowTaskMessage(TabuTable[p->ActIntBuffer.data1 & 0xffff]->luck);						
+//						ShowTaskMessage(TabuTable[p->ActIntBuffer.data1 & 0xffff]->luck);
 						break;
 				};
 			};
@@ -3909,7 +3903,7 @@ void ChangeTabutaskItem(int type,int status)
 {
 	StuffObject* p;
 	VangerUnit* n;
-	
+
 	p = (StuffObject*)(ItemD.Tail);
 	while(p){
 		if(p->uvsDeviceType == UVS_ITEM_TYPE::TABUTASK && uvsChangeTabuTask(p->ActIntBuffer.data0,p->ActIntBuffer.data1,type,status)){
@@ -3988,7 +3982,7 @@ int aciGetScreenMechos(int x,int y)
 		l = ActD.Active->radius + ACI_CHECK_RADIUS;
 		if((dx*dx + dy*dy) < l*l) return 1;
 	};
-	return 0;	
+	return 0;
 };
 
 void GunDevice::CreateGun(void)
@@ -3997,7 +3991,7 @@ void GunDevice::CreateGun(void)
 	if(uvsDeviceType == UVS_ITEM_TYPE::AMPUTATOR || uvsDeviceType == UVS_ITEM_TYPE::DEGRADATOR || uvsDeviceType == UVS_ITEM_TYPE::MECHOSCOPE)
 		set_body_color(COLORS_IDS::BODY_GRAY);
 //	ActIntBuffer.data1 = 0;
-//	ActIntBuffer.type = uvsSetItemType(uvsDeviceType,ActIntBuffer.data0,ActIntBuffer.data1);	
+//	ActIntBuffer.type = uvsSetItemType(uvsDeviceType,ActIntBuffer.data0,ActIntBuffer.data1);
 };
 
 int ItemsDispatcher::CreateEnableCrypt(void)
@@ -4013,7 +4007,7 @@ int ItemsDispatcher::CreateEnableCrypt(void)
 		   && abs(getDistX(ProtoCryptTable[CurrentWorld][i].R_curr.x,ViewX)) < rx){
 			sz++;
 			ProtoCryptTable[CurrentWorld][i].Enable = 1;
-		}else 
+		}else
 			ProtoCryptTable[CurrentWorld][i].Enable = 0;
 	};
 	return sz;
@@ -4032,9 +4026,9 @@ void ItemsDispatcher::CryptQuant(void)
 					if(ProtoCryptTable[CurrentWorld][i].SensorType == 2 || ProtoCryptTable[CurrentWorld][i].SensorType == 6){
 						for(j = 0;j < (int)(RND(ITEM_LUCK_MAX));j++){
 							if(!RND(10))
-								uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x + (ITEM_LUCK_RADIUS*CO[RND(PI*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.y + (ITEM_LUCK_RADIUS*SI[RND(PI*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(6),CurrentWorld);
-							else 
-								uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x + (ITEM_LUCK_RADIUS*CO[RND(PI*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.y + (ITEM_LUCK_RADIUS*SI[RND(PI*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(2),CurrentWorld);
+								uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x + (ITEM_LUCK_RADIUS*IntCosIntTable[RND(Pi*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.y + (ITEM_LUCK_RADIUS*IntSinIntTable[RND(Pi*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(6),CurrentWorld);
+							else
+								uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x + (ITEM_LUCK_RADIUS*IntCosIntTable[RND(Pi*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.y + (ITEM_LUCK_RADIUS*IntSinIntTable[RND(Pi*2)] >> 16),ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(2),CurrentWorld);
 						};
 					}else{
 						if(ProtoCryptTable[CurrentWorld][i].SensorType == 1 || ProtoCryptTable[CurrentWorld][i].SensorType == 7)

@@ -1,3 +1,6 @@
+#pragma once
+
+#include "terra/world.h"
 
 struct PaletteTransform {
 	uchar* from;
@@ -39,3 +42,6 @@ extern int PAL_AMPL[TERRAIN_MAX];
 extern int PAL_RED[TERRAIN_MAX];
 extern int PAL_GREEN[TERRAIN_MAX];
 extern int PAL_BLUE[TERRAIN_MAX];
+
+extern uchar* palbuf,*palbufA,*palbufC,*palbufOrg,*palbufInt,*palbufBlack;
+extern int PalIterLock;

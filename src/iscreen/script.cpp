@@ -6,10 +6,6 @@
 #include "s_mem.h"
 #include "iscript.h"
 
-#if defined(_BINARY_SCRIPT_) || defined(_SAVE_BINARY_SCRIPT_)
-#include "zip.h"
-#endif
-
 /* ----------------------------- EXTERN SECTION ----------------------------- */
 /* --------------------------- PROTOTYPE SECTION ---------------------------- */
 
@@ -177,7 +173,7 @@ void ScriptFile::load(const char* fname)
 #else
 	int inc_count = 0;
 	fh.open(fname,XS_IN);
-	Size = fh.size();
+	Size = fh.size;
 
 	buffer = new char[Size];
 	fh.read(buffer,Size);
@@ -835,31 +831,6 @@ void ScriptFile::close_bscript(void)
 	write_end();
 	bin_fh -> close();
 
-#ifdef _SAVE_PACKED_SCRIPT_
-	int sz,out_sz;
-	char* p,*p1;
-
-	bin_fh -> open(bScriptName,XS_IN);
-	sz = bin_fh -> size();
-	p = new char[sz];
-	p1 = new char[sz];
-
-	bin_fh -> read(p,sz);
-	bin_fh -> close();
-
-	out_sz = ZIP_compress(p1,sz,p,sz);
-	if(!out_sz) ErrH.Abort("Bad compressed script size...");
-
-	CompressLog = 1;
-	bin_fh -> open(bScriptName,XS_OUT);
-	*bin_fh < BSCR_SIGN < '\0' < CompressLog;
-	bin_fh -> write(p1,out_sz);
-	bin_fh -> close();
-
-	delete p;
-	delete p1;
-#endif
-
 	delete bin_fh;
 #endif
 }
@@ -899,7 +870,7 @@ void ScriptFile::load_bscript(const char* fname)
 	fh.close();
 
 	std::cout<<"ScriptFile::load_bscript"<<fname<<" file."<<std::endl;
-	
+
 	binConv = new XBuffer(buf,sz);
 
 	if(!check_bsign())
@@ -910,11 +881,9 @@ void ScriptFile::load_bscript(const char* fname)
 		sz -= strlen(BSCR_SIGN) + 1 + sizeof(int);
 		p = buf + strlen(BSCR_SIGN) + 1 + sizeof(int);
 
-		out_sz = *(unsigned int*)(p + 2) + 12;//ZIP_GetExpandedSize(p);
-		
+		out_sz = *(unsigned int*)(p + 2) + 12;
+
 		p1 = new char[out_sz];
-		//ZIP_expand(p1,out_sz,p,sz);
-		/* ZLIB realisation (stalkerg)*/
 		if(*(short*)(p)) { //if label = 0 not compress
 			int stat = uncompress((Bytef*)p1,(uLongf*)&out_sz,(Bytef*)(p+2+4),sz-2-4);
 			switch(stat){
@@ -962,7 +931,7 @@ int ScriptFile::read_idata(void)
 #ifdef _BINARY_SCRIPT_
 	*binConv > val;
 
-	if(binConv -> end())
+	if(binConv -> isEndReached())
 		EOF_Flag = 1;
 #else
 	val = parse_math();
@@ -1026,7 +995,7 @@ void ScriptFile::read_pdata(char** ptr,int mode)
 
 	*binConv > ptr[0];
 
-	if(binConv -> end())
+	if(binConv -> isEndReached())
 		EOF_Flag = 1;
 #else
 	sz = strlen(get_ptr());
@@ -1061,7 +1030,7 @@ void ScriptFile::prepare_pdata(void)
 	*binConv > binConvBufSize;
 	*binConv > binConvBuf;
 
-	if(binConv -> end())
+	if(binConv -> isEndReached())
 		EOF_Flag = 1;
 #else
 	binConvBufSize = strlen(get_ptr());
@@ -1081,7 +1050,7 @@ void ScriptFile::prepare_idata(void)
 #ifdef _BINARY_SCRIPT_
 	*binConv > binConvData;
 
-	if(binConv -> end())
+	if(binConv -> isEndReached())
 		EOF_Flag = 1;
 #else
 	binConvData = parse_math();

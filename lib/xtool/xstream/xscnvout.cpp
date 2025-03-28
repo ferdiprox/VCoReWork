@@ -1,5 +1,6 @@
 #include "xglobal.h"
 
+#ifndef STD_PORT
 
 XStream& XStream::operator>= (char& var)
 {
@@ -123,3 +124,62 @@ XStream& XStream::operator>= (long double& var)
 	seek(p - _ConvertBuffer + 1 - ret,XS_CUR);
 	return *this;
 }
+
+#else // STD PORT IMPLEMENTATION 
+
+XStream& XStream::operator>= (char& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (unsigned char& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (short& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (unsigned short& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (int& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (unsigned& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (long& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (unsigned long& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (double& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (float& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+XStream& XStream::operator>= (long double& var)
+{
+	_OPERATOR_PORT_OUT();
+}
+
+#endif

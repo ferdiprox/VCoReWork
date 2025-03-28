@@ -1,7 +1,12 @@
 #include <zlib.h>
-#include "../global.h"
+
+#include "xgraph.h"
+#include "3dgraph.h"
+#include "3d_math.h"
 
 #include "general.h"
+
+extern XBuffer msg_buf;
 
 int PRECISION_8 = 0;
 int draw_mode = DRAW_GOURAUD;
@@ -73,180 +78,6 @@ int n_power = 8;
 XStream fout("lst",XS_OUT);
 #endif
 
-/*******************************************************************************
-			Parser's definition
-*******************************************************************************/
-#include <ctype.h>
-typedef unsigned long ulong;
-
-/*ulong ZIP_compress(char* trg,ulong trgsize,char* src,ulong srcsize);
-ulong ZIP_GetExpandedSize(char* p);
-void ZIP_expand(char* trg,ulong trgsize,char* src,ulong srcsize);
-*/
-inline unsigned crt(unsigned& VAL)
-{
-	VAL ^= VAL >> 3;
-	VAL ^= VAL << 28;
-	VAL &= 0x7FFFFFFF;
-
-	return VAL;
-}
-Parser::Parser(const char* name, const char* del_chars)
-: XBuffer(0,0)
-{
-	int i;
-	char c;
-	unsigned _time_;
-	XStream ff(name,XS_IN);
-	long len = ff.size();
-	ff > c;
-	if(c) {
-		ff.seek(0, XS_BEG);
-		alloc(len + 1);
-		ff.read(buf, len);
-		buf[len] = 0;
-		ff.close();
-	} else {
-#ifdef _ROAD_
-		ff > _time_;
-		_time_ *= 6386891;
-		_time_ |= 1;
-
-		long compressed_size = len - 5;
-		char* compressed_buff = new char[compressed_size];
-		ff.read(compressed_buff,compressed_size);
-		ff.close();
-
-		for(i = 0;i < compressed_size;i++)
-			compressed_buff[i] ^= crt(_time_);
-
-		long decompressed_size =  *(unsigned int*)(compressed_buff + 2) + 12;//ZIP_GetExpandedSize(compressed_buff);
-		alloc(decompressed_size + 1);
-		//ZIP_expand(address(),decompressed_size,compressed_buff,compressed_size);
-		/* ZLIB realisation (stalkerg)*/
-		if(*(short*)(compressed_buff)) { //if label = 0 not compress
-			//std::cout<<"Parser::Parser DeCompress "<<ff.file_name<<" file."<<std::endl;
-			int stat = uncompress((Bytef*)address(),(uLongf*)&decompressed_size,(Bytef*)(compressed_buff+2+4),compressed_size-2-4);
-			switch(stat){
-				//case Z_OK: std::cout<<"DeCompress ok."<<std::endl; break;
-				case Z_MEM_ERROR: std::cout<<"DeCompress not enough memory."<<std::endl; break;
-				case Z_BUF_ERROR: std::cout<<"DeCompress not enough room in the output buffer."<<std::endl; break;
-				case Z_DATA_ERROR: std::cout<<"DeCompress error data."<<std::endl; break;
-			};
-		} else {
-			memcpy(address(),compressed_buff + 2 + 4,(unsigned)(compressed_size - 2 - 4));
-		}
-		delete[] compressed_buff;
-		buf[decompressed_size] = 0;
-#else
-		ErrH.Abort("Parser: unable to read coded file");
-#endif
-	}
-
-	if(del_chars)
-		for(i = 0;i < (int)length();i++)
-			if(strchr(del_chars,buf[i]))
-				buf[i] = ' ';
-}
-void Parser::search_name(const char* name)
-{
-	if(!search(name))
-		ErrH.Abort("Parser: Name not found", XERR_USER, 0, name);
-	//(*this) + (int)(strlen(name));
-	set(tell() + (int)(strlen(name)));
-}
-int Parser::is_next_name(const char* name)
-{
-	unsigned int off = tell();
-	int log = 0;
-	if(search(name)){
-		unsigned int off1 = tell() - 1;
-		for(unsigned int i = off;i < off1;i++)
-			if(!iswspace(buf[i]))
-				goto ret;
-		log = 1;
-		}
-ret:
-	set(off);
-	return log;
-}
-char* Parser::get_name()
-{
-	char c;
-	unsigned int i,off;
-	do{
-		if(tell() >= length())
-			return 0;
-		*this > c;
-		}while(iswspace(c));
-
-	off = tell();
-	if(c == '"')
-		for(i = ++off;i < length();i++){
-			if((c = buf[i]) == '"' || (iswspace(c) && c != ' ' && c != '\t')){
-				buf[i] = 0;
-				break;
-				}
-			}
-	else
-		for(i = off;i < length();i++){
-			if(iswspace(buf[i])){
-				buf[i] = 0;
-				break;
-				}
-		}
-	set(++i < length() ? i : length());
-	return address() + off - 1;
-}
-char* Parser::get_string()
-{
-	int i;
-	char c;
-	do{
-		if(tell() >= length())
-			return 0;
-		*this > c;
-		}while(iswspace(c));
-
-	int off = tell();
-	for(i = off;i < (int)length();i++){
-		if(iswspace(buf[i]) && buf[i] != ' '){
-			buf[i] = 0;
-			break;
-			}
-		}
-	if(++i < (int)length())
-		set(i);
-	return address() + off - 1;
-}
-double Parser::quick_get_double()
-{
-	 char c,sign = 0;
-	 do
-		*this > c;
-		while(iswspace(c));
-
-	if(c == '-'){
-		sign = 1;
-		*this > c;
-		}
-	double val = 0;
-	while(iswdigit(c)){
-		val  *= 10;
-		val += (double)(c - '0');
-		*this > c;
-		}
-	if(c == '.'){
-		*this > c;
-		double dig = 1;
-		while(iswdigit(c)){
-			dig  /= 10;
-			val += ((double)(c - '0'))*dig;
-			*this > c;
-			}
-		}
-	return sign ? -val : val;
-}
 
 /******************************************************************************
 	 MEMORY HEAP Function & Variable
@@ -511,9 +342,9 @@ void z_line(int x1,int y1,int x2,int y2,int c1,int c2)
 
 	if(abs(x2 - x1) > abs(y2 - y1)){
 		if(x1 > x2){
-			SWAP(x1,x2);
-			SWAP(y1,y2);
-			SWAP(c1,c2);
+			xorSwap(x1,x2);
+			xorSwap(y1,y2);
+			xorSwap(c1,c2);
 			}
 		a = x2 - x1;
 		b = y2 - y1;
@@ -531,9 +362,9 @@ void z_line(int x1,int y1,int x2,int y2,int c1,int c2)
 		}
 	else{
 		if(y1 > y2){
-			SWAP(x1,x2);
-			SWAP(y1,y2);
-			SWAP(c1,c2);
+			xorSwap(x1,x2);
+			xorSwap(y1,y2);
+			xorSwap(c1,c2);
 			}
 		a = x2 - x1;
 		b = y2 - y1;

@@ -10,10 +10,6 @@
 
 typedef unsigned long ulong;
 
-/*ulong ZIP_compress(char* trg,ulong trgsize,char* src,ulong srcsize);
-ulong ZIP_GetExpandedSize(char* p);
-void ZIP_expand(char* trg,ulong trgsize,char* src,ulong srcsize);*/
-
 /* --------------------------- DEFINITION SECTION --------------------------- */
 
 int aciCurCredits04 = 0;
@@ -153,12 +149,11 @@ void aciCHTree::save(char* fname)
 	XBuffer* XBuf = new XBuffer(64000);
 
 	rootEl->save(XBuf);
-	p = XBuf->address();
+	p = XBuf->buf;
 	sz1= sz = XBuf->tell();
 	sz1+=12;
 	p1 = new char[sz];
 
-	//sz1 = ZIP_compress(p1,sz,p,sz);
 	/* ZLIB realization (stalkerg)*/
 	p1[0] = (char)(8 & 0xFF); //8 it is DEFLATE method
 	p1[1] = (char)((8 >> 8) & 0xFF);
@@ -192,9 +187,8 @@ void aciCHTree::load(const char* fname)
 	fh.read(p,sz);
 	fh.close();
 
-	sz1 = *(unsigned int*)(p + 2) + 12;//ZIP_GetExpandedSize(p);
+	sz1 = *(unsigned int*)(p + 2) + 12;
 	p1 = new char[sz1];
-	//ZIP_expand(p1,sz1,p,sz);
 	/* ZLIB realisation (stalkerg)*/
 	if(*(short*)(p)) { //if label = 0 not compress
 		//std::cout<<"aciCHTree::load DeCompress "<<fname<<" file."<<std::endl;

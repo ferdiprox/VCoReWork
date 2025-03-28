@@ -29,8 +29,7 @@ struct ParticleProcess;
 
 #include "../iscreen/controls.h"
 
-#undef random
-#define random(num) ((int)(((long)_rand()*(num)) >> 15))
+#include "../fs/parser.h"
 
 #ifdef SICHER_DEBUG
 #define NO_BORDER_FIELD
@@ -383,7 +382,7 @@ DBM calc_collision_matrix(const DBV& r,const DBM& J_inv)
 		1 + -t3*r.z+t7*r.y,  t12*r.z-t7*r.x, -t12*r.y+t3*r.x,
 		-t21*r.z+t25*r.y, 1 + t30*r.z-t25*r.x, -t30*r.y+t21*r.x,
 		-t39*r.z+t43*r.y, t48*r.z-t43*r.x, 1 + -t48*r.y+t39*r.x);
-} 
+}
 
 /*******************************************************************************
 			Entries control functions
@@ -392,14 +391,14 @@ int entry_scan_code;
 
 #ifndef ENTRIES_CONTROL
 
-#define ENTRY(val)	{ f.search_name(#val":"); f >= val; }
-#define COMMON_ENTRY(val) { fc.search_name(#val":"); fc >= val;}
+#define ENTRY(val)	{ f.searchName(#val":"); f >= val; }
+#define COMMON_ENTRY(val) { fc.searchName(#val":"); fc >= val;}
 #define entries_control()
 
-#else											    
+#else
 
-#define ENTRY(val)	{ int t = f.is_next_name("//"); f.search_name(#val":"); f >= val; if(active) add_entry(val,#val,t); }
-#define COMMON_ENTRY(val)      { int t = fc.is_next_name("//"); fc.search_name(#val":"); fc >= val; if(active) add_entry(val,#val,t); }
+#define ENTRY(val)	{ int t = f.is_next_name("//"); f.searchName(#val":"); f >= val; if(active) add_entry(val,#val,t); }
+#define COMMON_ENTRY(val)      { int t = fc.is_next_name("//"); fc.searchName(#val":"); fc >= val; if(active) add_entry(val,#val,t); }
 
 const int  MAX_ENTRIES = 256;
 const int  INT_ENTRY = 1;
@@ -588,7 +587,7 @@ void Object::save_parameters(char* name)
 
 	for(i = i_beg;i < i_end;i++){
 		str = f.GetBuf() + f.tell();
-		f.search_name(name_entries[i]);
+		f.searchName(name_entries[i]);
 		*(f.GetBuf() + f.tell()) = 0;
 		++f;
 		out < str < ":" < "\t\t";
@@ -625,7 +624,7 @@ void Object::global_save_parameter(int i_entry)
 		out.SetDigits(6);
 		char* str = f.GetBuf() + f.tell();
 		do
-			f.search_name(name_entries[i_entry]);
+			f.searchName(name_entries[i_entry]);
 			while(*(f.GetBuf() + f.tell()) != ':');
 		*(f.GetBuf() + f.tell()) = 0;
 		++f;
@@ -667,9 +666,9 @@ void Object::load_parameters(const char* name)
 	// Car's params
 	ENTRY(speed_factor);
 	ENTRY(mobility_factor);
-	
+
 	// Devices params
-	ENTRY(water_speed_factor); 
+	ENTRY(water_speed_factor);
 	ENTRY(air_speed_factor);
 	ENTRY(underground_speed_factor);
 
@@ -717,7 +716,7 @@ void Object::load_parameters(const char* name)
 	COMMON_ENTRY(num_skip_updates);
 	COMMON_ENTRY(wheel_analyze);
 	COMMON_ENTRY(analysis_off);
-	
+
 
 	// Impulse upproach params
 	COMMON_ENTRY(elastic_restriction);
@@ -976,7 +975,7 @@ inline int check_double_level(int x,int y)
 int trace_shadow(int x,int y,int z)
 {
 	int x0 = x;
-	z <<= 8;	
+	z <<= 8;
 	while((z >> 8) > get_upper_height(x,y)){
 		z -= SHADOWDEEP;
 		x--;
@@ -1203,7 +1202,7 @@ int VariablePolygon::lower_average(int xx,int yy,int zz,double& X0,double& Y0,do
 			x2 = xr >> 16;
 
 			if(x1 > x2)
-				SWAP(x1,x2);
+				xorSwap(x1,x2);
 			x1 &= ~1;
 			x2 |= 1;
 			N += (x2 - x1) >> 1;
@@ -1378,7 +1377,7 @@ int VariablePolygon::upper_average(int xx,int yy,int zz,double& X0,double& Y0,do
 			x2 = xr >> 16;
 
 			if(x1 > x2)
-				SWAP(x1,x2);
+				xorSwap(x1,x2);
 			x1 &= ~1;
 			x2 |= 1;
 			N += (x2 - x1) >> 1;
@@ -1511,7 +1510,7 @@ int VariablePolygon::check_terrain_type(int xx,int yy,int zz,int terrain_type)
 
 	//if(bl)
 		DIV16T(al,bl);
-	  
+
 	//if(br)
 		DIV16T(ar,br);
 
@@ -1533,10 +1532,10 @@ int VariablePolygon::check_terrain_type(int xx,int yy,int zz,int terrain_type)
 			x2 = xr >> 16;
 
 			if(x1 > x2)
-				SWAP(x1,x2);
+				xorSwap(x1,x2);
 			x1 &= ~1;
 			x2 |= 1;
-					
+
 			for(;x1 < x2;x1 += 2){
 				// Считаю, что "грибы" не размещаются под двухуровневостью.
 				p = p0 + ((x1 + xx) & clip_mask_x) + 1;
@@ -1628,7 +1627,7 @@ int VariablePolygon::check_mole_submerging(int xx,int yy,int zz)
 
 	//if(bl)
 		DIV16T(al,bl);
-	  
+
 	//if(br)
 		DIV16T(ar,br);
 
@@ -1650,10 +1649,10 @@ int VariablePolygon::check_mole_submerging(int xx,int yy,int zz)
 			x2 = xr >> 16;
 
 			if(x1 > x2)
-				SWAP(x1,x2);
+				xorSwap(x1,x2);
 			x1 &= ~1;
 			x2 |= 1;
-					
+
 			for(;x1 < x2;x1 += 2){
 				p = p0 + ((x1 + xx) & clip_mask_x) + 1;
 				type = *(p + H_SIZE);
@@ -1777,123 +1776,9 @@ int height_analysis_fish(int xx,int yy,double z_dbl,int D,double& dZ,DBV& h_fact
 		return 0;
 
 	h_factor = DBV((double)Sx/N,(double)Sx/N,zmax - zmin);
-	
+
 	dZ = (double)Sz/N - z_dbl;
 	return upper_log > 0 ? (dZ > 0 ? 1 : 0) :  (dZ < 0 ? 1 : 0);
-}
-int square_analysis(int xx,int yy,double z_dbl,int D,double& dZ,DBV& r,DBV& n)
-{
-	unsigned char** LineT = vMap -> lineT;
-	unsigned char *p0,*p;
-	int zz = round(z_dbl);
-	int x,y,z,dz,upper_log = 0,lh,mh,uh;
-	int x_sum = 0,y_sum = 0,z_sum = 0,dz_sum = 0,cnt = 0;
-	int N=0;
-	int Sx=0,Sx2=0;
-	int Sy=0,Sy2=0;
-	int Sz=0;
-	int Sxz=0,Syz=0;
-
-	int D2 = D*D;
-	int D3 = D2*D;
-	int D4 = D3*D;
-	N = 2*D2 + D;
-	Sx = -N;
-	Sx2 = (D4 + D3 + 2*(D + D2))/3;
-	Sy2 = (2*D4 + D2)/3 + D3;
-
-	xx -= (xx - D) & 1;
-	for(y = -D;y <= D;y++){
-		p0 = LineT[(y + yy) & clip_mask_y];
-		if(!p0)
-			continue;
-		for(x = -D;x < D;x += 2){
-			p = p0 + ((x + xx) & clip_mask_x);
-			if(!(*(p + H_SIZE) & DOUBLE_LEVEL)){
-				z = *p;
-				if((uh = *(p + 1)) > z)
-					z = uh;
-				if((dz = z - zz) > 0){
-					x_sum += x;
-					y_sum += y;
-					z_sum += z;
-					dz_sum += dz;
-					cnt++;
-					upper_log++;
-					}
-				}
-			else{
-				lh = *p;
-				uh = *(p + 1);
-				if(zz <= uh){
-					mh = GET_MIDDLE_HIGHT(lh,uh);
-					if(zz >= mh){
-						if(zz - mh < uh - zz){
-							z = lh;
-							x_sum += x;
-							y_sum += y;
-							z_sum += mh;
-							dz_sum += mh - zz;
-							cnt++;
-							upper_log--;
-							}
-						else{
-							z = uh;
-							x_sum += x;
-							y_sum += y;
-							z_sum += uh;
-							dz_sum += uh - zz;
-							cnt++;
-							upper_log++;
-							}
-						}
-					else{
-						z = lh;
-						if((dz = lh - zz) > 0){
-							x_sum += x;
-							y_sum += y;
-							z_sum += lh;
-							dz_sum += dz;
-							cnt++;
-							upper_log++;
-							}
-						}
-					}
-				else
-					z = uh;
-				}
-
-			Sz += z;
-			Sxz += x*z;
-			Syz += y*z;
-			}
-		}
-
-	if(!cnt)
-		return 0;
-
-	double cnt_inv = 1/double(cnt);
-	r.x = cnt_inv*x_sum;
-	r.y = cnt_inv*y_sum;
-	r.z = cnt_inv*z_sum;
-	dZ = cnt_inv*dz_sum;
-
-	double Det_x = (double)N*Sx2 - (double)Sx*Sx;
-	if(fabs(Det_x) < DBL_EPS){
-		n = DBV(0,0,1);
-		return 1;
-		}
-	double Det_y = (double)N*Sy2 - (double)Sy*Sy;
-	if(fabs(Det_y) < DBL_EPS){
-		n = DBV(0,0,1);
-		return 1;
-		}
-	double A = ((double)N*Sxz - (double)Sx*Sz)/Det_x;
-	double B = ((double)N*Syz - (double)Sy*Sz)/Det_y;
-	n = DBV(-A,-B,1);
-	n.norm(1);
-	//dZ *= n.z;
-	return 1;
 }
 
 int VariablePolygon::lower_average_z(int x_offset,int y_offset,int z_offset,double& dZ,DBV& r,DBV& n)
@@ -1925,9 +1810,9 @@ int VariablePolygon::lower_average_z(int x_offset,int y_offset,int z_offset,doub
 	al = ltv -> xscr_8 - xl; bl = ltv -> yscr_8 - Y;
 	ar = rtv -> xscr_8 - xl; br = rtv -> yscr_8 - Y;
 	xr = xl = (xl << 16) + (1 << 15);
-	
+
 	zl = lfv -> zscr_8;
-	zkl = ltv -> zscr_8 - zl; 
+	zkl = ltv -> zscr_8 - zl;
 	zkr = rtv -> zscr_8 - zl;
 	zr = zl = (zl << 16) + (1 << 15);
 
@@ -1968,8 +1853,8 @@ int VariablePolygon::lower_average_z(int x_offset,int y_offset,int z_offset,doub
 				goto cont;
 
 			if(x1 > x2){
-				SWAP(x1,x2);
-				SWAP(z1,z2);
+				xorSwap(x1,x2);
+				xorSwap(z1,z2);
 				}
 			zkf = (z2 - z1)/(x2 - x1);
 			//x1 &= ~1;
@@ -2073,7 +1958,7 @@ int VariablePolygon::lower_average_z(int x_offset,int y_offset,int z_offset,doub
 			al = ltv -> xscr_8 - xl;
 			bl = ltv -> yscr_8 - Y;
 			xl = (xl << 16) + (1 << 15);
-			
+
 			zl = lfv -> zscr_8;
 			zkl = ltv -> zscr_8 - zl;
 			zl = (zl << 16) + (1 << 15);
@@ -2094,7 +1979,7 @@ int VariablePolygon::lower_average_z(int x_offset,int y_offset,int z_offset,doub
 			ar = rtv -> xscr_8 - xr;
 			br = rtv -> yscr_8 - Y;
 			xr = (xr << 16) + (1 << 15);
-			
+
 			zr = rfv -> zscr_8;
 			zkr = rtv -> zscr_8 - zr;
 			zr = (zr << 16) + (1 << 15);
@@ -2106,7 +1991,7 @@ int VariablePolygon::lower_average_z(int x_offset,int y_offset,int z_offset,doub
 ret:
 	if(!cnt)
 		return 0;
-	
+
 	g_x_sum += x_sum;
 	g_y_sum += y_sum;
 	g_z_sum += z_sum;
@@ -2208,15 +2093,15 @@ void Object::dynamics_init(char* name)
 
 	after_db_coll = 0;
 	stuff_phase = 0;
-	
+
 	k_elastic_modulation = 1;
 	device_modulation = 1;
 	water_immersion = 0;
 	terrain_immersion = 0;
-	
+
 	skyfarmer_fly_direction = 0;
 	skyfarmer_direction = DBV(1,0,0);
-	
+
 	z_below = 0;
 
 	V_drag = V_drag_free;
@@ -2254,10 +2139,10 @@ void Object::update_coord(int camera_correction)
 		y_of_last_update = R_curr.y;
 	}
 
-	
+
 	xx = getDistX(xx,(double)ViewX);
 	yy = getDistY(yy,(double)ViewY);
-	
+
 
 	if(DepthShow) {
 		double offset = zmin*scale_real;
@@ -2276,7 +2161,7 @@ void Object::update_coord(int camera_correction)
 		double z1 = focus_flt - (R_curr.z >> 1);
 		scale_real = z1 > 0 ? focus_flt/z1 : 1;
 	}
-	
+
 	scale_real *= scale_general;
 	scale_real *= scale_size;
 	if(scale_real >1)
@@ -2296,10 +2181,10 @@ void Object::update_coord(int camera_correction)
 		radius = 4;
 
 	psi = (A_l2g[8] < 0 ?
-		(-RTOG(atan2(A_l2g[0],A_l2g[1]))) :
-		(RTOG(atan2(A_l2g[0],A_l2g[1])))) - Pi/2;
-	psi &= ANGLE_MASK;
-	tetta = RTOG(DBV(A_l2g[6],A_l2g[7],-A_l2g[8]).tetta());
+		(-realAng2Int(atan2(A_l2g[0],A_l2g[1]))) :
+		(realAng2Int(atan2(A_l2g[0],A_l2g[1])))) - Pi/2;
+	psi &= ANGLE_CLAMP_MASK;
+	tetta = realAng2Int(DBV(A_l2g[6],A_l2g[7],-A_l2g[8]).tetta());
 }
 void Object::set_3D(int mode,int x,int y,int z,int dz,int angle,int speed)
 {
@@ -2319,7 +2204,7 @@ void Object::set_3D(int mode,int x,int y,int z,int dz,int angle,int speed)
 	dR_corr = DBV(0,0,0);
 	dQ_corr = Quaternion(1,0,0,0);
 	closest_field_object = 0;
-	double dangle = GTOR(angle) - M_PI/2;
+	double dangle = intAng2Real(angle) - M_PI/2;
 	A_l2g = DBM(1,-1,1,DIAGONAL)*DBM(dangle,Z_AXIS);
 	A_g2l = DBM(-dangle,Z_AXIS)*DBM(1,-1,1,DIAGONAL);
 	Q_l2g = Quaternion(DBM(dangle,Z_AXIS));
@@ -2398,34 +2283,46 @@ void Object::impulse(int side)
 }
 void Object::impulse(int angle,int distance,int slope,int lever_arm)
 {
-	impulse(DBV(-Sin(slope)*Sin(angle),-Sin(slope)*Cos(angle),Cos(slope)),distance,lever_arm);
+	impulse(DBV(-fSin(slope)*fSin(angle),-fSin(slope)*fCos(angle),fCos(slope)),distance,lever_arm);
 }
-void Object::impulse(const DBV& direct,int distance,int lever_arm)
+void Object::impulse(const DBV& direct, double distance, int shakePower)
 {
-	if(R.z > 450)
-		return;
-	DBV F = A_g2l*direct;
-	F.norm((double)distance*k_distance_to_force*dt_impulse/sqrt(m));
-	V += F;
-	if(lever_arm){
-		DBV r = DBV(random(2*lever_arm) - lever_arm,
-			    random(2*lever_arm) - lever_arm,
-			    random(2*lever_arm) - lever_arm);
-		W += J_inv*(r % F);
-		}
+	//if(R.z > 450)
+	//	return;
+
+	DBV forceDirection = A_g2l*direct;
+	forceDirection.norm(distance*k_distance_to_force*dt_impulse/sqrt(m));
+	V += forceDirection;
+
+	if(shakePower)
+    {
+        int shakingSeed = random(2 * shakePower) - shakePower;
+
+		DBV randRotation = DBV(
+            shakingSeed,
+            -(2*shakePower) - shakePower,
+            shakingSeed
+        );
+
+        DBV impRot = J_inv*(randRotation % forceDirection);
+
+		W += impRot;
+
+    }
 }
 void Object::jump()
 {
-	if(R.z > 450)
-		return;
+	//if(R.z > 450)
+	//	return;
+
 	double f = device_modulation*5*jump_power*k_distance_to_force*dt_impulse/pow(m,0.3);
-	DBV dV = A_g2l*DBV(-Sin(Pi/10)*Sin(psi),-Sin(Pi/10)*Cos(psi),Cos(Pi/10));
+	DBV dV = A_g2l*DBV(-fSin(Pi/10)*fSin(psi),-fSin(Pi/10)*fCos(psi),fCos(Pi/10));
 	V = V + dV*f;
 	jump_power = 0;
 }
 int Object::get_max_jump_distance()
 {
-	DBV V = DBV(Sin(Pi/10), 0, Cos(Pi/10))*(5*max_jump_power*k_distance_to_force*dt_impulse/pow(m,0.3));
+	DBV V = DBV(fSin(Pi/10), 0, fCos(Pi/10))*(5*max_jump_power*k_distance_to_force*dt_impulse/pow(m,0.3));
 	DBV R(0,0,0);
 	while(R.z >= 0) {
 		V.z -= g*dt0;
@@ -2517,7 +2414,7 @@ void Object::controls(int mode,int param)
 				helicopter_time = max_helicopter_time;
 				rudder = 0;
 				}
-			break;																					
+			break;
 		case CONTROLS::HELICOPTER_DOWN:
 			if(helicopter && (helicopter -= helicopter_height_decr) < 0){
 				helicopter = 0;
@@ -2574,7 +2471,7 @@ void Object::controls(int mode,int param)
 				return;
 			if(dynamic_state & TOUCH_OF_WATER)
 				controls(CONTROLS::FLOTATION_DOWN);
-			else 
+			else
 				controls(CONTROLS::MOLE_DOWN);
 			break;
 
@@ -2638,7 +2535,7 @@ void Object::direct_keyboard_control()
 	if(XKey.Pressed(VK_HOME))
 		controls(CONTROLS::VIRTUAL_DOWN);
 
-#ifdef SICHER_DEBUG	
+#ifdef SICHER_DEBUG
 	static int fish_switch = 1;
 	if(XKey.Pressed('G') && fish_switch){
 		fish_test = 1 - fish_test;
@@ -2731,7 +2628,7 @@ void Object::direct_keyboard_control()
 	//	controls(CONTROLS::HELICOPTER_UP);
 
 
-	if(iKeyPressed(iKEY_DEVICE_ON))	     
+	if(iKeyPressed(iKEY_DEVICE_ON))
 		controls(CONTROLS::VIRTUAL_UP);
 
 	if(iKeyPressed(iKEY_DEVICE_OFF))
@@ -2778,7 +2675,7 @@ void Object::direct_joystick_control()
 					else
 						controls(CONTROLS::TRACTION_DECREASE);
 					}
-				
+
 				if(dx < 0)
 					controls(CONTROLS::STEER_LEFT);
 				if(dx > 0)
@@ -2824,7 +2721,7 @@ void Object::analysis()
 		update_coord();
 		return;
 		}
-#ifdef SICHER_DEBUG	
+#ifdef SICHER_DEBUG
 	if(stop_flag){
 		int aaa = 0;
 		}
@@ -2986,14 +2883,14 @@ void Object::mechous_analysis(double dt)
 		if(dz < 1)
 			dz = 1;
 
-		double fz = g*k_helicopter_thrust*pow(.5,sqr(dz/(double)helicopter))*(1 + helicopter_ampl*Sin(helicopter_thrust_phase += helicopter_dphi));
+		double fz = g*k_helicopter_thrust*pow(.5,sqr(dz/(double)helicopter))*(1 + helicopter_ampl*fSin(helicopter_thrust_phase += helicopter_dphi));
 		double fy = -heli_y_offset*air_speed_factor*global_air_speed_factor;
 		F_global.x += A_l2g[1]*fy;
 		F_global.y += A_l2g[4]*fy;
 		F_global.z += fz;
 
-		double dx = heli_x_offset + helicopter_circle_radius_x*Cos(helicopter_circle_phase += helicopter_circle_dphi);
-		double dy = heli_y_offset + helicopter_circle_radius_y*Sin(helicopter_circle_phase);
+		double dx = heli_x_offset + helicopter_circle_radius_x*fCos(helicopter_circle_phase += helicopter_circle_dphi);
+		double dy = heli_y_offset + helicopter_circle_radius_y*fSin(helicopter_circle_phase);
 		K_global.x -= (A_l2g[3]*dx + A_l2g[4]*dy + A_l2g[5]*heli_z_offset)*fz;
 		K_global.y += (A_l2g[0]*dx + A_l2g[1]*dy + A_l2g[2]*heli_z_offset)*fz;
 		if(!helicopter_strife)
@@ -3024,7 +2921,7 @@ void Object::mechous_analysis(double dt)
 			controls(CONTROLS::FLOTATION_UP);
 		else
 			controls(CONTROLS::FLOTATION_DOWN);
-	else 
+	else
 		archimedean = 0;
 
 	if(abs(traction) > traction_decrement)
@@ -3054,7 +2951,7 @@ void Object::mechous_analysis(double dt)
 //			terra_moving_tool.set(left_border, right_border,(A_l2g*V)*(dt*num_calls_analysis));
 //			terra_moving_tool.make_dast();
 //			}
-		
+
 		SoundFlag = 0;
 		if(helicopter && air_speed_factor < 1)
 			SoundFlag |= SoundCopterig;
@@ -3101,7 +2998,7 @@ void Object::basic_mechous_analysis(double dt,int last)
 		V.y *= pow(1 + log(V_drag_wheel_speed)*mobility_factor*global_speed_factor/speed_factor,speed_correction_factor);
 
 	DBV F,K;
-	
+
 	// Analysis of springs
 	double dZ;
 	DBV r,rg,rg0,vr,dF,n,vw;
@@ -3350,7 +3247,7 @@ void Object::basic_mechous_analysis(double dt,int last)
 					//DBV r1 = A_g2l*DBV(X0 - xy_offset,Y0 - xy_offset,0);
 					DBV u0 = V + W % r;
 					if(u0 * z_axis > 0){
-						//u0 = z_axis*(u0*z_axis); 
+						//u0 = z_axis*(u0*z_axis);
 						u0 = n*(u0*n);
 						DBV P = (calc_collision_matrix(r,J_inv).inverse()*u0)*(-vertical_impulse_factor*modulation);
 						V += P;
@@ -3398,7 +3295,7 @@ void Object::basic_mechous_analysis(double dt,int last)
 	in_water = (float_cnt << 8)/num_bounds;
 	if(archimedean && traction){
 		double dFy = device_modulation*(double)traction;
-		double dFx = (double)(traction > 0 ? -rudder : rudder)*dFy*k_water_rudder; 
+		double dFx = (double)(traction > 0 ? -rudder : rudder)*dFy*k_water_rudder;
 		dFy *= water_speed_factor*global_water_speed_factor;
 		rudder = rudder*15/16;
 		F.y += dFy;
@@ -3441,7 +3338,7 @@ void Object::basic_mechous_analysis(double dt,int last)
 						}
 					}
 				if(after_db_coll <= 0){
-					DBV normal = wheels[i].steer ? DBV(Cos(rudder),Sin(rudder),0) : DBV(1,0,0);
+					DBV normal = wheels[i].steer ? DBV(fCos(rudder),fSin(rudder),0) : DBV(1,0,0);
 					DBV u0 = vw;
 					u0 = normal*(u0*normal);
 					DBV P = -(calc_collision_matrix(r,J_inv).inverse()*u0)*k_wheel;
@@ -3535,13 +3432,13 @@ wheel_continue :
 			R += (A_l2g*V + (r_diff > 0 ? dV : -dV))*dt;
 			}
 
-		Q_l2g.rotate(W*dt); 
-				
+		Q_l2g.rotate(W*dt);
+
 		A_l2g = DBM(Q_l2g);
 		A_l2g[3] = -A_l2g[3];
 		A_l2g[4] = -A_l2g[4];
 		A_l2g[5] = -A_l2g[5];
-		
+
 		A_g2l = DBM(~Q_l2g);
 		A_g2l[1] = -A_g2l[1];
 		A_g2l[4] = -A_g2l[4];
@@ -3761,7 +3658,7 @@ void Object::basic_debris_analysis(double dt)
 					//DBV r1 = A_g2l*DBV(X0 - xy_offset,Y0 - xy_offset,0);
 					DBV u0 = V + W % r;
 					if(u0 * z_axis > 0){
-						//u0 = z_axis*(u0*z_axis); 
+						//u0 = z_axis*(u0*z_axis);
 						u0 = n*(u0*n);
 						DBV P = (calc_collision_matrix(r,J_inv).inverse()*u0)*(-vertical_impulse_factor*modulation);
 						V += P;
@@ -3817,7 +3714,7 @@ void Object::basic_debris_analysis(double dt)
 	V += F*dt;
 	W += (J_inv*K)*dt;
 
-	if(non_loaded_space){											
+	if(non_loaded_space){
 		V *= A_l2g;
 		V.z = 0;
 		V *= A_g2l;
@@ -3930,7 +3827,7 @@ void Object::fish_analysis(double dt)
 
 	V += F*dt;
 	W += (J_inv*K)*dt;
-	
+
 	A_g2l_old = A_g2l;
 	R_old = R;
 
@@ -3991,8 +3888,8 @@ void Object::insect_analysis()
 	W *= W_drag_insect;
 
 	R += A_l2g*V;
-	double psi = V.y*sin(GTOR(rudder))/((double)ymax_real); //insect
-	rudder -= SIGN(rudder)*RTOG(fabs(psi))/2;
+	double psi = V.y*sin(intAng2Real(rudder))/((double)ymax_real); //insect
+	rudder -= SIGN(rudder)*realAng2Int(fabs(psi))/2;
 
 	DBM A_rot_inv = DBM(-psi,Z_AXIS)*DBM(W,-(W.vabs()));
 	A_g2l = A_rot_inv*A_g2l;
@@ -4011,7 +3908,7 @@ void Object::skyfarmer_start(int x,int y,int angle)
 	skyfarmer_fly_direction = 1;
 	scale_size = 0;
 	R = DBV(x,y,0);
-	double dangle = GTOR(angle) - M_PI/2;
+	double dangle = intAng2Real(angle) - M_PI/2;
 	A_l2g = DBM(1,-1,1,DIAGONAL)*DBM(dangle,Z_AXIS);
 	A_g2l = DBM(-dangle,Z_AXIS)*DBM(1,-1,1,DIAGONAL);
 }
@@ -4090,7 +3987,7 @@ int Object::check_terrain_type(int terrain_type)
 		    *scale_bound_real)*A_l2g + R;
 		if(bound -> variable_polygons[i].check_terrain_type(x_offset,y_offset,round(r.z),terrain_type))
 			return 1;
-		}	
+		}
 	return 0;
 }
 
@@ -4114,7 +4011,7 @@ int Object::check_mole_submerging()
 		    *scale_bound_real)*A_l2g + R;
 		if(!bound -> variable_polygons[i].check_mole_submerging(x_offset,y_offset,round(r.z)))
 			return 0;
-		}	
+		}
 	return 1;
 }
 
@@ -4494,7 +4391,7 @@ int Object::test_object_to_baseobject(BaseObject* bobj)
 
 		double Pabs = P.vabs();
 		if(Pabs < strong_double_collision_threshould)
-			return 1; 
+			return 1;
 		//fout <= k_destroy_level*Pabs/m2 < "\t";
 		//fout <= k_destroy_level*Pabs/m1 < "\n";
 		if(active || obj -> active)
@@ -4744,7 +4641,7 @@ void Object::NetEvent(int type,int id,int creator,int time,int x,int y,int radiu
 	W.x = unpack_short(events_in.get_word(),W_pack_min,W_pack_max);
 	W.y = unpack_short(events_in.get_word(),W_pack_min,W_pack_max);
 	W.z = unpack_short(events_in.get_word(),W_pack_min,W_pack_max);
-	 
+
 	Quaternion Q_real;
 
 	Q_real.x = unpack_short(events_in.get_word(),Q_pack_min,Q_pack_max);
@@ -4776,7 +4673,7 @@ void Object::NetEvent(int type,int id,int creator,int time,int x,int y,int radiu
 	if(Q_real*Q_t < 0)
 		Q_t = -Q_t;
 	dQ_corr = Q_t % Q_real.inverse();
-	
+
 	R = R_real;
 	A_l2g = DBM(1,-1,1,DIAGONAL)*DBM(Q_real);
 	A_g2l = transpose(A_l2g);
@@ -4790,7 +4687,7 @@ void Object::Send(void)
 	events_out < pack(traction,Rz_pack_min,Rz_pack_max);
 	events_out < pack(rudder,Rz_pack_min,Rz_pack_max);
 	events_out < pack(helicopter,Rz_pack_min,Rz_pack_max);
-	
+
 	events_out < (short)round(R.z);
 	events_out < pack_short(V.x,V_pack_min,V_pack_max) < pack_short(V.y,V_pack_min,V_pack_max) < pack_short(V.z,V_pack_min,V_pack_max);
 	events_out < pack_short(W.x,W_pack_min,W_pack_max) < pack_short(W.y,W_pack_min,W_pack_max) < pack_short(W.z,W_pack_min,W_pack_max);

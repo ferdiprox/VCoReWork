@@ -8,14 +8,16 @@
 #include "../common.h"
 //#include "..\terra\world.h"
 
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 #include "poly3d.h"
+
+#include "../random.h"
 
 extern uchar DestroyMoleTable[TERRAIN_MAX];
 #define BREAKABLE_TERRAIN(prop)		(DestroyMoleTable[GET_TERRAIN((prop))] > 127)
 
 //-----------------------------------------------------------------
-extern iGameMap* curGMap;
+extern GameSurfaceDispatcher* curSurfaceDisp;
 
 //-----------------------------------------------------------------
 
@@ -798,7 +800,7 @@ void dastPoly3D::make_mole( dastResourcePoly3D* res ){
 }
 
 int dastPoly3D::make_first_mole( dastResourcePoly3D* res ){
-	int dA = PIx2>>5;
+	int dA = PiX2>>5;
 	int A = 0;
 	unsigned int scale;
 	if (count < 3 || n < 3) return 0;
@@ -819,7 +821,7 @@ int dastPoly3D::make_first_mole( dastResourcePoly3D* res ){
 	for( int i = 1; i < 32; i++, A += dA)
 //		if ( !RND(16 - (count/5)) ){
 		if ( RND(count) && RND(3)){
-			dastPutSpriteOnMapAlt( p->x + ((SI[A]*count)>>16), p->y + ((CO[A]*count)>>16), res->data[RND(res->n)], res->x_size, res->y_size, scale);
+			dastPutSpriteOnMapAlt( p->x + ((IntSinIntTable[A]*count)>>16), p->y + ((IntCosIntTable[A]*count)>>16), res->data[RND(res->n)], res->x_size, res->y_size, scale);
 			//regRender( p->x - n - 8, p->y - count - 8, p->x + n + 8, p->y + count + 8, 0);
 		}
 
@@ -829,7 +831,7 @@ int dastPoly3D::make_first_mole( dastResourcePoly3D* res ){
 }
 
 int dastPoly3D::make_last_mole( dastResourcePoly3D* res ){
-	int dA = PIx2>>5;
+	int dA = PiX2>>5;
 	int A = 0;
 	unsigned int scale;
 	if (count >= n ) return 0;
@@ -848,7 +850,7 @@ int dastPoly3D::make_last_mole( dastResourcePoly3D* res ){
 	for( int i = 1; i < 32; i++, A += dA)
 		if ( RND(count) ){
 //		if ( !RND(16 - (count/5)) ){
-			dastPutSpriteOnMapAlt( p->x + ((SI[A]*count)>>16), p->y + ((CO[A]*count)>>16), res->data[RND(res->n)], res->x_size, res->y_size, scale);
+			dastPutSpriteOnMapAlt( p->x + ((IntSinIntTable[A]*count)>>16), p->y + ((IntCosIntTable[A]*count)>>16), res->data[RND(res->n)], res->x_size, res->y_size, scale);
 			//regRender( p->x - n - 8, p->y - count - 8, p->x + n + 8, p->y + count + 8, 0);
 		}
 
@@ -858,7 +860,7 @@ int dastPoly3D::make_last_mole( dastResourcePoly3D* res ){
 }
 
 int dastPoly3D::make_catch_dolly( dastResourcePoly3D* res ){
-	int dA = PIx2>>5;
+	int dA = PiX2>>5;
 	int A = 0;
 	unsigned int scale;
 	int dx, dy;
@@ -877,8 +879,8 @@ int dastPoly3D::make_catch_dolly( dastResourcePoly3D* res ){
 
 	for( int i = 1; i < 32; i++, A += dA)
 		if ( !RND(16) ){
-			dx = ((SI[A]*(n + RND(10)))>>16);
-			dy = ((CO[A]*(n + RND(10)))>>16);
+			dx = ((IntSinIntTable[A]*(n + RND(10)))>>16);
+			dy = ((IntCosIntTable[A]*(n + RND(10)))>>16);
 			dastPutSpriteOnMapAlt( p->x + dx, p->y + dy, res->data[RND(res->n)], res->x_size, res->y_size, scale);
 			regRender( p->x + dx  - 8, p->y + dy - 8, p->x + dx + 8, p->y + dy + 8, 0);
 		}

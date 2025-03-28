@@ -5,6 +5,7 @@
 #include "../units/uvsapi.h"
 #include "univang.h"
 #include "screen.h"
+#include "../sqfont.h"
 
 #undef COL1
 #undef COL2
@@ -27,7 +28,6 @@
 #endif
 
 /* ----------------------------- EXTERN SECTION ---------------------------- */
-extern sqFont sysfont;
 extern WorldScreen* scrTable[MAIN_WORLD_MAX];
 extern uvsElement* ETail;
 extern int c_All_Number;
@@ -231,7 +231,8 @@ std::cout<<"WorldScreen::Quant"<<std::endl;
 		}
 
 	uvsPassage* pp;
-	for(i = 0;i < Pworld -> pssTmax;i++){
+	for(i = 0;i < Pworld -> pssTmax;i++)
+	{
 		pp = Pworld -> pssT[i];															
 		xx = x + GetX(pp -> pos_y);
 		yy = y + GetY(pp -> pos_x);
@@ -247,16 +248,17 @@ std::cout<<"WorldScreen::Quant"<<std::endl;
 #ifndef TINY_MODE
 		sysfont.draw(xx,yy,s,COL1,-1);
 #endif
-		}
+	}
 
 	uvsElement* ppe = Pworld -> Panymal;
-	while(ppe){
-			int xx = x + GetX(((uvsFlyFarmer*)ppe) -> pos_y);
-			int yy = y + GetY(((uvsFlyFarmer*)ppe) -> pos_x);
+	while(ppe)
+	{
+		int xx = x + GetX(((uvsFlyFarmer*)ppe) -> pos_y);
+		int yy = y + GetY(((uvsFlyFarmer*)ppe) -> pos_x);
 
-			XGR_PutSpr(xx - ICON_SX/2,yy - ICON_SY/2,ICON_SX,ICON_SY,ICON_FLY_FARMER, XGR_HIDDEN_FON);
+		XGR_PutSpr(xx - ICON_SX/2,yy - ICON_SY/2,ICON_SX,ICON_SY,ICON_FLY_FARMER, XGR_HIDDEN_FON);
 
-			ppe = ppe -> enext;
+		ppe = ppe -> enext;
 	}
 }
 

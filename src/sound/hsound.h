@@ -3,6 +3,8 @@
 
 #include "../../lib/xsound/_xsound.h"
 
+#include "../random.h"
+
 #ifdef _DEBUG
 //#define _NO_CDAUDIO_
 #endif

@@ -29,10 +29,7 @@ void xsSetWriteHandler(void (*fp)(unsigned),unsigned res)
 unsigned long XStream::read(void* buf, unsigned long len)
 {
 	unsigned long ret;
-	/*if(!ReadFile(handler,buf,len,&ret,0))
-		if(ErrHUsed) ErrH.Abort(readMSG,XERR_USER,GetLastError(),fname);
-		else return 0U;
-	if(ret < len) eofFlag = 1;*/
+
 	((std::fstream *)handler)->read((char *)buf, len);
 	len = ((std::fstream *)handler)->gcount();
 	ret = len;

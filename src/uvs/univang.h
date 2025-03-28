@@ -1,52 +1,56 @@
+#pragma once
+
 /*
 		uniVang-STAND Header File
 		(C)1997 by K-D Lab
 		Author: K-D Lab::KranK, KoTo
 */
 
-#define LOC_TIME 10
+#include "../random.h"
+
+static constexpr int LOC_TIME = 10;
 
 // количество основных миров
-const int MAIN_WORLD_MAX = 4;
+static constexpr int MAIN_WORLD_MAX = 4;
 // общее количество миров включая секретные
-const int WORLD_MAX = 10;
+static constexpr int WORLD_MAX = 10;
 // количество основных биосов в Цепи
-const int BIOS_MAX = 3;
+static constexpr int BIOS_MAX = 3;
 // количество приказов в памяти с-вангеров
-const int ORDER_V_MAX = 8;
+static constexpr int ORDER_V_MAX = 8;
 
-const int GAME_MAX = 2;
+static constexpr int GAME_MAX = 2;
 
 // количество эмуКвантов в стэнде на одну секунду
-const int EMU_MAX = 2;
+static constexpr int EMU_MAX = 2;
 
 //zNfo interesting constants
 
-const int V_MAX_VANGER = 200;			// Количество участников гонки
-const int V_PRICE = 400;			// управляет скоростью появления с-вангеров
-const int V_SPEED_MAX = 12;		  // max скорость с-вангеров в неактивной зоне
-const int V_SPEED_DOLLY = 2;		  // max скорость Куклы в неактивной зоне
-const int V_PGAP_TIME = 40;		  // время нахождения c-вангерв в коридоре при переходе с мира на мир
-const int V_AH_TIME = 1;			// время сбора нюхи
-const int V_CIRT_Q = 7; 			// заглушка, количесво нюхи при сборе в любом месте
-const int V_CIRT_R = 1<<12;	            // максимальный радиус распространения нюхи от куклы
+static constexpr int V_MAX_VANGER = 200;			// Количество участников гонки
+static constexpr int V_PRICE = 400;			// управляет скоростью появления с-вангеров
+static constexpr int V_SPEED_MAX = 12;		  // max скорость с-вангеров в неактивной зоне
+static constexpr int V_SPEED_DOLLY = 2;		  // max скорость Куклы в неактивной зоне
+static constexpr int V_PGAP_TIME = 40;		  // время нахождения c-вангерв в коридоре при переходе с мира на мир
+static constexpr int V_AH_TIME = 1;			// время сбора нюхи
+static constexpr int V_CIRT_Q = 7; 			// заглушка, количесво нюхи при сборе в любом месте
+static constexpr int V_CIRT_R = 1<<12;	            // максимальный радиус распространения нюхи от куклы
 
-const int V_LOCTRIP_SCORE = 2;			// rating: за местную поездку
-const int V_LONGTRIP_SCORE = 5; 		// rating: за межмировую поездку
-const int V_CIRTDELIVERY_SCORE = 10;	  // rating: за привоз нюхи
-const int V_RACE_SCORE = 10;						// rating: за гонку
-const int V_RACE_VANGER = 6;						// 
+static constexpr int V_LOCTRIP_SCORE = 2;			// rating: за местную поездку
+static constexpr int V_LONGTRIP_SCORE = 5; 		// rating: за межмировую поездку
+static constexpr int V_CIRTDELIVERY_SCORE = 10;	  // rating: за привоз нюхи
+static constexpr int V_RACE_SCORE = 10;						// rating: за гонку
+static constexpr int V_RACE_VANGER = 6;						//
 
-const int V_RANGER_MAX = 15;			// рэйтинг, переводящий c-вангера в другой статус (ex. ranger'а)
+static constexpr int V_RANGER_MAX = 15;			// рэйтинг, переводящий c-вангера в другой статус (ex. ranger'а)
 
 // параметры движения Кукол
-const int DOLLY_TAIL_LEN = 10;
-const int DOLLY_TAIL_PERIOD = 20;
+static constexpr int DOLLY_TAIL_LEN = 10;
+static constexpr int DOLLY_TAIL_PERIOD = 20;
 
-const int uvsTreasureThief = 1;
-const int uvsTreasureInShop = 2;
-const int uvsTreasureInGamer = 3;
-const int uvsTreasureInWait = 4;
+static constexpr int uvsTreasureThief = 1;
+static constexpr int uvsTreasureInShop = 2;
+static constexpr int uvsTreasureInGamer = 3;
+static constexpr int uvsTreasureInWait = 4;
 
 // предекларации
 struct uvsWorld;
@@ -316,7 +320,7 @@ struct UVS_ITEM_TYPE {
 		AMPUTATOR,
 		DEGRADATOR,
 		MECHOSCOPE,
-		
+
 		TERMINATOR,
 		TERMINATOR2,
 
@@ -327,14 +331,14 @@ struct UVS_ITEM_TYPE {
 		CRUSTEST_CANNON_AMMO,
 		GLUEK,
 
-		// Devices...		
+		// Devices...
 		COPTE_RIG,			// Jumper...
 		CUTTE_RIG,			// Sail device...
 		CROT_RIG,			// Some device...
 
-		RADAR_DEVICE,			
+		RADAR_DEVICE,
 		LHARK_DEVICE,		// Some device...
-	
+
 		// Items...
 		//UVS_ITEM_STATUS::THING
 		CIRTAINER,
@@ -358,7 +362,7 @@ struct UVS_ITEM_TYPE {
 		PIPETKA,
 		WEEZYK,
 
-																				   
+
 		// Artefacts...
 		PROTRACTOR,
 		MECHANIC_MESSIAH,
@@ -518,7 +522,7 @@ struct uvsTradeItem : listElem {
 	char* town_name;
 
 	uvsTradeItem(void) : listElem() {type = 0; town_name = NULL;}
-	~uvsTradeItem(void){ 
+	~uvsTradeItem(void){
 		if(town_name) delete[] town_name;
 	}
 };
@@ -898,7 +902,7 @@ struct uvsCrypt : listElem, uvsTarget {
 
 struct uvsTabuTaskType : listElem {
 	int status;					// активность задания
-	int cash;					//  стоимость 
+	int cash;					//  стоимость
 	int luck;					//  параметр удачи
 	int cycle;					//  время в циклах
 	int target;					//  тип-обьект задания
@@ -953,12 +957,12 @@ struct uvsItem : uvsTarget, listElem {
 
 		uvsItem(void):uvsTarget(), listElem() { type = 0;  param1 = 0; param2 = 0; pos_z = 0;};
 
-		uvsItem(int itemType, int x = 0, int y = 0){ type = itemType; pos_x = x; pos_y = y; 
-										param1 = uvsItemTable[itemType]-> param1; 
+		uvsItem(int itemType, int x = 0, int y = 0){ type = itemType; pos_x = x; pos_y = y;
+										param1 = uvsItemTable[itemType]-> param1;
 										param2 = uvsItemTable[itemType]-> param2; pos_z = 0;
 		};
-		uvsItem(int x , int y , int z, int itemType){ type = itemType; pos_x = x; pos_y = y; 
-									       param1 = uvsItemTable[itemType]-> param1; 
+		uvsItem(int x , int y , int z, int itemType){ type = itemType; pos_x = x; pos_y = y;
+									       param1 = uvsItemTable[itemType]-> param1;
 									       param2 = uvsItemTable[itemType]-> param2;  pos_z = z;
 		};
 		uvsItem(XStream& pfile);
@@ -975,7 +979,7 @@ struct uvsMechos : listElem{
 	int type;					//  тип мехоса - ссылка на таблицу
 	int color;					//  цвет мехоса
 	int status;					//
-	int teleport;				//zNfo//количество телепортаций 
+	int teleport;				//zNfo//количество телепортаций
 
 		uvsMechos(void) : listElem(){ type = 0; color = 0;status = 0; teleport = 0; sort();}
 		uvsMechos(int MechosType){ type = MechosType; color = 0;status = 0; teleport = 0; sort();};
@@ -1010,7 +1014,7 @@ struct uvsMechosType{
 	int MaxDamage;
 	int MaxTeleport;
 
-		uvsMechosType(void){ name  = NULL; constractor = price = sell_price = MaxSpeed  =MaxArmor = MaxEnergy = DeltaEnergy = DropEnergy = MaxFire = MaxWater = MaxOxigen = MaxFly = MaxTeleport = box[0] = box[1] = box[2] = box[3]= 0; 
+		uvsMechosType(void){ name  = NULL; constractor = price = sell_price = MaxSpeed  =MaxArmor = MaxEnergy = DeltaEnergy = DropEnergy = MaxFire = MaxWater = MaxOxigen = MaxFly = MaxTeleport = box[0] = box[1] = box[2] = box[3]= 0;
 						   gamer_use = gamer_kill = 0;
 		}
 		uvsMechosType(PrmFile* pfile);
@@ -1050,8 +1054,8 @@ struct uvsFlyFarmer : uvsTarget, uvsElement {
 	int corn;
 	int x_speed, y_speed;
 
-	uvsFlyFarmer(int _t, uvsWorld* pw): uvsTarget(), uvsElement(){ 
-				timer = 0; corn = FLY_FARMER_CORN; 
+	uvsFlyFarmer(int _t, uvsWorld* pw): uvsTarget(), uvsElement(){
+				timer = 0; corn = FLY_FARMER_CORN;
 				corn_type = _t; type = UVS_OBJECT::FLY_FARMER;
 				Pworld = pw;   pos_x = RND( pw -> x_size );
 				pos_y = RND( pw -> y_size );  setSpeed();
@@ -1117,16 +1121,16 @@ struct uvsVanger : uvsElement, uvsTarget {
 
 	int speed;							// стэндовая скорость
 
-	uvsVanger(void) : uvsElement(), uvsTarget(){ 
-		Pmechos = NULL; 
-		Pitem = NULL; 
-		Pworld = NULL; 
-		Pescave = NULL; 
-		Pspot = NULL; 
+	uvsVanger(void) : uvsElement(), uvsTarget(){
+		Pmechos = NULL;
+		Pitem = NULL;
+		Pworld = NULL;
+		Pescave = NULL;
+		Pspot = NULL;
 		Ppassage = NULL;
-		shape = status = biosNindex = locTimer = rating = speed = 0; 
-		owner = NULL; 
-		orderT = NULL;		
+		shape = status = biosNindex = locTimer = rating = speed = 0;
+		owner = NULL;
+		orderT = NULL;
 	}
 
 	uvsVanger(uvsEscave* pe);
@@ -1218,10 +1222,10 @@ struct uvsVanger : uvsElement, uvsTarget {
 	// устанавливает для UNITS текущий приказ
 	 UvsTargetType getOrder(uvsTarget*&);
 	int isActive(void){
-		if ( status != UVS_VANGER_STATUS::RACE_HUNTER 
-	  && status != UVS_VANGER_STATUS::RACE 
-	  && status != UVS_VANGER_STATUS::MOVEMENT 
-	  && status != UVS_VANGER_STATUS::FREE_MOVEMENT 
+		if ( status != UVS_VANGER_STATUS::RACE_HUNTER
+	  && status != UVS_VANGER_STATUS::RACE
+	  && status != UVS_VANGER_STATUS::MOVEMENT
+	  && status != UVS_VANGER_STATUS::FREE_MOVEMENT
 	  && status != UVS_VANGER_STATUS::GATHERING
 	  && status != UVS_VANGER_STATUS::WAIT_GAMER
 	  ) return 0;
@@ -1278,7 +1282,7 @@ struct uvsGamerResult{
 	int dominance;
 	int palochka;
 	int pipka;
-	int nobool;	
+	int nobool;
 	int boorawchick;
 	int pereponka;
 	int zeefick;
@@ -1295,7 +1299,7 @@ struct uvsGamerResult{
 	int thief_leepuringa;
 	int thief_palochka;
 	int thief_pipka;
-	int thief_nobool;	
+	int thief_nobool;
 	int thief_boorawchick;
 	int thief_pereponka;
 	int thief_zeefick;

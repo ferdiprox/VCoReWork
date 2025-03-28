@@ -1,19 +1,21 @@
-#include "global.h"
+#include "xgraph.h"
 
 #include "terra/world.h"
 #include "palette.h"
-#ifdef _ROAD_
 #include "sound/hsound.h"
-#endif
+
+#include "random.h"
+#include "math/int_math.h"
 
 #define CLOCK()		(SDL_GetTicks()*18/1000)
 
 extern int DIBLog;
-extern uchar* palbuf,*palbufA,*palbufC,*palbufOrg,*palbufInt,*palbufBlack;
 extern int MuteLog;
 extern int BackgroundSound;
 
-#ifdef _ROAD_
+unsigned char* palbuf,*palbufA,*palbufC,*palbufOrg,*palbufInt,*palbufBlack;
+int PalIterLock = 0;
+
 PaletteTransform* palTr;
 
 void PalEvidence(char* tpal,char* pal)
@@ -107,7 +109,6 @@ int PaletteTransform::quant(void)
 	if(DIBLog) XGR_Flush(0,0,XGR_MAXX,XGR_MAXY);
 	return 1;
 }
-#endif
 
 void pal_iter0(void)
 {
@@ -149,7 +150,6 @@ void pal_iter0(void)
 		else off = SZ - 1;
 		}
 
-#ifdef _ROAD_
 	if(MuteLog) return;
 	static int timer = 10 + realRND(100);
 	if(!--timer){
@@ -157,7 +157,6 @@ void pal_iter0(void)
 		timer = 20 + realRND(100);
 		}
 	if(BackgroundSound) StartEFFECT(EFF_GLOBAL,1);
-#endif
 }
 
 void pal_iter1(void)
@@ -217,8 +216,8 @@ void pal_iter2(void)
 	int add,i,j;
 	uchar *p,*po;
 	for(int ind = 0;ind < PAL_MAX;ind++){
-		offset[ind] = rPI(offset[ind] + PAL_SPEED[ind]);
-		add = PAL_AMPL[ind]*SI[offset[ind]]/UNIT;
+		offset[ind] = (offset[ind] + PAL_SPEED[ind]) & ANGLE_CLAMP_MASK;
+		add = PAL_AMPL[ind]*IntSinIntTable[offset[ind]]/UNIT;
 		p = palbuf + 3*BEGCOLOR[PAL_TERRAIN[ind]];
 		po = palbufOrg + 3*BEGCOLOR[PAL_TERRAIN[ind]];
 		for(i = BEGCOLOR[PAL_TERRAIN[ind]];i <= ENDCOLOR[PAL_TERRAIN[ind]];i++){

@@ -6,10 +6,11 @@
 #include "../rle.h"
 #include "../actint/mlconsts.h"
 
+#include "../random.h"
+
 #define FLUSH_DELTA	48
 
 /* ----------------------------- EXTERN SECTION ---------------------------- */
-extern int idOS;
 extern int aciML_ToolzerRadius;
 extern int uvsCurrentWorldUnable;
 /* --------------------------- PROTOTYPE SECTION --------------------------- */
@@ -689,37 +690,58 @@ void ilandPrepare(void)
 	short* rad = new short[SIDE*SIDE];
 	int max = 0;
 
-	int calc = 1;
 	int i,j,r,ind;
 	short* p = rad;
-	if(calc){
-		for(j = -MAX_RADIUS;j <= MAX_RADIUS;j++)
-			for(i = -MAX_RADIUS;i <= MAX_RADIUS;i++,p++){
-				r = (int)sqrt(i*(double)i + j*(double)j);
-				if(r > MAX_RADIUS) *p = -1;
-				else {
-					*p = r;
-					maxRad[r]++;
-					max++;
-					}
-				}
-		}
 
+	for(j = -MAX_RADIUS;j <= MAX_RADIUS;j++)
+	{
+		for(i = -MAX_RADIUS;i <= MAX_RADIUS;i++,p++)
+		{
+			r = (int)sqrt(i*(double)i + j*(double)j);
+
+			if(r > MAX_RADIUS) 
+			{
+				*p = -1;
+			}
+			else 
+			{
+				*p = r;
+				maxRad[r]++;
+				max++;
+			}
+		}
+	}
+
+	// Storaging memory
 	int* xheap = new int[max];
 	int* yheap = new int[max];
-	for(ind = 0;ind <= MAX_RADIUS;ind++){
-		xRad[ind] = xheap;
-		yRad[ind] = yheap;
+
+	// Storaging only pointer ON memory storage
+	int* xheapOff = xheap;
+	int* yheapOff = yheap;
+
+	for(ind = 0;ind <= MAX_RADIUS;ind++)
+	{
+		xRad[ind] = xheapOff;
+		yRad[ind] = yheapOff;
 		for(p = rad,r = 0,j = -MAX_RADIUS;j <= MAX_RADIUS;j++)
+		{
 			for(i = -MAX_RADIUS;i <= MAX_RADIUS;i++,p++)
-				if(*p == ind){
-					xheap[r] = i;
-					yheap[r] = j;
+			{
+				if(*p == ind)
+				{
+					xheapOff[r] = i;
+					yheapOff[r] = j;
 					r++;
-					}
-		xheap += maxRad[ind];
-		yheap += maxRad[ind];
+				}
+			}
 		}
+		xheapOff += maxRad[ind];
+		yheapOff += maxRad[ind];
+	}
+
+	delete[] xheap;
+	delete[] yheap;
 	delete[] rad;
 }
 

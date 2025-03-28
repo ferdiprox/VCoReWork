@@ -106,20 +106,12 @@ long XStream::seek(long offset, int dir)
 
 void XStream::flush()
 {
-	/* Full stream debug
-	std::fstream debug("openfile.txt", std::ios::out|std::ios::app);
-	if (debug.is_open())
-		debug<<"FLUSH "<<fname<<std::endl;
-	debug.close();
-	*/
-	//if (!FlushFileBuffers(handler) && ErrHUsed)
-	//	ErrH.Abort(flushMSG,XERR_USER,GetLastError(),fname);
 	((std::fstream *)handler)->flush();
 }
 
 long XStream::size()
 {
-//std::cout<<"XStream::size()"<<std::endl;
+//std::cout<<"XStream::size"<<std::endl;
 	long tmp = extSize;
 	long int tmp2;
 	if(tmp == -1){

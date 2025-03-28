@@ -7,6 +7,9 @@
 #include "hobj.h"
 #include "track.h"
 #include "items.h"
+#include "uvsapi.h"
+#include "../network.h"
+#include "../uvs/univang.h"
 //#define TEST_TRACK
 
 /*
@@ -49,7 +52,7 @@ const char MECHOS_CALC_WAY = 2;
 const char MECHOS_WAIT = 4;
 const char MECHOS_RECALC_FRONT = 8;
 
-const int MECHOS_ROT_DELTA = PI / 4; //!!!!!!!!!!!!
+const int MECHOS_ROT_DELTA = Pi / 4; //!!!!!!!!!!!!
 
 const int CHECK_BRANCH_DELTA = 30;
 
@@ -146,11 +149,11 @@ struct UnitItemMatrix
 	UnitItemMatrix** DataID;
 	int NumSlot;
 	int* SlotSize;
-	int* nSlot; 
+	int* nSlot;
 	int FullNum;
 
 	void Open(Parser& in);
-	void Close(void);	
+	void Close(void);
 	int GetFullNum(void);
 	int CheckSize(int sz,int*& p);
 	int GetSize(int sz,int*& p);
@@ -175,7 +178,7 @@ struct uvsUnitType : uvsKernel
 	int Armor,Energy;
 	int dEnergy,DropEnergy;
 	int DelayDrop,DropTime;
-	int uvsMaxSpeed;	
+	int uvsMaxSpeed;
 	int MaxOxigenResource,OxigenResource;
 	int MaxPassageCount,PassageCount;
 
@@ -192,14 +195,14 @@ struct uvsUnitType : uvsKernel
 	void AddDevice(StuffObject* p);
 	void DelDevice(StuffObject* p);
 
-	virtual void ItemQuant(void);	
+	virtual void ItemQuant(void);
 	virtual void Go2World(void);
 	virtual void Go2Universe(void);
 	virtual char CheckInDevice(StuffObject* p);
 	virtual void CheckOutDevice(StuffObject* p);
 
 	void AddOxigenResource(void);
-	void UseOxigenResource(void);	
+	void UseOxigenResource(void);
 };
 
 struct ActionUnit : Object
@@ -251,7 +254,7 @@ struct ActionUnit : Object
 
 	void MixVector(void);
 
-	void Touch(GeneralObject* obj);	
+	void Touch(GeneralObject* obj);
 };
 
 const int AI_NAVIGATION_NORMAL = 1;
@@ -260,7 +263,7 @@ const int AI_NAVIGATION_FAR = 2;
 struct TrackUnit : ActionUnit , TrackLinkType
 {
 	int aiMoveMode,aiMoveFunction;
-	TrackLinkType TestPoint,FrontPoint;	
+	TrackLinkType TestPoint,FrontPoint;
 	int* WayDist;
 	int* WayDistData;
 	int* CalcWayDist;
@@ -379,7 +382,7 @@ struct GunSlot
 	void Fire(void);
 	void Quant(void);
 	int CheckTarget(ActionUnit* p);
-	
+
 	void RemoteFire(void);
 
 	void NetEvent(unsigned int time);
@@ -412,11 +415,11 @@ const int AI_STATUS_WALL = 512;
 
 const int AI_MODIFIER_ELEEPOD = 0;
 const int AI_MODIFIER_BEEBOORAT = 1;
-const int AI_MODIFIER_ZEEX = 2; 
+const int AI_MODIFIER_ZEEX = 2;
 
 struct aiListElement
 {
-	aiListElement* Next;	
+	aiListElement* Next;
 	aiListElement* Prev;
 };
 
@@ -434,8 +437,8 @@ struct aiUnitEvent : aiListElement
 {
 	int ID;
 	int Refresh;
-	int Time;	
-	VangerUnit* Subj;	
+	int Time;
+	VangerUnit* Subj;
 	GeneralObject* Obj;
 };
 
@@ -501,7 +504,7 @@ const int MAX_CHECK_AROUND = 5;
 
 struct aiResolveList : aiListType
 {
-	void ClearResolve(void);	
+	void ClearResolve(void);
 	void ClearResolve(int type,UnitOrderType obj);
 	void ClearResolveForce(UnitOrderType obj);
 
@@ -571,8 +574,8 @@ struct aiFactorType
 
 	float aiAlarmRun,aiAlarmAttack;
 	float aiAmmoRun,aiAmmoAttack;
-	float aiArmorRun,aiArmorAttack;	
-	
+	float aiArmorRun,aiArmorAttack;
+
 //TargetSection
 
 	float aiMultyAttack,aiTargetAttack,aiTargetFind;
@@ -588,10 +591,10 @@ struct aiFactorType
 
 	float aiVisibleRun,aiVisibleAttack;
 	float aiInvisibleRun,aiInvisibleAttack;
-	float aiAttackTime;	
-	
+	float aiAttackTime;
+
 	void FactorOpen(aiFactorType* in);
-	void FactorLoad(Parser& in);	
+	void FactorLoad(Parser& in);
 };
 
 const int AI_FACTOR_NUM = 13;
@@ -648,7 +651,7 @@ struct VangerUnit : TrackUnit , uvsUnitType , aiFactorType
 
 	Vector aiNearTrack;
 	int aiResolveWayEnable;
-	int aiModifier;	
+	int aiModifier;
 	aiUnitResolve* aiLocalTarget;
 
 	int aiScanDist;
@@ -667,24 +670,24 @@ struct VangerUnit : TrackUnit , uvsUnitType , aiFactorType
 
 	void TargetAnalysis(void);
 	void ResolveGenerator(void);
-	
+
 	void NoWayHandler(void);
 
 	void ResolveHandler(aiUnitResolve* p);
-	int CheckReturn2Track(void);	
+	int CheckReturn2Track(void);
 	void GetForceWay(int d2,Vector& v);
 	void WeaponGenerator(void);
-	int CheckNearTrack(void);	
+	int CheckNearTrack(void);
 
 	aiUnitEvent* AddEvent(int id,GeneralObject* obj,VangerUnit* subj);
 	void ClearSubjEvent(VangerUnit* subj);
 	void ClearObjEvent(GeneralObject* obj);
 	void ClearEvent(GeneralObject* obj);
-	
+
 	void MainOrderInit(void);
 	int GetAllert(VangerUnit* p);
 	void StuffDestroyHandler(GeneralObject* p);
-	void VangerDestroyHandler(GeneralObject* p);		
+	void VangerDestroyHandler(GeneralObject* p);
 	void InitAI(void);
 	void CheckFind(aiUnitResolve* p,Vector v);
 
@@ -748,7 +751,7 @@ struct VangerUnit : TrackUnit , uvsUnitType , aiFactorType
 	int DoorFlag,nDoorFlag;
 	int NetCreateID;
 	int NetExternalSensor;
-	unsigned char NetDestroyID;		
+	unsigned char NetDestroyID;
 
 	int LastMole;
 	dastPoly3D* MoleTool;
@@ -785,16 +788,16 @@ struct VangerUnit : TrackUnit , uvsUnitType , aiFactorType
 	SensorDataType* ExternalSensor;
 	int RandomUpdate;
 
-	PlayerData* pNetPlayer;	
-	
-	int NetworkArmor,NetworkEnergy;	
+	PlayerData* pNetPlayer;
+
+	int NetworkArmor,NetworkEnergy;
 	int TabuUse;
 
 //For Secret WORLD
 	int CheckPointCount;
 	int MaxKhoxPoison,KhoxPoison;
 
-	int PlayerDestroyFlag;		
+	int PlayerDestroyFlag;
 
 	int PrevImpuseFrame;
 
@@ -814,6 +817,8 @@ struct VangerUnit : TrackUnit , uvsUnitType , aiFactorType
 	void HideAction(void);
 
 	void Quant(void);
+	void SubBotQuant();
+	void SubPlayerQuant();
 	void DrawQuant(void);
 
 	void Destroy(void);
@@ -824,14 +829,14 @@ struct VangerUnit : TrackUnit , uvsUnitType , aiFactorType
 	void CreateVangerUnit(void);
 
 	void CreateParticleRotor(const Vector& v,int r);
-	void CreateParticleMechos(const Vector& v,int r, int type = 0);	
+	void CreateParticleMechos(const Vector& v,int r, int type = 0);
 
 	void AddFree(void);
 	void AddPassage(SensorDataType* p);
 	void AddEscave(SensorDataType* p);
 	void AddSpot(SensorDataType* p);
 
-	void ItemQuant(void);	
+	void ItemQuant(void);
 	void Go2World(void); //znfo !!!
 	void Go2Universe(void); //znfo !!!
 	char CheckInDevice(StuffObject* p); //znfo !!!
@@ -878,8 +883,8 @@ struct VangerUnit : TrackUnit , uvsUnitType , aiFactorType
 	void NetCreateVanger(uvsPassage* pp,uvsEscave* pe,uvsSpot* ps);
 	void NetEvent(int type,int id,int creator,int time,int x,int y,int radius_);
 	void ShellNetEvent(int type,int id,int creator,int time,int x,int y,int radius_);
-	void NetCreateSlave(void);	
-	void InitPlayerPoint(PlayerData* p);	
+	void NetCreateSlave(void);
+	void InitPlayerPoint(PlayerData* p);
 
 	int CheckInMatrix(int sz);
 	int CheckOutMatrix(int sz);
@@ -998,7 +1003,7 @@ const int LOCATOR_DATA_RADIUS = 300;
 
 const int GAME_OVER_EVENT_TIME = 20*15;
 
-struct ActionDispatcher : UnitList 
+struct ActionDispatcher : UnitList
 {
 	int PassageTouchEnable;
 
@@ -1052,17 +1057,17 @@ struct ActionDispatcher : UnitList
 	void ActiveAllTerminator(void);
 	void ActiveTerminatorSlot(int n);
 
-//-----------------------------------------------------------------------------	
+//-----------------------------------------------------------------------------
 
 	int DrawResourceMaxValue;
 	int DrawResourceValue;
-	int DrawResourceTime;	
+	int DrawResourceTime;
 
-//	int HotBug;	
+//	int HotBug;
 	int DoorEnable;
 
 	StuffObject* Slot[MAX_ACTIVE_SLOT];
-	
+
 	void CreateActive(VangerUnit* p);
 
 	void CheckDevice(StuffObject* p);
@@ -1076,9 +1081,9 @@ struct ActionDispatcher : UnitList
 	void AddWaterResource(void);
 	void AddFireResource(void);
 	void AddFlyResource(void);
-	
+
 	void UseFlyResource(void);
-	
+
 	void DrawResource(void);
 	void UseMole(void);
 
@@ -1174,7 +1179,7 @@ inline int isTerminator(int i)
 {
 	if(i == ACI_TERMINATOR || i == ACI_TERMINATOR2 || i == ACI_EMPTY_AMPUTATOR || i == ACI_EMPTY_DEGRADATOR || i == ACI_EMPTY_MECHOSCOPE)
 		return 1;
-	else 
+	else
 		return 0;
 };
 
@@ -1208,15 +1213,15 @@ extern int aiHotBugAdd03;
 
 
 inline int aiGetHotBug(void)
-{	
-	return(((aiHotBugData00 ^ aiHotBugAdd03) & 0xf000000f) | 
-		((aiHotBugData01 ^ aiHotBugAdd02) & 0x0f0000f0) | 
-		((aiHotBugData02 ^ aiHotBugAdd01) & 0x00f00f00) | 
-		((aiHotBugData03 ^ aiHotBugAdd00) & 0x000ff000));	
+{
+	return(((aiHotBugData00 ^ aiHotBugAdd03) & 0xf000000f) |
+		((aiHotBugData01 ^ aiHotBugAdd02) & 0x0f0000f0) |
+		((aiHotBugData02 ^ aiHotBugAdd01) & 0x00f00f00) |
+		((aiHotBugData03 ^ aiHotBugAdd00) & 0x000ff000));
 };
 
 inline void aiPutHotBug(int d)
-{	
+{
 	aiHotBugData00 = d & 0xf000000f;
 	aiHotBugData01 = d & 0x0f0000f0;
 	aiHotBugData02 = d & 0x00f00f00;

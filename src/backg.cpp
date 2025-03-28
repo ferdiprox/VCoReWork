@@ -1,8 +1,11 @@
-#include "global.h"
+
+#include "xstream.h"
+#include "xbuffer.h"
+#include "xerrhandler.h"
 
 #include "3d/3d_math.h"
 
-#include "sqexp.h"
+#include "game_surface_disp.h"
 #include "backg.h"
 
 #include "terra/vmap.h"

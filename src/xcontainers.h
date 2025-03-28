@@ -1,3 +1,7 @@
+#pragma once
+
+#include "math/base_math.h"
+
 /******************************************************************
 				XTList
 ******************************************************************/
@@ -363,7 +367,7 @@ public:
 template <class Type>
 inline XQueue<Type>::XQueue(int sz)
 {
-	if(!IsPowerOf2(sz))
+	if(!isPowerOf2(sz))
 		ErrH.Abort("XQueue's size must be a power of 2",sz);
 	buffer = new Type[size = sz];
 	clear();
@@ -477,7 +481,7 @@ public:
 template <class Type>
 inline XIQueue<Type>::XIQueue(int sz)
 {
-	if((1 << BitSR(sz)) != sz)
+	if((1 << bitSR(sz)) != sz)
 		ErrH.Abort("XIQueue's size must be a power of 2",sz);
 	buffer = new Node[size = sz];
 	clear();

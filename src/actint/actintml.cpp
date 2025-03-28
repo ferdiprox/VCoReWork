@@ -17,6 +17,8 @@
 #include "mlconsts.h"
 #include "mlstruct.h"
 
+#include "../game_state.h"
+
 /* ----------------------------- STRUCT SECTION ----------------------------- */
 /* ----------------------------- EXTERN SECTION ----------------------------- */
 
@@ -163,7 +165,7 @@ void dg_SendEvent(int code)
 			break;
 		case AML_LAMPASSO_THEEND:
 			iShopForcedExit();
-			GameOverID = GAME_OVER_LAMPASSO;
+			globalGameState.gameoverTrigger = GAME_OVER_LAMPASSO;
 			iTheEND = 1;
 			break;
 		case AML_KICK_OUT_FROM_ESCAVE:

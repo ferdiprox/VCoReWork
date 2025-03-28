@@ -1,9 +1,4 @@
-#ifndef __UNITS__TRACK_H
-#define __UNITS__TRACK_H
-
-const int BRANCH_STATUS_HI = 180;
-const int BRANCH_STATUS_LOW = 80;
-const int BRANCH_STATUS_WATER = 10;
+#pragma once
 
 struct NodeType;
 struct TrackLinkType;
@@ -72,17 +67,6 @@ struct NodeType
 	void Close(void);
 };
 
-/*struct WayNodeType
-{
-	NodeType* Link;
-//	int WayDist;
-	int* Index;
-	char NumBranch;
-	int* LenBranch;
-	BranchType** BranchData;
-	WayNodeType** NodeData;
-};*/
-
 struct TrackType
 {
 	int NumNode;
@@ -118,5 +102,3 @@ struct TrackLinkType
 };
 
 extern TrackType HideTrack;
-
-#endif

@@ -1,9 +1,4 @@
-#ifndef __3D__GENERAL_H__
-#define __3D__GENERAL_H__
-
-#include "parser.h"
-
-#define _video_page	VS(_video)->_video
+#pragma once
 
 #define ALLOC(b,c)	new c[b]
 #define FREE(p) 	delete[] p;
@@ -12,7 +7,6 @@
 #include "3dgraph.h"
 #include "3dobject.h"
 #include "heap.h"
-
 
 extern MemoryHeap load_heap;
 #define HEAP_BEGIN(sz)    load_heap.alloc(static_cast<int>(sz))
@@ -24,7 +18,4 @@ extern MemoryHeap load_heap;
 #ifdef _DEBUG
 #define _FOUT_
 extern XStream fout;
-#endif
-extern XBuffer msg_buf;
-
 #endif

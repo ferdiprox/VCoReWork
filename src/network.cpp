@@ -1,10 +1,13 @@
 //zmod
 #include "zmod_client.h"
 
+#include "xstream.h"
+#include "xerrhandler.h"
+#include "xbuffer.h"
+
 #ifdef _NetRally_
 #include "NetRally.h"
 #else
-#include "global.h"
 #include "lang.h"
 #include "3d/3d_math.h"
 #include "sound/hsound.h"
@@ -26,7 +29,6 @@ extern int GlobalExit;
 //zmod
 int zserver_version = 0;
 
-int NetworkON = 0;
 NetRndType NetRnd;
 
 #define PLAYER_REMOVAL_EVENT(p) {NetCheckRemovePlayer(p);}
@@ -54,17 +56,12 @@ NetRndType NetRnd;
 const int IN_BUFFER_SIZE = 128000;
 const int OUT_BUFFER_SIZE = 256000;
 
-#ifdef _ROAD_
 extern int iProxyUsage;
 extern char* iProxyServer;
 extern int iProxyPort;
-#else
-int iProxyUsage = 1;
-#define iProxyServer proxy_name
-#define  iProxyPort proxy_port
-int proxy_port = 1080;
-char* proxy_name = 0;
-#endif
+
+char* host_name = 0;
+int host_port = DEFAULT_SERVER_PORT;
 
 int non_blocking_mode = 1;
 int enable_transferring = 0;
@@ -154,7 +151,7 @@ int create_server(int port)
 		CloseHandle(ProcessInformation.hThread);
 
 		if(avaible_servers.talk_to_server(XSocketLocalHostADDR,port,0,1))
-			return avaible_servers.size();
+			return avaible_servers.size;
 		}
 */
 	return 0;
@@ -250,7 +247,7 @@ int identification(XSocket& socket)
 
     unsigned int z_end_time_ = SDL_GetTicks() + 2*60*1000;
     while (((int)(SDL_GetTicks() - z_end_time_) < 0))
-	if (socket.receive(zbuffer.GetBuf(), zbuffer.length(), 1000))
+	if (socket.receive(zbuffer.GetBuf(), zbuffer.size, 1000))
 	   break;
 
     unsigned char zevent_ID;
@@ -308,7 +305,7 @@ int ServersList::talk_to_server(int IP,int port,char* domain_name,int only_new_g
 
 	START_TIMER(60*1000);
 	while(CHECK_TIMER())
-		if(sock.receive(servers_buffer.GetBuf(), servers_buffer.length(), 1000))
+		if(sock.receive(servers_buffer.GetBuf(), servers_buffer.size, 1000))
 			break;
 
 	ServerFindChain* p;
@@ -358,7 +355,7 @@ void OutputEventBuffer::clear()
 }
 int OutputEventBuffer::full_event_size(int index)
 {
-	return *((short*)(address() + index)) + 2;
+	return *((short*)(buf + index)) + 2;
 }
 void OutputEventBuffer::create_permanent_object(int ID,int x,int y,int radius,int flags)
 {
@@ -416,9 +413,9 @@ void OutputEventBuffer::set_position(int x,int y,int y_half_size_of_screen)
 	*this < short(7) < (unsigned char)SET_POSITION < (unsigned short)x < (unsigned short)y < (unsigned short)y_half_size_of_screen;
 	OUT_EVENTS_LOG1(SET_POSITION,y);
 	for(int i = pointer_to_the_first_event;i < pointer_to_the_last_event;i += full_event_size(i)){
-		if(*((unsigned char*)(address() + i + 2)) == SET_POSITION){
+		if(*((unsigned char*)(buf + i + 2)) == SET_POSITION){
 			int event_size = full_event_size(i);
-			memmove(address() + i, address() + i + event_size, tell() - (i + event_size));
+			memmove(buf + i, buf + i + event_size, tell() - (i + event_size));
 			offset -= event_size;
 			pointer_to_the_last_event -= event_size;
 			n_event--;
@@ -448,18 +445,18 @@ void OutputEventBuffer::end_body()
 		ErrH.Abort("There wasn't a beginning of event");
 
 	//std::cout<<"OutputEventBuffer::end_body size:"<<tell() - pointer_to_size_of_event - sizeof(short int)<<std::endl;
-	*(short*)(address() + pointer_to_size_of_event) = tell() - pointer_to_size_of_event - sizeof(short int);
+	*(short*)(buf + pointer_to_size_of_event) = tell() - pointer_to_size_of_event - sizeof(short int);
 
-	int ev_ID,event_ID = *(unsigned char*)(address() + pointer_to_size_of_event + 2);
+	int ev_ID,event_ID = *(unsigned char*)(buf + pointer_to_size_of_event + 2);
 	if((event_ID & (~ECHO_EVENT)) == UPDATE_OBJECT) {
-		int object_ID = *(int*)(address() + pointer_to_size_of_event + 3);
+		int object_ID = *(int*)(buf + pointer_to_size_of_event + 3);
 		for(i = pointer_to_the_first_event; i < pointer_to_the_last_event; i += full_event_size(i)) {
-			ev_ID = *((unsigned char*)(address() + i + 2));
+			ev_ID = *((unsigned char*)(buf + i + 2));
 			if((ev_ID & (~ECHO_EVENT)) == UPDATE_OBJECT) {
-				if(*((int*)(address() + i + 3)) == object_ID) {
+				if(*((int*)(buf + i + 3)) == object_ID) {
 					int event_size = full_event_size(i);
-					memmove(address() + i, address() + i + event_size, tell() - (i + event_size));
-					*(unsigned char*)(address() + pointer_to_size_of_event + 2) |= ev_ID & ECHO_EVENT;
+					memmove(buf + i, buf + i + event_size, tell() - (i + event_size));
+					*(unsigned char*)(buf + pointer_to_size_of_event + 2) |= ev_ID & ECHO_EVENT;
 					offset -= event_size;
 					pointer_to_the_last_event -= event_size;
 					n_event--;
@@ -478,7 +475,7 @@ int OutputEventBuffer::send(int system_send, XSocket& sock)
 	int sent_size = 0;
 	//if(sock() && (system_send | enable_send))
 	if(sock()){
-		sent_size = sock.send(address(),tell());
+		sent_size = sock.send(buf,tell());
 		//if(!system_send)
 		//	enable_send = 0;
 		}
@@ -572,13 +569,13 @@ int InputEventBuffer::receive(XSocket& sock,int dont_free) {
 
 	if(next_event_pointer && !dont_free) {
 		if(filled_size != next_event_pointer) {
-			memmove(address(), address() + next_event_pointer, filled_size - next_event_pointer);
+			memmove(buf, buf + next_event_pointer, filled_size - next_event_pointer);
 		}
 		filled_size -= next_event_pointer;
 		offset = next_event_pointer = 0;
 	}
 
-	int add_size = sock.receive(address() + filled_size, length() - filled_size);
+	int add_size = sock.receive(buf + filled_size, size - filled_size);
 	filled_size += add_size;
 	n_received_bytes += add_size;
 	if(add_size)
@@ -818,12 +815,12 @@ int connect_to_server(ServerFindChain* p)
 			events_in.ignore_event();
 		}
 
-		NetworkON = 1;
+		globalGameState.inNetwork = 1;
 		number_of_reconnection_attempt = 5;
 
 		return GlobalStationID;
 		}
-	NetworkON = 0;
+	globalGameState.inNetwork = 0;
 	return 0;
 }
 int restore_connection()

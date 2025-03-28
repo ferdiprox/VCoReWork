@@ -96,7 +96,6 @@ extern int JoystickStickSwitchButton;
 int JoystickWhatsPressedNow();
 int isJoystickButtonPressed(int vk_code);
 
-
 SDL_GameController *get_gamecontroller();
 SDL_Joystick *get_joystick();
 //---------------------------------------------------------------------------

@@ -4,18 +4,18 @@
 #define LOWLEVEL_OUTPUT
 //#define SAVE_ABILITY
 
-//#include "..\win32f.h"
-
 
 #include "iworld.h"
 #include "ivmap.h"
 #include "../terra/splay.h"
 
+#include "../random.h"
+
 #include <iostream>
 
 /* ----------------------------- EXTERN SECTION ---------------------------- */
-extern int* SI;
-extern int* CO;
+extern int* IntSinIntTable;
+extern int* IntCosIntTable;
 extern unsigned storeRNDVAL,storerealRNDVAL;
 extern int RestoreLog,CGenLog,MobilityLog,InitLog,SSSLog,ROLog,EncodeLog,DirectLog;
 extern char* aci_ivMapName;
@@ -188,14 +188,14 @@ void ivrtMap::analyzeINI(const char* name)
 
 	XStream ff((char*)name,XS_IN);
 	ff.close();
-	
+
 	dictionary *dict_name = iniparser_load(name);
 	//iniparser_dump(dict_name, stdout);
 	int val = atoi(iniparser_getstring(dict_name,"global parameters:Map Power X", NULL));
 	if(val != MAP_POWER_X) ErrH.Abort("Incorrect X-Size");
-	
+
 	iMAP_POWER_Y = atoi(iniparser_getstring(dict_name,"global parameters:Map Power Y", NULL));
-	
+
 	if(strcmp(version,iniparser_getstring(dict_name,"Storage:Version", NULL))) ErrH.Abort("Incorrect Storage Version");
 	isCompressed = atoi(iniparser_getstring(dict_name,"Storage:Compressed Format Using", NULL));
 	fileName = strdup(iniparser_getstring(dict_name,"Storage:File Name", NULL));
@@ -207,7 +207,7 @@ void ivrtMap::analyzeINI(const char* name)
 	{
 		char* p = iniparser_getstring(dict_name,"Rendering Parameters:Begin Colors", NULL);
 		XBuffer buf(p,128);
-		for(i = 0;i < TERRAIN_MAX;i++) 
+		for(i = 0;i < TERRAIN_MAX;i++)
 			buf >= iBEGCOLOR[i];
 	}
 	{
@@ -257,7 +257,7 @@ void ivrtMap::analyzeINI(const char* name)
 				b >= iPAL_BLUE[i];
 		}
 	}
-	
+
 	iniparser_freedict(dict_name);
 }
 
@@ -266,7 +266,7 @@ void ivrtMap::analyzeINI(const char* name)
 #define _MAX_DRIVE   5
 #define _MAX_EXT   35
 #define _MAX_FNAME   160
-#define _MAX_PATH   1000 
+#define _MAX_PATH   1000
 #endif
 
 char* iGetMergedName(char* name,char* path)
@@ -278,10 +278,10 @@ char* iGetMergedName(char* name,char* path)
 	char fname[_MAX_FNAME];
 	//NEED_SEE!!!
 	//if(_fullpath(path_buffer,path,_MAX_PATH) == NULL) ErrH.Abort("Invalid input name");
-	
+
 	realpath (path, path_buffer);
 	//_splitpath(path_buffer,drive,dir,fname,NULL);
-	
+
 	strcpy(buf,drive);
 	strcat(buf,dir);
 	strcat(buf,name);*/
@@ -333,7 +333,7 @@ void ivrtMap::load(const char* name)
 	else {
 		st_table = NULL;
 		sz_table = NULL;
-//		if(fmap.size() != (int)map_size_x*(int)imap_size_y*2) ErrH.Abort("Incorrect ivmp-file size");
+//		if(fmap.size != (int)map_size_x*(int)imap_size_y*2) ErrH.Abort("Incorrect ivmp-file size");
 		}
 
 	offset = 0;
@@ -870,8 +870,8 @@ void ipal_iter2(void)
 	int add,i,j;
 	uchar *p,*po;
 	for(int ind = 0;ind < iPAL_MAX;ind++){
-		ioffset[ind] = rPI(ioffset[ind] + iPAL_SPEED[ind]);
-		add = iPAL_AMPL[ind]*SI[ioffset[ind]]/UNIT;
+		ioffset[ind] = (ioffset[ind] + iPAL_SPEED[ind]) & ANGLE_CLAMP_MASK;
+		add = iPAL_AMPL[ind]*IntSinIntTable[ioffset[ind]]/UNIT;
 		p = ipalbuf + 3*iBEGCOLOR[iPAL_TERRAIN[ind]];
 		po = ipalbufOrg + 3*iBEGCOLOR[iPAL_TERRAIN[ind]];
 		for(i = iBEGCOLOR[iPAL_TERRAIN[ind]];i <= iENDCOLOR[iPAL_TERRAIN[ind]];i++){

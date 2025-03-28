@@ -15,7 +15,6 @@ const int TNT_POWER_RADIUS = 100;
 const int TNT_POWER_DAMAGE = 15 << 16;
 const int TNT_POWER_IMPULSE = 50;
 
-
 struct StaticObjectType
 {
 	enum{

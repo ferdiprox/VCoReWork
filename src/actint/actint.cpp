@@ -3,13 +3,13 @@
 #include "../global.h"
 
 #include "../runtime.h"
+#include "../game_state.h"
 
 #include "../iscreen/hfont.h"
 #include "../iscreen/iscreen.h"
 #include "item_api.h"
 #include "actint.h"
 #include "aci_scr.h"
-#include "aci_str.h"
 #include "aci_evnt.h"
 #include "a_consts.h"
 #include "credits.h"
@@ -26,46 +26,10 @@
 
 #include "../sound/hsound.h"
 #include "layout.h"
+#include "../locale/aci_dict.h"
+
 /* ----------------------------- STRUCT SECTION ----------------------------- */
 /* ----------------------------- EXTERN SECTION ----------------------------- */
-
-template <> void layout(invMatrix* view, int width, int height){
-	unsigned int anchor = view->anchor;
-
-	if(anchor & WIDGET_ANCHOR_INITIALIZED){
-		std::cout<<"  WARNING: layout is already done"<<std::endl;
-		return;
-	}
-
-	view->anchor |= WIDGET_ANCHOR_INITIALIZED;
-
-	if(anchor & WIDGET_ANCHOR_RIGHT){
-		view->ScreenX = width - view->ScreenX - view->ScreenSizeX;
-	}
-
-	if(anchor & WIDGET_ANCHOR_BOTTOM){
-		view->ScreenY = height - view->ScreenY - view->ScreenSizeY;
-	}
-}
-
-template <> void layout(bmlObject* view, int width, int height){
-	unsigned int anchor = view->anchor;
-
-	if(anchor & WIDGET_ANCHOR_INITIALIZED){
-		std::cout<<"  WARNING: layout is already done"<<std::endl;
-		return;
-	}
-
-	view->anchor |= WIDGET_ANCHOR_INITIALIZED;
-
-	if(anchor & WIDGET_ANCHOR_RIGHT){
-		view->OffsX = width - view->OffsX - view->SizeX;
-	}
-
-	if(anchor & WIDGET_ANCHOR_BOTTOM){
-		view->OffsY = height - view->OffsY - view->SizeY;
-	}
-}
 
 extern int uvsTabuTaskFlag;
 
@@ -74,8 +38,6 @@ extern bmlObject* aIndDataBML;
 extern bmlObject* aIndBackBML;
 
 extern int iChatExit;
-
-extern int NetworkON;
 
 extern int iMouseX;
 extern int iMouseY;
@@ -118,40 +80,6 @@ extern int ExclusiveLog;
 extern int aciWorldIndex;
 
 extern int Pause;
-
-extern char* aciSTR_OFF;
-extern char* aciSTR_DAY;
-extern char* aciSTR_UNDEFINED_PRICE;
-extern char* aciSTR_PRICE;
-extern char* aciSTR_EMPTY_SLOT;
-extern char* aciSTR_UNNAMED_SAVE;
-extern char* aciSTR_AUTOSAVE;
-extern char* aciSTR_WINS;
-extern char* aciSTR_LOSSES;
-extern char* aciSTR_LUCK;
-extern char* aciSTR_DOMINANCE;
-extern char* aciSTR_BROKEN;
-extern char* aciSTR_ENERGY_SHIELD;
-extern char* aciSTR_RESTORING_SPEED;
-extern char* aciSTR_MECHANIC_ARMOR;
-extern char* aciSTR_VELOCITY;
-extern char* aciSTR_SPIRAL_CAPACITY;
-extern char* aciSTR_AIR_RESERVE;
-extern char* aciSTR_DAMAGE;
-extern char* aciSTR_LOAD;
-extern char* aciSTR_SHOTS;
-extern char* aciSTR_BURST;
-extern char* aciSTR_WORKING_TIME;
-extern char* aciSTR_SECONDS;
-extern char* aciSTR_IN_PACK;
-extern char* aciSTR_NO_CASH;
-extern char* aciSTR_PICKUP_ITEMS_OFF;
-extern char* aciSTR_PICKUP_WEAPONS_OFF;
-extern char* aciSTR_PutThis;
-
-extern char* aciSTR_RESTRICTIONS;
-extern char* aciSTR_STATISTICS;
-extern char* aciSTR_MINUTES;
 
 extern int aciItmTextQueueSize;
 
@@ -446,6 +374,42 @@ int aciShotCount = 0;
 int aciCurIND = 0;
 int aciIndMove = 0;
 #endif
+
+void layout(invMatrix* view, int width, int height){
+	unsigned int anchor = view->anchor;
+
+	if(anchor & WIDGET_ANCHOR_INITIALIZED){
+		return;
+	}
+
+	view->anchor |= WIDGET_ANCHOR_INITIALIZED;
+
+	if(anchor & WIDGET_ANCHOR_RIGHT){
+		view->ScreenX = width - view->ScreenX - view->ScreenSizeX;
+	}
+
+	if(anchor & WIDGET_ANCHOR_BOTTOM){
+		view->ScreenY = height - view->ScreenY - view->ScreenSizeY;
+	}
+}
+
+void layout(bmlObject* view, int width, int height){
+	unsigned int anchor = view->anchor;
+
+	if(anchor & WIDGET_ANCHOR_INITIALIZED){
+		return;
+	}
+
+	view->anchor |= WIDGET_ANCHOR_INITIALIZED;
+
+	if(anchor & WIDGET_ANCHOR_RIGHT){
+		view->OffsX = width - view->OffsX - view->SizeX;
+	}
+
+	if(anchor & WIDGET_ANCHOR_BOTTOM){
+		view->OffsY = height - view->OffsY - view->SizeY;
+	}
+}
 
 aciBitmapMenuItem::aciBitmapMenuItem(void)
 {
@@ -1723,7 +1687,7 @@ void CounterPanel::redraw(void)
 	xconv -> init();
 	*xconv <= v;
 
-	ptr = xconv -> address();
+	ptr = xconv -> buf;
 	digits = strlen(ptr);
 
 	x = 0;
@@ -3457,7 +3421,7 @@ void actIntDispatcher::redraw(void)
 }
 
 void actIntDispatcher::text_redraw(){
-	if(Pause > 1 && NetworkON){
+	if(Pause > 1 && globalGameState.inNetwork){
 		if(GameQuantReturnValue || acsQuant()){
 			Pause = 0;
 		}
@@ -3485,7 +3449,7 @@ void actIntDispatcher::text_redraw(){
 			aciShowRacingPlace();
 		}
 	}
-	if(Pause > 1 && NetworkON){
+	if(Pause > 1 && globalGameState.inNetwork){
 		if(GameQuantReturnValue || acsQuant()){
 			Pause = 0;
 		}
@@ -4973,7 +4937,7 @@ void actIntDispatcher::KeyQuant(void)
 			send_event(EV_FULLSCR_CHANGE);
 		}
 
-		if(NetworkON){
+		if(globalGameState.inNetwork){
 			if(iCheckKeyID(iKEY_FRAG_INFO,k)){
 				aciShowFrags();
 			}
@@ -5002,7 +4966,7 @@ void actIntDispatcher::KeyQuant(void)
 			}
 		}
 
-		if(!NetworkON) 
+		if(!globalGameState.inNetwork) 
 			aciCHandler(k);
 
 		if(!(flags & AS_FULLSCR)){
@@ -5140,7 +5104,7 @@ void actIntDispatcher::iKeyQuant(void)
 void actIntDispatcher::iKeyTrap(int cd)
 {
 	fncMenu* m;
-	if(!NetworkON) aciCHandler(cd);
+	if(!globalGameState.inNetwork) aciCHandler(cd);
 	if(!(flags & AS_ISCREEN_INV_MODE)){
 		m = (fncMenu*)i_menuList -> last;
 		while(m){
@@ -6002,7 +5966,7 @@ void actIntDispatcher::init_submenu(fncMenu* m)
 			if(!p) return;
 			ptr = GetCompasTarget();
 			if(!ptr)
-				p -> curItem = p -> get_obj(aciSTR_OFF);
+				p -> curItem = p -> get_obj(AciDict::optionOff);
 			else
 				p -> curItem = p -> get_obj(ptr);
 
@@ -7153,8 +7117,8 @@ void invMatrix::generate_shape(void)
 	if(internalID < 10) XBuf < "0";
 	XBuf <= internalID < ".shp";
 
-	int scr_sx = (actintLowResFlag) ? 640 : 800;
-	int scr_sy = (actintLowResFlag) ? 480 : 600;
+	int scr_sx = 800;
+	int scr_sy = 600;
 
 	fh.open(XBuf,XS_OUT);
 	fh < "X0: " <= (512 - scr_sx/2 + ScreenX + ScreenSizeX/2) < "\r\n";
@@ -7259,8 +7223,8 @@ void invMatrix::generate_floor(void)
 	if(internalID < 10) XBuf < "0";
 	XBuf <= internalID < ".shp";
 
-	int scr_sx = (actintLowResFlag) ? 640 : 800;
-	int scr_sy = (actintLowResFlag) ? 480 : 600;
+	int scr_sx = 800;
+	int scr_sy = 600;
 
 	fh.open(XBuf,XS_OUT);
 	fh < "X0: " <= (512 - scr_sx/2 + ScreenX + ScreenSizeX/2) < "\r\n";
@@ -7317,7 +7281,7 @@ void actIntDispatcher::inv_mouse_move_quant(void)
 			bt_pr1 = XGR_MouseObj.promptData -> getData(ACI_PICKUP_WPN_OFF);
 			if(!bt_pr1){
 				bt_pr1 = new XGR_MousePromptData;
-				bt_pr1 -> set_text(aciSTR_PICKUP_WEAPONS_OFF);
+				bt_pr1 -> set_text(AciDict::uiPickupWeaponsOff);
 				bt_pr1 -> ID = ACI_PICKUP_WPN_OFF;
 				XGR_MouseObj.promptData -> AddElement((XListElement*)bt_pr1);
 			}
@@ -7348,7 +7312,7 @@ void actIntDispatcher::inv_mouse_move_quant(void)
 			bt_pr1 = XGR_MouseObj.promptData -> getData(ACI_PICKUP_ITM_OFF);
 			if(!bt_pr1){
 				bt_pr1 = new XGR_MousePromptData;
-				bt_pr1 -> set_text(aciSTR_PICKUP_ITEMS_OFF);
+				bt_pr1 -> set_text(AciDict::uiPickupItemsOff);
 				bt_pr1 -> ID = ACI_PICKUP_ITM_OFF;
 				XGR_MouseObj.promptData -> AddElement((XListElement*)bt_pr1);
 			}
@@ -7402,7 +7366,7 @@ void actIntDispatcher::inv_mouse_move_quant(void)
 				else {
 					XBuf = new XBuffer;
 					*XBuf < "Undefined item, ID = " <= id;
-					ptr = XBuf -> address();
+					ptr = XBuf -> buf;
 					iP -> free_list();
 					iP -> add_item(ptr,-1,aciCurColorScheme[FM_SELECT_COL]);
 					iP -> set_redraw();
@@ -7537,7 +7501,7 @@ void actIntDispatcher::inv_mouse_imove_quant(void)
 				avi_pr2 = new XGR_MousePromptData;
 				avi_pr2 -> ID = ACI_AVI_PROMPT2;
 				XGR_MouseObj.promptData -> AddElement((XListElement*)avi_pr2);
-				avi_pr2 -> set_text(aciSTR_PutThis);
+				avi_pr2 -> set_text(AciDict::invPutThis);
 			}
 			obj = (iScreenObject*)curLocData -> objList[ACI_AVI_OBJ_ID];
 			if(flags & AS_INV_MOVE_ITEM){
@@ -7568,7 +7532,7 @@ void actIntDispatcher::inv_mouse_imove_quant(void)
 		pr0 = new XGR_MousePromptData;
 		pr0 -> ID = ACI_NO_CASH_PROMPT2;
 		XGR_MouseObj.promptData -> AddElement((XListElement*)pr0);
-		pr0 -> set_text(aciSTR_NO_CASH);
+		pr0 -> set_text(AciDict::shopNotEnoughCashString);
 	}
 
 	if(secondMatrix){
@@ -7624,7 +7588,7 @@ void actIntDispatcher::inv_mouse_imove_quant(void)
 				pr = new XGR_MousePromptData;
 				pr -> ID = ACI_NO_CASH_PROMPT;
 				XGR_MouseObj.promptData -> AddElement((XListElement*)pr);
-				pr -> set_text(aciSTR_NO_CASH);
+				pr -> set_text(AciDict::shopNotEnoughCashString);
 			}
 			pr -> StartX = curMatrix -> ScreenX + iScreenOffs;
 			pr -> StartY = curMatrix -> ScreenY;

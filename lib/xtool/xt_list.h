@@ -67,10 +67,11 @@ template <class Type>
 inline void xtList<Type>::delete_all()
 {
 	Type* p;
-	while((p = first()) != 0){
+	while((p = first()) != 0)
+	{
 		remove(p);
 		delete p;
-		}
+	}
 }
 
 template <class Type>

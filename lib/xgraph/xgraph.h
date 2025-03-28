@@ -558,7 +558,6 @@ enum XGR_CustomEvents {
 
 void doCursorAnimation();
 
-
 extern XGR_Screen XGR_Obj;
 extern XGR_Mouse XGR_MouseObj;
 
@@ -597,11 +596,7 @@ extern int XGR_COLOR_MASK_R;
 extern int XGR_COLOR_MASK_G;
 extern int XGR_COLOR_MASK_B;
 
-extern const char* XGraphWndID;
-
 extern int XGR_HighColorMode;
-
-extern int UI_OR_GAME;
 
 #endif /* __XGRAPH_H */
 

@@ -20,8 +20,6 @@ extern ScriptFile* script;
 extern int aCellSize;
 extern int iCellSize;
 
-extern int actintLowResFlag;
-
 extern int aciColSchemeLen;
 extern int aciNumColSchemes;
 extern unsigned char** aciColorSchemes;

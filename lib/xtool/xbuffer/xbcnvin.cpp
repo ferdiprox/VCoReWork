@@ -1,6 +1,6 @@
 #include "xglobal.h"
 
-char _ConvertBuffer[_CONV_BUFFER_LEN + 1];
+#ifndef STD_PORT
 
 XBuffer& XBuffer::operator<= (char var)
 {
@@ -85,3 +85,67 @@ XBuffer& XBuffer::operator<= (long double var)
 	write(_ConvertBuffer,len,0);
 	return *this;
 }
+
+#else // STD PORT IMPLEMENTATION
+
+XBuffer& XBuffer::operator<= (char var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (unsigned char var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (short var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (unsigned short var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (int var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (unsigned var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (long var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (long long int var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (unsigned long var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (float var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (double var)
+{
+	_BUFFER_PORT_IN();
+}
+
+XBuffer& XBuffer::operator<= (long double var)
+{
+	_BUFFER_PORT_IN();
+}
+
+#endif

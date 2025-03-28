@@ -1,18 +1,15 @@
 #include "rle.h"
 
-//XStream fRLE("anal", XS_OUT);
+#include <cstring>
 
-/*static int G_len = 0;
-static int G_all_len = 0;*/
-
-int RLE_ANALISE(uchar* _buf, int len, uchar*& out){
+int RLE_ANALISE(unsigned char* _buf, int len, unsigned char*& out){
 	int i = 0;
 	int pack_len = 0;
-	uchar c_len = 0;
-	uchar* buf = _buf;
-	uchar *_out = new uchar[len*2];
-	uchar* p = _out;
-	uchar _ch = *buf++;
+	unsigned char c_len = 0;
+	unsigned char* buf = _buf;
+	unsigned char *_out = new unsigned char[len*2];
+	unsigned char* p = _out;
+	unsigned char _ch = *buf++;
 
 	while( i < len) {
 		while( (i < len) && (_ch == *buf) &&  (c_len < 127)) {
@@ -54,7 +51,7 @@ int RLE_ANALISE(uchar* _buf, int len, uchar*& out){
 	fRLE <= pack_len < "  ==>  " <= len < "\n";
 	if ( where ) fRLE < "\n";*/
 
-	out = new uchar[pack_len];
+	out = new unsigned char[pack_len];
 	memcpy( out, _out, pack_len);
 	/*RLE_UNCODE( _out, len,  out);
 
@@ -67,10 +64,10 @@ int RLE_ANALISE(uchar* _buf, int len, uchar*& out){
 	return pack_len;
 }			
 
-void RLE_UNCODE(uchar* _buf, int len, uchar* out){
-	uchar* buf = _buf;
-	uchar c_len = 0;
-	uchar* p = out;
+void RLE_UNCODE(unsigned char* _buf, int len, unsigned char* out){
+	unsigned char* buf = _buf;
+	unsigned char c_len = 0;
+	unsigned char* p = out;
 
 	int i = 0;
 	while( i < len){

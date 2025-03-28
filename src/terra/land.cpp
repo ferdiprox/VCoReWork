@@ -10,6 +10,9 @@
 #ifdef _SURMAP_
 #include "surmap/tools.h"
 #endif
+
+#include "../random.h"
+
 const int _COL1 = 224 + 15;
 const int _COL2 = 224 + 10;
 

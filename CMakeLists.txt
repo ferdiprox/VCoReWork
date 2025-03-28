@@ -11,8 +11,14 @@ SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 OPTION(BINARY_SCRIPT "Use binary script for interface" ON)
 OPTION(DIAGEN_TEST "Dialog generator and test subsystem" OFF)
 
+OPTION(BUILD_SURMAP "Build /surmap/ files and surmap.exe" OFF)
+OPTION(BUILD_SERVER "Build /server/ files and server.exe" OFF)
+OPTION(BUILD_VANGERS "Build /src/ files and vangers.exe" ON)
+
 # hide optons
-OPTION(ACTINT "Actint user interface in road game" ON) 
+OPTION(ACTINT "Actint user interface in road game" ON)
+
+SET(CMAKE_BUILD_TYPE DEBUG)
 
 SET(CMAKE_CONFIGURATION_TYPES "Release;Debug;MinSizeRel;RelWithDebInfo")
 IF(MINGW)
@@ -22,6 +28,7 @@ ENDIF()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 # depends
 FIND_PACKAGE(SDL2 REQUIRED)
@@ -113,13 +120,23 @@ IF(NOT($ENV{GITHUB_SHA}))
 ENDIF()
 
 # subdirs
-ADD_SUBDIRECTORY("src")
+if(BUILD_VANGERS)
+	add_definitions(-DVANGERS_BUILD)
+	ADD_SUBDIRECTORY("src")
+endif()
+
 ADD_SUBDIRECTORY("lib/xgraph")
 ADD_SUBDIRECTORY("lib/xsound")
 ADD_SUBDIRECTORY("lib/xtool")
 
 if(NOT ANDROID)
-	ADD_SUBDIRECTORY("lib/utils")
-	ADD_SUBDIRECTORY("server")
-	ADD_SUBDIRECTORY("surmap")
+	if(BUILD_SURMAP)
+		add_definitions(-DSERVER_BUILD)
+		ADD_SUBDIRECTORY("server")
+	endif()
+
+	if(BUILD_SERVER)
+		add_definitions(-DSURMAP_BUILD)
+		ADD_SUBDIRECTORY("surmap")
+	endif()
 endif()

@@ -1,11 +1,6 @@
-#ifndef __UNITS__UVSAPI_H
-#define __UNITS__UVSAPI_H
+#pragma once
 
 const int BUNCH_CHANGE_CYCLE  = 1;
-
-const int UVS_DEVICE_POWER = 1000;
-const int UVS_AMMO_POWER = 30;
-const int UVS_TERMINATOR_POWER = 8;
 
 struct FireOfTerror;
 struct ActionUnit;
@@ -18,7 +13,7 @@ struct EnterCenter;
 struct uvsTarget;
 struct uvsPassage;
 struct uvsEscave;
-struct uvsSpot;	 
+struct uvsSpot;
 struct uvsItem;
 struct uvsDolly;
 struct uvsFlyFarmer;
@@ -128,4 +123,3 @@ const int NET_STATISTICS_DEATH = 1;
 const int NET_STATISTICS_CHECKPOINT = 2;
 const int NET_STATISTICS_END_RACE = 3;
 
-#endif

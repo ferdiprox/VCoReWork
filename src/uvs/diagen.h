@@ -4,126 +4,130 @@
 	Creator: K-D Lab::KranK
 */
 
-struct DG_EXTERNS { enum {
-	ELR_RESULT,        // если получил элика то возвращается номер которым ты приехал среди остальных                              
-									// участников элирекции (наличие элика здесь не учитывать!!!), если не участвовал то 0
-	ELR_TOTAL,          // количество учасников последней элирекции
-	ELR_RATING,        // текущий рейтинг в элирекции (как раньше)
+struct DG_EXTERNS 
+{ 
+	enum 
+	{
+		ELR_RESULT,        // если получил элика то возвращается номер которым ты приехал среди остальных                              
+										// участников элирекции (наличие элика здесь не учитывать!!!), если не участвовал то 0
+		ELR_TOTAL,          // количество учасников последней элирекции
+		ELR_RATING,        // текущий рейтинг в элирекции (как раньше)
 
-	KER_RESULT,        // если получил элика то возвращается номер которым ты приехал среди остальных                              
-									// участников элирекции (наличие элика здесь не учитывать!!!), если не участвовал то 0
-	KER_TOTAL,          // количество учасников последней элирекции
-	KER_RATING,        // текущий рейтинг в элирекции (как раньше)
+		KER_RESULT,        // если получил элика то возвращается номер которым ты приехал среди остальных                              
+										// участников элирекции (наличие элика здесь не учитывать!!!), если не участвовал то 0
+		KER_TOTAL,          // количество учасников последней элирекции
+		KER_RATING,        // текущий рейтинг в элирекции (как раньше)
 
-	PIP_RESULT,        // если получил элика то возвращается номер которым ты приехал среди остальных                              
-									// участников элирекции (наличие элика здесь не учитывать!!!), если не участвовал то 0
-	PIP_TOTAL,          // количество учасников последней элирекции
-	PIP_RATING,        // текущий рейтинг в элирекции (как раньше)
+		PIP_RESULT,        // если получил элика то возвращается номер которым ты приехал среди остальных                              
+										// участников элирекции (наличие элика здесь не учитывать!!!), если не участвовал то 0
+		PIP_TOTAL,          // количество учасников последней элирекции
+		PIP_RATING,        // текущий рейтинг в элирекции (как раньше)
 
-	ZYK_RESULT,        // если получил элика то возвращается номер которым ты приехал среди остальных                              
-									// участников элирекции (наличие элика здесь не учитывать!!!), если не участвовал то 0
-	ZYK_TOTAL,          // количество учасников последней элирекции
-	ZYK_RATING,        // текущий рейтинг в элирекции (как раньше)
+		ZYK_RESULT,        // если получил элика то возвращается номер которым ты приехал среди остальных                              
+										// участников элирекции (наличие элика здесь не учитывать!!!), если не участвовал то 0
+		ZYK_TOTAL,          // количество учасников последней элирекции
+		ZYK_RATING,        // текущий рейтинг в элирекции (как раньше)
 
-	INV_BAD_CIRT,     // коды начинающиеся с INV_ возвращают количество предметов в инвентори на момент                                    
-									 // попадания в эскейв, то есть отнимание придметов неучитывается!
-	INV_GOOD_CIRT,
-	INV_NYMBOS,
-	INV_PHLEGMA,
-	INV_HEROIN,
-	INV_SHRUB,
-	INV_POPONKA,
-	INV_UNIQUE_POPONKA,
-	INV_TOXICK,  
-	INV_ELEECH,                   // живой элик - по нему я сам определяю успех мероприятия
-	INV_DEAD_ELEECH,
-	INV_PIPETKA,					//количество PIPETKA
-	INV_KERNOBOO,				//количество KERNOBOO
-	INV_WEEZYK, 				//количество WEEZYK
-	INV_RUBBOX, 
-	INV_BAD_LARVA, 
-	INV_GOOD_LARVA,
+		INV_BAD_CIRT,     // коды начинающиеся с INV_ возвращают количество предметов в инвентори на момент                                    
+										// попадания в эскейв, то есть отнимание придметов неучитывается!
+		INV_GOOD_CIRT,
+		INV_NYMBOS,
+		INV_PHLEGMA,
+		INV_HEROIN,
+		INV_SHRUB,
+		INV_POPONKA,
+		INV_UNIQUE_POPONKA,
+		INV_TOXICK,  
+		INV_ELEECH,                   // живой элик - по нему я сам определяю успех мероприятия
+		INV_DEAD_ELEECH,
+		INV_PIPETKA,					//количество PIPETKA
+		INV_KERNOBOO,				//количество KERNOBOO
+		INV_WEEZYK, 				//количество WEEZYK
+		INV_RUBBOX, 
+		INV_BAD_LARVA, 
+		INV_GOOD_LARVA,
 
-	INV_MESSIAH,
-	INV_PROTRACTOR,
-	INV_FUNCTION83,
-	INV_BOOTSECTOR,
-	INV_PEELOT,
-	INV_SPUMMY,
+		INV_MESSIAH,
+		INV_PROTRACTOR,
+		INV_FUNCTION83,
+		INV_BOOTSECTOR,
+		INV_PEELOT,
+		INV_SPUMMY,
 
-	INV_LEEPURINGA,
-	INV_PALOCHKA,
-	INV_BOORAWCHICK,
-	INV_NOBOOL,
-	INV_PIPKA,
-	INV_PEREPONKA,
-	INV_ZEEFICK,
+		INV_LEEPURINGA,
+		INV_PALOCHKA,
+		INV_BOORAWCHICK,
+		INV_NOBOOL,
+		INV_PIPKA,
+		INV_PEREPONKA,
+		INV_ZEEFICK,
 
-	INV_ELEEPOD,
-	INV_BEEBOORAT,
-	INV_ZEEX,
+		INV_ELEEPOD,
+		INV_BEEBOORAT,
+		INV_ZEEX,
 
-	THIEF_LEEPURINGA,
-	THIEF_PALOCHKA,
-	THIEF_BOORAWCHICK,
-	THIEF_NOBOOL,
-	THIEF_PIPKA,
-	THIEF_PEREPONKA,
-	THIEF_ZEEFICK,
+		THIEF_LEEPURINGA,
+		THIEF_PALOCHKA,
+		THIEF_BOORAWCHICK,
+		THIEF_NOBOOL,
+		THIEF_PIPKA,
+		THIEF_PEREPONKA,
+		THIEF_ZEEFICK,
 
-	HERE_LEEPURINGA,
-	HERE_PALOCHKA,
-	HERE_BOORAWCHICK,
-	HERE_NOBOOL,
-	HERE_PIPKA,
-	HERE_PEREPONKA,
-	HERE_ZEEFICK,
+		HERE_LEEPURINGA,
+		HERE_PALOCHKA,
+		HERE_BOORAWCHICK,
+		HERE_NOBOOL,
+		HERE_PIPKA,
+		HERE_PEREPONKA,
+		HERE_ZEEFICK,
 
-	KILLED_VANGERS,
-	MECHOS_CHANGED,
-	MECHOS_TYPE,
-	CYCLE,
-	BEEBS,
-	LUCK,
-	DOMINANCE,
-	TABUTASKS,
-	FRESH_TABUTASKS,
-	WTABUTASKS,
-	TRUE_PASSENGER,	
-	BOORAWCHICK_RETURN,
+		KILLED_VANGERS,
+		MECHOS_CHANGED,
+		MECHOS_TYPE,
+		CYCLE,
+		BEEBS,
+		LUCK,
+		DOMINANCE,
+		TABUTASKS,
+		FRESH_TABUTASKS,
+		WTABUTASKS,
+		TRUE_PASSENGER,	
+		BOORAWCHICK_RETURN,
 
-	NYMBOS_DELIVERY,
-	PHLEGMA_DELIVERY, 
-	HEROIN_DELIVERY,
-	SHRUB_DELIVERY,
-	POPONKA_DELIVERY,
-	TOXICK_DELIVERY,
-	CIRT_DELIVERY,
-	LARVA_DELIVERY,
+		NYMBOS_DELIVERY,
+		PHLEGMA_DELIVERY, 
+		HEROIN_DELIVERY,
+		SHRUB_DELIVERY,
+		POPONKA_DELIVERY,
+		TOXICK_DELIVERY,
+		CIRT_DELIVERY,
+		LARVA_DELIVERY,
 
-	NYMBOS_BONUS,
-	PHLEGMA_BONUS, 
-	HEROIN_BONUS,
-	SHRUB_BONUS,
-	POPONKA_BONUS,
-	TOXICK_BONUS,
+		NYMBOS_BONUS,
+		PHLEGMA_BONUS, 
+		HEROIN_BONUS,
+		SHRUB_BONUS,
+		POPONKA_BONUS,
+		TOXICK_BONUS,
 
-	WEEZYK_ASSIGNMENT,
-	LARVA_CYCLE,
+		WEEZYK_ASSIGNMENT,
+		LARVA_CYCLE,
 
-	ZIGGER_ZAGGER,
-	CART, 
-	PUT_PUT,
-	BOX, 
-	RATTLE,
-	HEAVY_IRON,
-	STAR, 
-	WHIZZER,
-	HUSKER,
-	COGGED_WIDGET,
+		ZIGGER_ZAGGER,
+		CART, 
+		PUT_PUT,
+		BOX, 
+		RATTLE,
+		HEAVY_IRON,
+		STAR, 
+		WHIZZER,
+		HUSKER,
+		COGGED_WIDGET,
 
-	MAX
-	}; };
+		MAX
+	}; 
+};
 
 #define DG_GET_NEXT_PHRASE	1000
 #define DG_GET_QUERY_LIST	1001
@@ -145,22 +149,45 @@ struct DiagenDispatcher;
 struct dgRoom;
 
 extern DiagenDispatcher* dgD;
-//extern  int* dgLevel;
 
-struct dgFile {
+struct dgFile 
+{
 	char* buf;
 	int len,index;
 	int external;
 
-		dgFile(char* fname,int _len = 0, bool verbose=false){ load(fname, _len, verbose); }
-		dgFile(void){ buf = NULL; len = index = -1; external = 0; }
-		~dgFile(void){ if(!external && buf) delete buf; }
+	void load(char* filename, int _len, bool verbose = false);
+	void free()
+	{
+		if(!external && buf)
+		{
+			delete buf;
+		}
 
-	void load(char* fname,int _len, bool verbose=false);
-	char* getElement(int DualElements,int empty_available = 0);
-	void free(void){ if(!external && buf) delete buf; len = index = -1; }
-	void reset(void){ index = 0; }
-	};
+		len = index = -1;
+	}
+
+	char* getElement(int DualElements, int empty_available = 0);
+	inline void reset(void)
+	{
+		index = 0;
+	}
+
+	dgFile(char* filename, int _len = 0, bool verbose = false)
+	{
+		load(filename, _len, verbose); 
+	}
+	dgFile()
+	{
+		buf = NULL;
+		len = index = -1;
+		external = 0; 
+	}
+	~dgFile()
+	{
+		free();
+	}
+};
 
 struct dgAtom {
 	char* data;

@@ -5,6 +5,8 @@
 #include "xsocket.h"
 #include "multiplayer.h"
 
+#include "game_state.h"
+
 #define DEFAULT_SERVER_PORT	2197
 
 extern double zMod_cycle;
@@ -299,7 +301,6 @@ extern XBuffer network_analysis_buffer;
 extern int average_lag;
 extern XQueue<unsigned int> lag_averaging_t0;
 
-extern int NetworkON;
 extern NetRndType NetRnd;
 extern int zGameBirthTime;
 extern int CurrentWorld;

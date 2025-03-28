@@ -17,8 +17,8 @@
 extern unsigned char* invisible_table;
 #define TRANSPARENCY(color,intensity) (invisible_table[color + ((intensity) << 8)])
 				         
-#undef SWAP
-#define SWAP(a,b)	{ a ^= b; b ^= a; a ^= b; }
+#undef xorSwap
+#define xorSwap(a,b)	{ a ^= b; b ^= a; a ^= b; }
 // returns (x*y >> 7), where x - [-127,127], y - [-127,127]
 #define MUL_CHAR(x,y)	     (mul_table[((x) & 0xFF) | (((y) << 8) & 0xFF00)])
 //#define LOW_LEVEL
@@ -117,7 +117,7 @@ void register_color(unsigned int id,int first,int last)
 	if(id > COLORS_IDS::MAX_COLORS_IDS)
 		ErrH.Abort("Bad color id",XERR_USER,id);
 	COLORS_VALUE_TABLE[id*2] = first;
-	COLORS_VALUE_TABLE[id*2 + 1] = 7 - BitSR(last - first);
+	COLORS_VALUE_TABLE[id*2 + 1] = 7 - bitSR(last - first);
 }	
 void Object::set_body_color(unsigned int color_id)
 {
@@ -140,7 +140,7 @@ void Object::draw()
 	draw_offset = rmax_screen + 2;
 	convert_offset = draw_offset;
 	draw_size = draw_offset*2;
-	draw_shift = BitSR(draw_size) + 1;
+	draw_shift = bitSR(draw_size) + 1;
 	draw_x_size = 1 << (draw_shift + 1);
 	if(draw_shift > 8)
 		ErrH.Abort("Incorrect draw shift");
@@ -222,7 +222,7 @@ void Object::draw()
 	if(!DepthShow)
 		DrawLinear(R_scr.x - draw_offset,R_scr.y - draw_offset,draw_size,draw_shift,draw_buffer,draw_mode);
 	else{
-		int y_offset =0;// (2*zmax*scale >> 9)*Sin(-SlopeAngle)/Cos(SlopeAngle);
+		int y_offset =0;// (2*zmax*scale >> 9)*fSin(-SlopeAngle)/fCos(SlopeAngle);
 		Draw3DPlane(R_scr.x - draw_offset,R_scr.y - draw_offset,draw_size,draw_shift,draw_buffer,draw_mode,y_offset);
 		}
 	
@@ -292,7 +292,7 @@ void Object::pixel_draw()
 	draw_offset = rmax_screen + 2;
 	convert_offset = draw_offset;
 	draw_size = draw_offset*2;
-	draw_shift = BitSR(draw_size) + 1;
+	draw_shift = bitSR(draw_size) + 1;
 	draw_x_size = 1 << (draw_shift + 1);
 	if(draw_shift > 8)
 		ErrH.Abort("Incorrect draw shift");
@@ -391,14 +391,14 @@ void Polygon::draw_pixel()
 
 
 #define SHIFT_COUNTERCLOCKWISE_Z() {		\
-	SWAP(x0,x2);				\
-	SWAP(x1,x2);				\
+	xorSwap(x0,x2);				\
+	xorSwap(x1,x2);				\
 							\
-	SWAP(y0,y2);				\
-	SWAP(y1,y2);				\
+	xorSwap(y0,y2);				\
+	xorSwap(y1,y2);				\
 							\
-	SWAP(z0,z2);				\
-	SWAP(z1,z2);				\
+	xorSwap(z0,z2);				\
+	xorSwap(z1,z2);				\
 						\
 	I0 = normals[2] -> I_8 >> color_shift;	\
 	I1 = normals[0] -> I_8 >> color_shift;	\
@@ -407,14 +407,14 @@ void Polygon::draw_pixel()
 
 
 #define SHIFT_CLOCKWISE_Z() {			\
-	SWAP(x0,x1);				\
-	SWAP(x1,x2);				\
+	xorSwap(x0,x1);				\
+	xorSwap(x1,x2);				\
 						\
-	SWAP(y0,y1);				\
-	SWAP(y1,y2);				\
+	xorSwap(y0,y1);				\
+	xorSwap(y1,y2);				\
 						\
-	SWAP(z0,z1);				\
-	SWAP(z1,z2);				\
+	xorSwap(z0,z1);				\
+	xorSwap(z1,z2);				\
 						\
 	I0 = normals[1] -> I_8 >> color_shift;	\
 	I1 = normals[2] -> I_8 >> color_shift;	\
@@ -1288,7 +1288,7 @@ void smart_putspr(unsigned char* data,int Xcenter,int Ycenter,int XsizeB,int Ysi
 	int XsizeS = ScaleXsize;
 	int YsizeS = ScaleXsize*YsizeB/XsizeB;
 	if(DepthShow)
-		YsizeS = round(YsizeS*Cos(SlopeAngle));
+		YsizeS = round(YsizeS*fCos(SlopeAngle));
 	int bKx,bKy;
 	int X = Xcenter - XsizeS/2;
 	int Y = Ycenter - YsizeS/2;
@@ -1458,7 +1458,7 @@ void Object::destroy_double_level()
 	draw_offset = radius + 2;
 	convert_offset = draw_offset;
 	draw_size = draw_offset*2;
-	draw_shift = BitSR(draw_size) + 1;
+	draw_shift = bitSR(draw_size) + 1;
 	draw_x_size = 1 << (draw_shift + 1);
 	if(draw_shift > 8)
 		ErrH.Abort("Incorrect draw shift");
@@ -1519,7 +1519,7 @@ void Object::destroy_double_level()
 /*******************************************************************************
 		    Ground Pressing
 *******************************************************************************/
-void Object::ground_pressing() {
+void Object::ground_pressing() {	
 	int i;
 	if(analysis_off || !(dynamic_state & (GROUND_COLLISION | WHEELS_TOUCH)) || mole_on)
 		return;
@@ -1527,7 +1527,7 @@ void Object::ground_pressing() {
 	draw_offset = radius + 2;
 	convert_offset = draw_offset;
 	draw_size = draw_offset*2;
-	draw_shift = BitSR(draw_size) + 1;
+	draw_shift = bitSR(draw_size) + 1;
 	draw_x_size = 1 << (draw_shift + 1);
 	if(draw_shift > 8)
 		ErrH.Abort("Incorrect draw shift");
@@ -2063,15 +2063,15 @@ void CastArbitraryShadow(int x,int y,int zg,int size,int shift,unsigned char* bu
 	int k_yscr_x = sinTurnInv;
 	int k_yscr_y = cosTurnInv;
 
-	draw_dx = -COS(TurnAngle);
-	draw_dy = -SIN(TurnAngle);
+	draw_dx = -iCos(TurnAngle);
+	draw_dy = -iSin(TurnAngle);
 	dxa = abs(draw_dx);
 	dya = abs(draw_dy);
 	if(dxa > dya){
 		draw_dy = round((double)draw_dy*65536./(double)dxa);
 		draw_dx = SIGN(draw_dx) << 16;
 		xy_swap = 0;
-		CosAbs = fabs(Cos(TurnAngle));
+		CosAbs = fabs(fCos(TurnAngle));
 		x_bmp_corner_16 = x << 16;
 		y_bmp_corner_16 = y << 16;
 		dx = draw_dx;
@@ -2081,13 +2081,13 @@ void CastArbitraryShadow(int x,int y,int zg,int size,int shift,unsigned char* bu
 		draw_dx = round((double)draw_dx*65536./(double)dya);
 		draw_dy = SIGN(draw_dy) << 16;
 		xy_swap = 1;
-		SWAP(X0,Y0);
-		SWAP(X1,Y1);
-		SWAP(XS0,YS0);
-		SWAP(XS1,YS1);
-		SWAP(k_xscr_x,k_yscr_x);
-		SWAP(k_xscr_y,k_yscr_y);
-		CosAbs = fabs(Sin(TurnAngle));
+		xorSwap(X0,Y0);
+		xorSwap(X1,Y1);
+		xorSwap(XS0,YS0);
+		xorSwap(XS1,YS1);
+		xorSwap(k_xscr_x,k_yscr_x);
+		xorSwap(k_xscr_y,k_yscr_y);
+		CosAbs = fabs(fSin(TurnAngle));
 		x_bmp_corner_16 = y << 16;
 		y_bmp_corner_16 = x << 16;
 		dx = draw_dy;
@@ -2103,8 +2103,8 @@ void CastArbitraryShadow(int x,int y,int zg,int size,int shift,unsigned char* bu
 		}
 	else{
 		x_direction = -1;
-		SWAP(X0,X1);
-		SWAP(XS0,XS1);
+		xorSwap(X0,X1);
+		xorSwap(XS0,XS1);
 		k_xscr_x = -k_xscr_x;
 		k_xscr_y = -k_xscr_y;
 		}
@@ -2114,8 +2114,8 @@ void CastArbitraryShadow(int x,int y,int zg,int size,int shift,unsigned char* bu
 		}
 	else{
 		y_direction = -1;
-		SWAP(Y0,Y1);
-		SWAP(YS0,YS1);
+		xorSwap(Y0,Y1);
+		xorSwap(YS0,YS1);
 		k_yscr_x = -k_yscr_x;
 		k_yscr_y = -k_yscr_y;
 		}

@@ -292,9 +292,9 @@ struct aciScreenInputField : aciScreenObject
 	virtual void init(void);
 	void alloc_str(void);
 
-	void change_state(void);
-	int get_state(void);
-	void set_state(int v);
+	void toggle_state(void);
+	bool get_state(void);
+	void set_state(bool newState);
 
 	virtual void Quant(void);
 

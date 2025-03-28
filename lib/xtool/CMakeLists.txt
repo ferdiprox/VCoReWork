@@ -1,28 +1,40 @@
-SET(xtool_SRCS
-	xtcore.cpp
-	xrecorder/xrec.cpp
-	port.cpp
-	xerrhead.cpp
-	xbuffer/xbcnvin.cpp
-	xbuffer/xbcnvout.cpp
-	xbuffer/xbcore.cpp
-	xbuffer/xbsearch.cpp
-	xmsgbuffer/xmsgbuf.cpp
-	xresource/zip_resource.cpp
-	xstream/xscnvin.cpp
-	xstream/xscnvout.cpp
-	xstream/xscore.cpp
-	xstream/xsenlv.cpp
-	xstream/xsgetlin.cpp
-	xstream/xsinput.cpp
-	xstream/xsoutput.cpp
-	xstream/xsrdwr.cpp
-	xstream/xsserv.cpp
-	xutil/xclock.cpp
-	iniparser/dictionary.c
-	iniparser/iniparser.c
-	lang.cpp
-)
+set(xtool_SRCS)
+
+if(OLD_SOURCE_STORAGE)
+	SET(xtool_SRCS
+		xtcore.cpp
+		xrecorder/xrec.cpp
+		port.cpp
+		xerrhead.cpp
+		xbuffer/xbcnvin.cpp
+		xbuffer/xbcnvout.cpp
+		xbuffer/xbcore.cpp
+		xbuffer/xbsearch.cpp
+		xmsgbuffer/xmsgbuf.cpp
+		xstream/xscnvin.cpp
+		xstream/xscnvout.cpp
+		xstream/xscore.cpp
+		xstream/xsenlv.cpp
+		xstream/xsgetlin.cpp
+		xstream/xsinput.cpp
+		xstream/xsoutput.cpp
+		xstream/xsrdwr.cpp
+		xstream/xsserv.cpp
+		iniparser/dictionary.c
+		iniparser/iniparser.c
+		lang.cpp
+		xclock.cpp
+		convert_buffer.cpp
+	)
+else()	
+	foreach(DIR ".")
+		file(GLOB_RECURSE DIR_SOURCES "${DIR}/*.cpp") # Search cpp files
+		list(APPEND xtool_SRCS ${DIR_SOURCES})
+
+		file(GLOB_RECURSE DIR_SOURCES "${DIR}/*.c") # Search c libs
+		list(APPEND xtool_SRCS ${DIR_SOURCES})
+	endforeach()
+endif()
 
 IF(DXSTREAM_DEBUG)
 	ADD_DEFINITIONS(-DXSTREAM_DEBUG)

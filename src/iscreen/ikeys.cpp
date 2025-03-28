@@ -1,7 +1,6 @@
 
 /* ---------------------------- INCLUDE SECTION ----------------------------- */
 
-
 #include "../global.h"
 
 #include "ikeys.h"
@@ -13,6 +12,7 @@ extern int MultiLog;
 /* --------------------------- PROTOTYPE SECTION ---------------------------- */
 
 void ShowMTargets(void);
+
 /* --------------------------- DEFINITION SECTION --------------------------- */
 
 int KeyType = 0;  // 1 - BIOSKEY...

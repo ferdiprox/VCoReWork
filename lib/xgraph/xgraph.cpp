@@ -19,13 +19,10 @@ struct XGR_ColorData
 	unsigned char R;
 	unsigned char G;
 	unsigned char B;
-	//unsigned char A;
 };
 
 /* ----------------------------- EXTERN SECTION ----------------------------- */
 
-//extern HANDLE XAppHinst;
-//extern HANDLE XGR_hWnd;
 extern int XAppMode;
 
 /* --------------------------- PROTOTYPE SECTION ---------------------------- */
@@ -39,16 +36,7 @@ void xtDeactivateSysFinitFnc(int id);
 void XGR_FinitFnc(void);
 void XGR_MouseFnc(SDL_Event* p);
 
-//char* ddError(HRESULT error);
-
 /* --------------------------- DEFINITION SECTION --------------------------- */
-
-#define DD_STATE(a)		{ DDrawState = a; if(DDrawState != DD_OK ) ErrH.Abort("DirectDraw error...",XERR_USER,DDrawState,ddError(DDrawState)); }
-
-//RECT XGR_Rect;
-
-//LPDIRECTDRAWPALETTE XGR_DDPal = NULL;		// DirectDraw palette...
-//HRESULT DDrawState;
 
 XGR_Screen XGR_Obj;
 XGR_Mouse XGR_MouseObj;
@@ -76,8 +64,6 @@ int XGR_SHIFT_B = 0;
 int XGR_COLOR_MASK_R = 0;
 int XGR_COLOR_MASK_G = 0;
 int XGR_COLOR_MASK_B = 0;
-
-const char* XGraphWndID = "XGraphWindow";
 
 int XGR_HighColorMode = 0;
 int XGR_SysMsgFlag = 0;
@@ -853,8 +839,6 @@ void XGR_Screen::close(void)
 		XGR_InitFlag = 0;
 	}
 }
-
-int UI_OR_GAME=1;
 
 void XGR_Screen::blitRgba(uint32_t *dstRgba, uint8_t *screenIndexes, uint32_t *screen2DRgba, uint8_t *screen2DIndexes) {
 	int x, y;

@@ -1,3 +1,6 @@
+#pragma once
+
+#include "../common.h"
 
 typedef int MLAtype;
 const int MLPREC = 16;
@@ -109,3 +112,5 @@ void SetFlushIML(int x,int y,int sx,int sy);
 void dg_SendEvent(int code);
 
 void ToolzerQuant(int x,int y);
+
+void ilandPrepare(void);

@@ -54,12 +54,12 @@ int PerpSlopTurn(int Turn,int Slop,int H,int F,int cx,int cy,int xc,int yc,int X
 	int sinAlpha,cosAlpha;
 	int sinTetta,cosTetta;
 
-	sinAlpha = SI[rPI(Turn)];
-	cosAlpha = CO[rPI(Turn)];
-	sinTetta = SI[rPI(Slop)];
-	cosTetta = CO[rPI(Slop)];
+	sinAlpha = iSin(Turn);
+	cosAlpha = iCos(Turn);
+	sinTetta = iSin(Slop);
+	cosTetta = iCos(Slop);
 
-	if(abs(sinAlpha) < abs(SI[SlopModeTriggerAngle*PIx2/360])){
+	if(abs(sinAlpha) < abs(IntSinIntTable[SlopModeTriggerAngle*PiX2/360])){
 		SlopTurnSkip(Turn,-Slop,H,F,cx,cy,xc,yc,XDstSize,YDstSize);
 		return 0;
 		}

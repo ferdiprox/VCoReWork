@@ -2,12 +2,12 @@
 
 #include "../3d/3d_math.h"
 
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 
 #include "../terra/vmap.h"
 #include "../terra/world.h"
 
-#include "../3d/parser.h"
+#include "../fs/parser.h"
 
 #include "df.h"
 
@@ -120,7 +120,7 @@ void WaveProcess::Deform(int x,int y,int& off,char fl)
 	y -= sy >> 1;
 
 	vb = XGR_VIDEOBUF + y * XGR_MAXX + x;
-	buf = buff;		    
+	buf = buff;
 	mask = offset + off;
 
 //	if((x + x_min) > UcutLeft && (x + x_max) < UcutRight && (y + y_min) > VcutUp && (y + y_max) < VcutDown){
@@ -172,9 +172,9 @@ void WaveProcess::Deform(int x,int y,int& off,char fl)
 		ccrx = VS(_video)->_clip_right;
 		ccry = VS(_video)->_clip_bottom;
 
-		VS(_video)->_clip_left = UcutLeft;      
-		VS(_video)->_clip_top = VcutUp;      
-		VS(_video)->_clip_right = UcutRight;    
+		VS(_video)->_clip_left = UcutLeft;
+		VS(_video)->_clip_top = VcutUp;
+		VS(_video)->_clip_right = UcutRight;
 		VS(_video)->_clip_bottom = VcutDown;
 
 		c_putspr(x,y,sx,sy,buff,HIDDEN_FON);
@@ -190,7 +190,7 @@ void WaveProcess::Deform(int x,int y,int& off,char fl)
 
 		XGR_SetClip(UcutLeft,VcutUp,UcutRight,VcutDown);
 
-/*		XGR_Obj.clipLeft = UcutLeft; 
+/*		XGR_Obj.clipLeft = UcutLeft;
 		XGR_Obj.clipTop = VcutUp;
 		XGR_Obj.clipRight = UcutRight;
 		XGR_Obj.clipBottom = VcutDown;*/
@@ -373,9 +373,9 @@ void FireBallProcess::Show(int x,int y,int z,int scale,int& frame)
 		dbuf += dadd;
 	};*/
 
-	if(cTable) 
+	if(cTable)
 		smart_putspr(Data + frame,x,y,x_size,y_size,x_size * scale >> 16,z,TerrainAlphaTable[cTable]);
-	else 
+	else
 		smart_putspr(Data + frame,x,y,x_size,y_size,x_size * scale >> 16,z,FireColorTable);
 //	bitmap2screenFire((char*)(VS(_video)->_video),,x,y,x_size,y_size,x_size * scale >> 15);
 };
@@ -427,7 +427,7 @@ void FireBallProcess::Show2(int x,int y,int& frame)
 	dbuf = Data + frame + (ny - y)*x_size + (nx - x);
 
 	for(i = 0;i < nys;i++){
-		for(j = 0;j < nxs;j++){	
+		for(j = 0;j < nxs;j++){
 		       c = (*dbuf);
 		       if(c) *vbuf =FireColorTable[(*vbuf) + (c << 8)];
 
@@ -458,18 +458,18 @@ void FireBallProcess::Save(char* filename)
 	short xs,ys;
 	XStream in,out;
 	Parser list(filename);
-	list.search_name("BmlName");
+	list.searchName("BmlName");
 	out.open(list.get_name(),XS_OUT);
-	list.search_name("NumBmp");
+	list.searchName("NumBmp");
 	NumFrames = list.get_int();
 	out < NumFrames;
 
-	list.search_name("ColorSpace");
+	list.searchName("ColorSpace");
 	n = list.get_int();
 	out < (int)(n);
 
 	for(i = 0;i < NumFrames;i++){
-		list.search_name("NameBmp");
+		list.searchName("NameBmp");
 		in.open(list.get_name(),XS_IN);
 		in > xs;
 		in > ys;
@@ -485,7 +485,7 @@ void FireBallProcess::Save(char* filename)
 		for(j = 0;j < x_size*y_size;j++){
 			in > c;
 //			if(sz && c > 0) c = (uchar)(c1 + (((int)(c) * sz) >> 8));
-/*			if(c != 0){ 
+/*			if(c != 0){
 				c += 16;
 				if(c >= 255) c = 255;
 			};*/

@@ -32,13 +32,11 @@
 
 #include "actint.h"
 #include "credits.h"
-#include "aci_str.h"
 
 #include "mlconsts.h"
 #include "mlstruct.h"
 
 #include "../iscreen/ikeys.h"
-#include "../iscreen/zip.h"
 
 #include "../iscreen/ext_evnt.h"
 
@@ -48,6 +46,9 @@
 #include "acsconst.h"
 #include "aci_scr.h"
 #include "chtree.h"
+#include "../locale/aci_dict.h"
+
+#include "../game_state.h"
 
 #if defined(__APPLE__) || __GNUC__ < 9
 #else
@@ -75,8 +76,6 @@ extern int aciPrevDominance;
 
 extern char* acsBackupStr;
 extern unsigned char* palbuf;
-
-extern int RAM16;
 
 extern int aciPickupItems;
 extern int aciPickupDevices;
@@ -384,8 +383,6 @@ void aOutText32clip(int x,int y,int color,void* text,int font,int hspace,int vsp
 int aTextWidth32(void* text,int font,int hspace);
 int aTextHeight32(void* text,int font,int vspace);
 
-void aciInitStrings(void);
-
 void aciInitItmTextQueue(void);
 
 /* --------------------------- DEFINITION SECTION --------------------------- */
@@ -419,7 +416,6 @@ int aciMouseFlagL = 0;
 int aciMouseFlagR = 0;
 
 int aInitFlag = 0;
-int actintLowResFlag = 0;
 int actintActiveFlag = 0;
 int actIntLog = 0;
 
@@ -480,45 +476,7 @@ int aciAutoRun = 0;
 int aci_dgMoodNext = -1;
 #endif
 
-int aciAutoSaveFlag = 0;
-
-const char* aciSTR_ON = aciSTR_ON1;
-const char* aciSTR_OFF = aciSTR_OFF1;
-const char* aciSTR_DAY = aciSTR_DAY1;
-const char* aciSTR_UNDEFINED_PRICE = aciSTR_UNDEFINED_PRICE1;
-const char* aciSTR_PRICE = aciSTR_PRICE1;
-const char* aciSTR_EMPTY_SLOT = aciSTR_EMPTY_SLOT1;
-const char* aciSTR_UNNAMED_SAVE = aciSTR_UNNAMED_SAVE1;
-const char* aciSTR_AUTOSAVE = aciSTR_AUTOSAVE1;
-const char* aciSTR_WINS = aciSTR_WINS1;
-const char* aciSTR_LOSSES = aciSTR_LOSSES1;
-const char* aciSTR_LUCK = aciSTR_LUCK1;
-const char* aciSTR_DOMINANCE = aciSTR_DOMINANCE1;
-const char* aciSTR_BROKEN = aciSTR_BROKEN1;
-const char* aciSTR_ENERGY_SHIELD = aciSTR_ENERGY_SHIELD1;
-const char* aciSTR_RESTORING_SPEED = aciSTR_RESTORING_SPEED1;
-const char* aciSTR_MECHANIC_ARMOR = aciSTR_MECHANIC_ARMOR1;
-const char* aciSTR_VELOCITY = aciSTR_VELOCITY1;
-const char* aciSTR_SPIRAL_CAPACITY = aciSTR_SPIRAL_CAPACITY1;
-const char* aciSTR_AIR_RESERVE = aciSTR_AIR_RESERVE1;
-const char* aciSTR_DAMAGE = aciSTR_DAMAGE1;
-const char* aciSTR_LOAD = aciSTR_LOAD1;
-const char* aciSTR_SHOTS = aciSTR_SHOTS1;
-const char* aciSTR_BURST = aciSTR_BURST1;
-const char* aciSTR_WORKING_TIME = aciSTR_WORKING_TIME1;
-const char* aciSTR_SECONDS = aciSTR_SECONDS1;
-const char* aciSTR_IN_PACK = aciSTR_IN_PACK1;
-const char* aciSTR_NO_CASH = aciSTR_NO_CASH1;
-const char* aciSTR_PICKUP_ITEMS_OFF = aciSTR_PICKUP_ITEMS_OFF1;
-const char* aciSTR_PICKUP_WEAPONS_OFF = aciSTR_PICKUP_WEAPONS_OFF1;
-const char* aciSTR_PutThis = aciSTR_PutThis1;
-const char* aciSTR_Ware1 = aciSTR_Ware11;
-const char* aciSTR_Ware2 = aciSTR_Ware21;
-const char* aciSTR_Checkpoints = aciSTR_Checkpoints1;
-
-const char* aciSTR_RESTRICTIONS = aciSTR_RESTRICTIONS1;
-const char* aciSTR_STATISTICS = aciSTR_STATISTICS1;
-const char* aciSTR_MINUTES = aciSTR_MINUTES1;
+bool aciAutoSaveFlag = 0;
 
 int aciItmTextQueueSize = 0;
 int aciItmTextQueueCur = 0;
@@ -533,32 +491,22 @@ extern iScreenOption** iScrOpt;
 
 void aInit(void)
 {
-	GameOverID = 0;
-	aciInitStrings();
+	globalGameState.gameoverTrigger = -1;
 
 	if(!aIndArrowBML){
 		aIndArrowBML = new bmlObject;
 		aIndArrowBML -> flags |= BML_NO_OFFSETS;
-		if(actintLowResFlag)
-			aIndArrowBML -> load("resource/actint/640x480/ind_data/arrow.bml");
-		else
-			aIndArrowBML -> load("resource/actint/800x600/ind_data/arrow.bml");
+		aIndArrowBML -> load("resource/actint/800x600/ind_data/arrow.bml");
 	}
 	if(!aIndDataBML){
 		aIndDataBML = new bmlObject;
 		aIndDataBML -> flags |= BML_NO_OFFSETS;
-		if(actintLowResFlag)
-			aIndDataBML -> load("resource/actint/640x480/ind_data/data.bml");
-		else
-			aIndDataBML -> load("resource/actint/800x600/ind_data/data.bml");
+		aIndDataBML -> load("resource/actint/800x600/ind_data/data.bml");
 	}
 	if(!aIndBackBML){
 		aIndBackBML = new bmlObject;
 		aIndBackBML -> flags |= BMP_FLAG;
-		if(actintLowResFlag)
-			aIndBackBML -> load("resource/actint/640x480/ind_data/back.bmp");
-		else
-			aIndBackBML -> load("resource/actint/800x600/ind_data/back.bmp");
+		aIndBackBML -> load("resource/actint/800x600/ind_data/back.bmp");
 	}
 	if(!aciSpeechSeq){
 		aciSpeechSeq = new aciML_EventSeq;
@@ -577,51 +525,27 @@ void aInit(void)
 	}
 
 #ifdef _BINARY_SCRIPT_
-	if(actintLowResFlag){
-		if(lang() == RUSSIAN){
-			aParseScript("resource/actint/aci_low2.scb");
-			acsParseScript("resource/actint/acs_low2.scb");
-		}
-		else {
-			aParseScript("resource/actint/aci_low.scb");
-			acsParseScript("resource/actint/acs_low.scb");
-		}
+	if(lang() == RUSSIAN){
+		aParseScript("resource/actint/aci_hi2.scb");
+		acsParseScript("resource/actint/acs_low2.scb");
 	}
 	else {
-		if(lang() == RUSSIAN){
-			aParseScript("resource/actint/aci_hi2.scb");
-			acsParseScript("resource/actint/acs_low2.scb");
-		}
-		else {
-			aParseScript("resource/actint/aci_hi.scb");
-			acsParseScript("resource/actint/acs_low.scb");
-		}
+		aParseScript("resource/actint/aci_hi.scb");
+		acsParseScript("resource/actint/acs_low.scb");
 	}
 #else
-	if(actintLowResFlag){
-		if(lang() == RUSSIAN){
-			aParseScript("actint/aci_low2.scr","resource/actint/aci_low2.scb");
-			acsParseScript("actint/acs_low2.scr","resource/actint/acs_low2.scb");
-		}
-		else {
-			aParseScript("actint/aci_low.scr","resource/actint/aci_low.scb");
-			acsParseScript("actint/acs_low.scr","resource/actint/acs_low.scb");
-		}
+	if(lang() == RUSSIAN){
+		aParseScript("actint/aci_hi2.scr","resource/actint/aci_hi2.scb");
+		acsParseScript("actint/acs_low2.scr","resource/actint/acs_low2.scb");
 	}
 	else {
-		if(lang() == RUSSIAN){
-			aParseScript("actint/aci_hi2.scr","resource/actint/aci_hi2.scb");
-			acsParseScript("actint/acs_low2.scr","resource/actint/acs_low2.scb");
-		}
-		else {
-			aParseScript("actint/aci_hi.scr","resource/actint/aci_hi.scb");
-			acsParseScript("actint/acs_low.scr","resource/actint/acs_low.scb");
-		}
+		aParseScript("actint/aci_hi.scr","resource/actint/aci_hi.scb");
+		acsParseScript("actint/acs_low.scr","resource/actint/acs_low.scb");
 	}
 #endif
 	a_calc_tables();
 
-	if(!NetworkON){
+	if(!globalGameState.inNetwork){
 		aciUpdateCurCredits(ACI_STARTUP_CREDITS + beebos);
 	}
 	else {
@@ -737,7 +661,7 @@ void aLoadFonts(void)
 #else
 		XBuf <= i < ".fnt";
 		fh.open(XBuf,XS_IN);
-		sz = fh.size();
+		sz = fh.size;
 
 		buf = new char[sz];
 		fh.read(buf,sz);
@@ -1172,9 +1096,9 @@ void aPutChar(int x,int y,int font,int color,int str,int bsx,int bsy,unsigned ch
 
 void aKeyTrap(SDL_Event *k)
 {
-	if(aInitFlag){
+	//if(aInitFlag){
 		KeyBuf -> put(k,CUR_KEY_PRESSED);
-	}
+	//}
 }
 
 void aKeyQuant(void)
@@ -1878,10 +1802,7 @@ void aci_LocationQuantFinit(void)
 void loadMouseFrames(void)
 {
 	XStream fh;
-	if(actintLowResFlag)
-		fh.open("resource/actint/640x480/mouse.bml",XS_IN);
-	else
-		fh.open("resource/actint/800x600/mouse.bml",XS_IN);
+	fh.open("resource/actint/800x600/mouse.bml",XS_IN);
 	fh > aMouseSizeX > aMouseSizeY > aMouseSize;
 	aMouseFrames = new unsigned char[aMouseSizeX * aMouseSizeY * aMouseSize];
 	fh.read(aMouseFrames,aMouseSizeX * aMouseSizeY * aMouseSize);
@@ -1994,7 +1915,7 @@ void aciSetMechName(void)
 uvsActInt* aciGetMechos(int id)
 {
 	uvsActInt* p = GMechos;
-	
+
 	while(p){
 		if(p -> type == id)
 			return p;
@@ -2301,7 +2222,7 @@ void aciSetTimePanel(void)
 
 	ConTimer.sTime.init();
 
-	if(NetworkON){
+	if(globalGameState.inNetwork){
 		GetNetworkGameTime(d,h,m,s);
 	}
 	else {
@@ -2325,7 +2246,7 @@ void aciSetTimePanel(void)
 	p = ConTimer.sTime.GetBuf();
 
 	iPl -> free_list();
-	iPl -> add_item(aciSTR_DAY);
+	iPl -> add_item(AciDict::timeDay);
 	iPl -> add_item(p,-1,(aciCurColorScheme[FM_SELECT_BORDER_COL] << 8) | aciCurColorScheme[FM_SELECT_COL]);
 
 	if(aScrDisp -> flags & AS_ISCREEN)
@@ -2509,7 +2430,7 @@ void aciInitAviID(void)
 	if(!iShopItem){
 		aciXConv -> init();
 		*aciXConv < iVideoPath < "empty.avi";
-		strcpy(avi -> avi_name,aciXConv -> address());
+		strcpy(avi -> avi_name,aciXConv -> buf);
 		iEvLineID = EMPTY_MODE;
 		return;
 	}
@@ -3554,7 +3475,7 @@ void aciInitPanel(InfoPanel* p,unsigned char* str)
 
 	while(!quit_log){
 		strcpy((char*)dest_str,(char*)tmp_ptr);
-		
+
 		if(p -> flags & IP_RANGE_FONT)
 			len = aStrLen32(dest_str,ACI_PHRASE_FONT,p->hSpace);
 		else
@@ -3788,17 +3709,17 @@ char* aciGetPrice(iListElement* p,int mode,int sell_mode)
 	aciXConv -> init();
 
 	if(!u){
-		*aciXConv < aciSTR_UNDEFINED_PRICE;
-		return aciXConv -> address();
+		*aciXConv < AciDict::shopUndefinedPrice;
+		return aciXConv -> buf;
 	}
 
-	*aciXConv < aciSTR_PRICE;
+	*aciXConv < AciDict::shopPricePrefix;
 
 	if(sell_mode)
 		*aciXConv <= u -> sell_price < " $";
 	else
 		*aciXConv <= u -> price < " $";
-	ptr = aciXConv -> address();
+	ptr = aciXConv -> buf;
 
 	return ptr;
 }
@@ -4058,26 +3979,26 @@ char* aciGetItemLoad(invItem* p,int mode)
 			case 0:
 				if(p -> flags & INV_ITEM_SHOW_ESCAVE){
 					if(p -> item_ptr)
-						sprintf(aciXConv -> address(),p -> pTemplate,aciGetItemEscave(p -> item_ptr -> data1));
+						sprintf(aciXConv -> buf,p -> pTemplate,aciGetItemEscave(p -> item_ptr -> data1));
 				}
 				else {
 					if(p -> item_ptr)
-						sprintf(aciXConv -> address(),p -> pTemplate,p -> item_ptr -> data1);
+						sprintf(aciXConv -> buf,p -> pTemplate,p -> item_ptr -> data1);
 				}
 				break;
 			case 1:
 				if(p -> flags & INV_ITEM_SHOW_ESCAVE){
 					if(p -> uvsDataPtr)
-						sprintf(aciXConv -> address(),p -> pTemplate,aciGetItemEscave(((uvsActInt*)p -> uvsDataPtr) -> param2));
+						sprintf(aciXConv -> buf,p -> pTemplate,aciGetItemEscave(((uvsActInt*)p -> uvsDataPtr) -> param2));
 				}
 				else {
 					if(p -> uvsDataPtr)
-						sprintf(aciXConv -> address(),p -> pTemplate,((uvsActInt*)p -> uvsDataPtr) -> param2);
+						sprintf(aciXConv -> buf,p -> pTemplate,((uvsActInt*)p -> uvsDataPtr) -> param2);
 				}
 				break;
 		}
 	}
-	ptr = aciXConv -> address();
+	ptr = aciXConv -> buf;
 
 	return ptr;
 }
@@ -4093,12 +4014,15 @@ void aciAddTeleportMenuItem(int id,int fnc_id)
 	if(!mn) return;
 
 	if(id == -1){
-		if (lang() == RUSSIAN) {
-			if (strcmp(aci_curLocationName, (char*)eCmpPodish) == 0) ptr = rCmpPodish;
-			else if (strcmp(aci_curLocationName, (char*)eCmpVigBoo) == 0) ptr = rCmpVigBoo;
-			else if (strcmp(aci_curLocationName, (char*)eCmpZeePa) == 0) ptr = rCmpZeePa;
+		/*if (lang() == RUSSIAN) {
+			if (strcmp(aci_curLocationName, (char*)CompasDict::Podish) == 0) ptr = rCmpPodish;
+			else if (strcmp(aci_curLocationName, (char*)CompasDict::VigBoo) == 0) ptr = rCmpVigBoo;
+			else if (strcmp(aci_curLocationName, (char*)CompasDict::ZeePa) == 0) ptr = rCmpZeePa;
 		}
-		else ptr = aci_curLocationName;
+		else 
+		*/
+		// Ferdi: something strange is going here. need to check
+		ptr = aci_curLocationName;
 	}
 	else {
 		m = aScrDisp -> get_matrix(id);
@@ -4154,7 +4078,7 @@ void aciAdd2Targets(char* p)
 	if(ptr)
 		mn -> curItem = mn -> get_obj(ptr);
 	else
-		mn -> curItem = mn -> get_obj(aciSTR_OFF);
+		mn -> curItem = mn -> get_obj(AciDict::optionOff);
 
 	mn -> firstItem = mn -> curItem;
 	mn -> init_objects();
@@ -4176,7 +4100,7 @@ void aciRefreshTargetsMenu(void)
 	if(ptr)
 		mn -> curItem = mn -> get_obj(ptr);
 	else
-		mn -> curItem = mn -> get_obj(aciSTR_OFF);
+		mn -> curItem = mn -> get_obj(AciDict::optionOff);
 
 	mn -> init_objects();
 
@@ -4209,7 +4133,7 @@ void aciDeleteFromTargets(char* p)
 	if(ptr)
 		mn -> curItem = mn -> get_obj(ptr);
 	else
-		mn -> curItem = mn -> get_obj(aciSTR_OFF);
+		mn -> curItem = mn -> get_obj(AciDict::optionOff);
 
 	mn -> firstItem = mn -> curItem;
 	mn -> init_objects();
@@ -4255,40 +4179,19 @@ void aciHandleCameraEvent(int code,int data)
 		case BMENU_ITEM_ROT:
 			camera_rotate_enable = data;
 			iScrOpt[iCAMERA_TURN]->SetValueINT(data);
-			if(RAM16 && data){
-				camera_moving_xy_enable = camera_moving_z_enable = 0;
-				camera_slope_enable = 0;
-			}
 			break;
 		case BMENU_ITEM_ZOOM:
 			camera_moving_xy_enable = camera_moving_z_enable = data;
 			iScrOpt[iCAMERA_SCALE]->SetValueINT(data);
-			if(RAM16 && data){
-				camera_rotate_enable = 0;
-				camera_slope_enable = 0;
-			}
 			break;
 		case BMENU_ITEM_PERSP:
 			camera_slope_enable = data;
 			iScrOpt[iCAMERA_SLOPE]->SetValueINT(data);
-			if(RAM16 && data){
-				camera_moving_xy_enable = camera_moving_z_enable = 0;
-				camera_rotate_enable = 0;
-			}
 			break;
 	}
-	if(RAM16 && data){
-		m = aScrDisp -> get_bmenu(BMENU_CAMERAS_MENU);
-		if(m){
-			p = (aciBitmapMenuItem*)m -> items -> last;
-			while(p){
-				if(p -> ID != code) p -> curState = 0;
-				p = (aciBitmapMenuItem*)p -> prev;
-			}
-		}
-	}
+
 	iSaveData();
-	
+
 }
 
 void aciSetCameraMenu(void)
@@ -4338,7 +4241,7 @@ void aciHandleSubmenuEvent(int id,fncMenuItem* p)
 	}
 	switch(id){
 		case FMENU_TARGETS_MENU:
-			if(strcmp(p -> name,aciSTR_OFF)){
+			if(strcmp(p -> name, AciDict::optionOff)){
 				SelectCompasTarget(p -> name);
 			}
 			else {
@@ -4427,7 +4330,6 @@ void aciPackFile(char* fname)
 	fh.read(p,sz);
 	fh.close();
 
-	//sz1 = ZIP_compress(p1,sz,p,sz);
 	/* ZLIB realization (stalkerg)*/
 	p1[0] = (char)(8 & 0xFF); //8 it is DEFLATE method
 	p1[1] = (char)((8 >> 8) & 0xFF);
@@ -4461,10 +4363,9 @@ void aciUnPackFile(char* fname)
 	fh.read(p,sz);
 	fh.close();
 
-	sz1 = *(unsigned int*)(p + 2) + 12;//ZIP_GetExpandedSize(p);
+	sz1 = *(unsigned int*)(p + 2) + 12;
 	p1 = new char[sz1];
 
-	//ZIP_expand(p1,sz1,p,sz);
 	/* ZLIB realization (stalkerg)*/
 	if(*(short*)(p)) { //if label = 0 not compress
 		std::cout<<"aciUnPackFile DeCompress "<<fname<<" file."<<std::endl;
@@ -4726,10 +4627,10 @@ int aciPutItem(int id,int x,int y)
 
 	if(!p1) ErrH.Abort("Bad aciPutItem() argument...");
 	p = aScrDisp -> alloc_item();
-	
+
 	p1 -> clone(p);
 	p -> item_ptr = NULL;
-	
+
 	if(aScrDisp -> curMatrix){
 		if(x != -1){
 			if(!aScrDisp -> put_item_xy(p,x,y,0)){
@@ -4927,7 +4828,7 @@ void aciPromptData::quant(void)
 
 	if(!NumStr) return;
 
-	if (NetworkON) {
+	if (globalGameState.inNetwork) {
 		CurTimer += 2;
 	} else {
 		CurTimer ++;
@@ -4982,7 +4883,7 @@ int acsQuant(void)
 	int ret,k,firstQuant = 0;
 	if(!acsAllocFlag){
 		acsAllocFlag = 1;
-		if(NetworkON) aciKeyboardLocked = 1;
+		if(globalGameState.inNetwork) aciKeyboardLocked = 1;
 		acsScrD -> curScrID = acsScreenID;
 		acsScrD -> QuantCode = 0;
 		XGR_MouseObj.DisablePrompt();
@@ -5031,7 +4932,7 @@ int acsQuant(void)
 		acsScrD -> KeyTrap(iMOUSE_RIGHT_PRESS_CODE, nullptr);
 		aScrDisp -> flags ^= aMS_RIGHT_PRESS;
 	}
-	if(NetworkON){
+	if(globalGameState.inNetwork){
 		acsScrD -> flags |= ACS_FORCED_REDRAW;
 		ret = acsScrD -> Quant(actIntLog);
 	}
@@ -5059,7 +4960,7 @@ int acsQuant(void)
 		iHandleExtEvent(iEXT_UPDATE_SOUND_MODE);
 		iHandleExtEvent(iEXT_UPDATE_SOUND_VOLUME);
 
-		if(NetworkON) aciKeyboardLocked = 0;
+		if(globalGameState.inNetwork) aciKeyboardLocked = 0;
 
 		acsScreenID = 1;
 		iSaveData();
@@ -5075,16 +4976,18 @@ void acsHandleExtEvent(int code,int data0,int data1,int data2)
 	switch(code){
 		case ACS_GLOBAL_EXIT:
 			if(!(aScrDisp -> flags & AS_ISCREEN))
-				GameQuantReturnValue = RTO_LOADING3_ID;
+				GameQuantReturnValue = RTO_LOAD_GAMEOVER_ID;
 			else {
 				iScrDisp -> flags |= SD_EXIT;
 				iScrExitCode = 1;
 				iAbortGameFlag = 1;
 			}
-			if(NetworkON) iMultiFlag = 1;
+			if(globalGameState.inNetwork) iMultiFlag = 1;
 			acsScrD -> QuantCode = 1; // resume game pause
-			if(!GameOverID)
-				GameOverID = GAME_OVER_ABORT;
+			if(globalGameState.gameoverTrigger == -1)
+			{
+				globalGameState.gameoverTrigger = GAME_OVER_ABORT;
+			}
 			break;
 		case ACS_INIT_TUTORIAL_MODE:
 			acsSetStrState(ACS_TUTORIAL_MODE,!iGetOptionValue(iTUTORIAL_ON));
@@ -5206,7 +5109,7 @@ void acsPrepareSlotName(int id,int slot_num)
 	if(slot_num < 10) XBuf < "0";
 	XBuf <= slot_num < ".dat";
 
-	if(fh.open(XBuf.address(),XS_IN)){
+	if(fh.open(XBuf.buf,XS_IN)){
 		fh > len;
 
 		time_len = (len >> 16) & 0xFF;
@@ -5217,7 +5120,7 @@ void acsPrepareSlotName(int id,int slot_num)
 		fh.close();
 	}
 	else
-		strcpy(p -> string,aciSTR_EMPTY_SLOT);
+		strcpy(p -> string, AciDict::saveSlotEmpty);
 }
 
 void acsPrepareSlotNameInput(int id,int slot_num)
@@ -5229,7 +5132,7 @@ void acsPrepareSlotNameInput(int id,int slot_num)
 		acsScrD -> activeInput -> StopEvents();
 		acsScrD -> CancelInput();
 	}
-	if(!strcmp(p -> string,aciSTR_EMPTY_SLOT) || !strcmp(p -> string,aciSTR_UNNAMED_SAVE)){
+	if(!strcmp(p -> string, AciDict::saveSlotEmpty) || !strcmp(p -> string, AciDict::saveSlotUnnamed)){
 		sz = strlen(p -> string) + 1;
 		acsBackupStr = new char[sz];
 		strcpy(acsBackupStr,p -> string);
@@ -5276,7 +5179,7 @@ void acsSaveData(void)
 	aciScreenInputField* p;
 
 	if(aciAutoSaveFlag){
-		ptr = aciSTR_AUTOSAVE;
+		ptr = AciDict::saveSlotAutosave;
 		slot = ACS_NUM_SLOTS;
 	}
 	else {
@@ -5295,7 +5198,7 @@ void acsSaveData(void)
 				null_flag = 0;
 		}
 		if(null_flag){
-			ptr = aciSTR_UNNAMED_SAVE;
+			ptr = AciDict::saveSlotUnnamed;
 			len = strlen(ptr);
 		}
 
@@ -5304,7 +5207,7 @@ void acsSaveData(void)
 			((uvsActInt*)aScrDisp -> curItem -> uvsDataPtr) -> pos_y = aScrDisp -> curItem -> MatrixY = -1;
 		}
 
-		fh.open(XBuf.address(),XS_OUT);
+		fh.open(XBuf.buf,XS_OUT);
 
 		aciXConv -> init();
 		*aciXConv < aScrDisp -> curLocData -> nameID2 < ", ";
@@ -5319,14 +5222,14 @@ void acsSaveData(void)
 		time_len = aciXConv -> tell();
 
 		fh < (len | (time_len << 16));
-		
+
 		fh.write(ptr,len);
-		
-		fh.write(aciXConv -> address(),time_len);
-		
-		
+
+		fh.write(aciXConv -> buf,time_len);
+
+
 		CurrentWorld = prevWorld;
-		
+
 		uniVangSave(fh);
 
 		aciSaveUVSList(fh,GItem);
@@ -5344,7 +5247,7 @@ void acsSaveData(void)
 		fh.close();
 
 #ifdef _ACI_PACK_SAVES_
-		acsCompressData(XBuf.address());
+		acsCompressData(XBuf.buf);
 #endif
 	}
 	aciAutoSaveFlag = 0;
@@ -5362,10 +5265,10 @@ void acsLoadData(void)
 		XBuf <= slot < ".dat";
 
 #ifdef _ACI_PACK_SAVES_
-		acsDecompressData(XBuf.address());
+		acsDecompressData(XBuf.buf);
 #endif
 		std::cout<<"acsLoadData"<<std::endl;
-		fh.open(XBuf.address(),XS_IN);
+		fh.open(XBuf.buf,XS_IN);
 		fh > len;
 		time_len = (len >> 16) & 0xFF;
 		len &= 0xFF;
@@ -5458,17 +5361,17 @@ void acsLoadData(void)
 				next:
 				iter_gamer = (uvsActInt*)iter_gamer->next;
 			}
-			
+
 			aciFreeUVSList(GGamer);
 			GGamer = (uvsActInt*)el;
-			
+
 		}
 		GeneralSystemLoad(fh);
 		dgD -> load(fh);
 		fh.close();
 
 #ifdef _ACI_PACK_SAVES_
-		acsCompressData(XBuf.address());
+		acsCompressData(XBuf.buf);
 #endif
 	}
 }
@@ -5733,7 +5636,7 @@ void aciShowFrags(void)
 
 	static int fragColors[10] = { ACI_FRAG_COL0, ACI_FRAG_COL1, ACI_FRAG_COL2, ACI_FRAG_COL3, ACI_FRAG_COL4, ACI_FRAG_COL5, ACI_FRAG_COL6, ACI_FRAG_COL7, ACI_FRAG_COL8, ACI_FRAG_COL9 };
 
-	if(!NetworkON || !players_list.size()) return;
+	if(!globalGameState.inNetwork || !players_list.size()) return;
 	if(aScrDisp -> curPrompt -> NumStr){
 		aScrDisp -> curPrompt -> free_mem();
 		return;
@@ -5743,7 +5646,7 @@ void aciShowFrags(void)
 
 	num = iNumPlayers;
 	if (iCurMultiGame == 0) num += ACI_FRAG_ADDITIONAL_LINES; //Van-War
-	
+
 	aScrDisp -> curPrompt -> alloc_mem(num);
 	aScrDisp -> curPrompt -> CurTimer = 0;
 
@@ -5751,27 +5654,27 @@ void aciShowFrags(void)
 
 	switch(iCurMultiGame){
 		case 0: // VAN-WAR...
-			
+
 			for (i = 0; i < ACI_FRAG_ADDITIONAL_LINES; i++) {
 				XBuf.init();
 				switch (i) {
-					case 0: XBuf < aciSTR_RESTRICTIONS; break;
-					case 1: XBuf < aciSTR_WINS < " " <= my_server_data.Van_War.MaxKills < ", " < aciSTR_MINUTES < " " <= my_server_data.Van_War.MaxTime; break;
+					case 0: XBuf < AciDict::mpGameRestrictions; break;
+					case 1: XBuf < AciDict::mpGamePlayerWins < " " <= my_server_data.Van_War.MaxKills < ", " < AciDict::timeMinutes < " " <= my_server_data.Van_War.MaxTime; break;
 					case 2: XBuf < ""; break;
-					case 3: XBuf < aciSTR_STATISTICS; break;
+					case 3: XBuf < AciDict::mpGameStatistics; break;
 				}
-				
-				aScrDisp -> curPrompt -> add_str(i, (unsigned char*)XBuf.address());
+
+				aScrDisp -> curPrompt -> add_str(i, (unsigned char*)XBuf.buf);
 				aScrDisp -> curPrompt -> TimeBuf[i] = ACI_FRAG_TIMER;
 				aScrDisp -> curPrompt -> ColBuf[i] = fragColors[5];
 			}
-			
+
 			for(i = 0; i < num - ACI_FRAG_ADDITIONAL_LINES; i ++){
 				p = iPlayers[i];
 				XBuf.init();
 				world_name = aScrDisp -> wMap -> world_ptr[aScrDisp -> wMap -> world_ids[p -> body.world]] -> name;
-				XBuf < p -> name < " (" < world_name < ") : " < aciSTR_WINS < " " <= p -> body.kills < ", " < aciSTR_LOSSES < " " <= p -> body.deaths;
-				aScrDisp -> curPrompt -> add_str(i + ACI_FRAG_ADDITIONAL_LINES,(unsigned char*)XBuf.address());
+				XBuf < p -> name < " (" < world_name < ") : " < AciDict::mpGamePlayerWins < " " <= p -> body.kills < ", " < AciDict::mpGamePlayerLosses < " " <= p -> body.deaths;
+				aScrDisp -> curPrompt -> add_str(i + ACI_FRAG_ADDITIONAL_LINES,(unsigned char*)XBuf.buf);
 				aScrDisp -> curPrompt -> TimeBuf[i + ACI_FRAG_ADDITIONAL_LINES] = ACI_FRAG_TIMER;
 				aScrDisp -> curPrompt -> ColBuf[i + ACI_FRAG_ADDITIONAL_LINES] = fragColors[p -> body.color];
 			}
@@ -5781,9 +5684,9 @@ void aciShowFrags(void)
 				p = iPlayers[i];
 				XBuf.init();
 				world_name = aScrDisp -> wMap -> world_ptr[aScrDisp -> wMap -> world_ids[p -> body.world]] -> name;
-				XBuf < p -> name < " (" < world_name < ") : " < aciSTR_Ware1 < " " <= p -> body.MechosomaStat.ItemCount1 < "/" <= my_server_data.Mechosoma.ProductQuantity1;
-				XBuf < " " < aciSTR_Ware2 < " " <= p -> body.MechosomaStat.ItemCount2 < "/" <= my_server_data.Mechosoma.ProductQuantity2;
-				aScrDisp -> curPrompt -> add_str(i,(unsigned char*)XBuf.address());
+				XBuf < p -> name < " (" < world_name < ") : " < AciDict::mpSetupFirstWarePrm < " " <= p -> body.MechosomaStat.ItemCount1 < "/" <= my_server_data.Mechosoma.ProductQuantity1;
+				XBuf < " " < AciDict::mpSetupSecondWarePrm < " " <= p -> body.MechosomaStat.ItemCount2 < "/" <= my_server_data.Mechosoma.ProductQuantity2;
+				aScrDisp -> curPrompt -> add_str(i,(unsigned char*)XBuf.buf);
 				aScrDisp -> curPrompt -> TimeBuf[i] = ACI_FRAG_TIMER;
 				aScrDisp -> curPrompt -> ColBuf[i] = fragColors[p -> body.color];
 			}
@@ -5793,8 +5696,8 @@ void aciShowFrags(void)
 				p = iPlayers[i];
 				XBuf.init();
 				world_name = aScrDisp -> wMap -> world_ptr[aScrDisp -> wMap -> world_ids[p -> body.world]] -> name;
-				XBuf < p -> name < " (" < world_name < ") : " < aciSTR_Checkpoints < " " <= p -> body.PassemblossStat.CheckpointLighting < "/" <= my_server_data.Passembloss.CheckpointsNumber;
-				aScrDisp -> curPrompt -> add_str(i,(unsigned char*)XBuf.address());
+				XBuf < p -> name < " (" < world_name < ") : " < AciDict::mpSetupCheckpointsPrm < " " <= p -> body.PassemblossStat.CheckpointLighting < "/" <= my_server_data.Passembloss.CheckpointsNumber;
+				aScrDisp -> curPrompt -> add_str(i,(unsigned char*)XBuf.buf);
 				aScrDisp -> curPrompt -> TimeBuf[i] = ACI_FRAG_TIMER;
 				aScrDisp -> curPrompt -> ColBuf[i] = fragColors[p -> body.color];
 			}
@@ -5911,23 +5814,23 @@ void aciRedrawParamsPanel(int x,int y,int sx,int sy)
 	if(aciCurLuck != aciPrevLuck || aciCurDominance != aciPrevDominance){
 		pl -> free_list();
 
-		pl -> add_item(aciSTR_LUCK);
+		pl -> add_item(AciDict::playerStatLuck);
 		aciXConv -> init();
 		*aciXConv <= aciCurLuck;
 		if(aciCurLuck < 100)
-			pl -> add_item(aciXConv -> address());
+			pl -> add_item(aciXConv -> buf);
 		else
-			pl -> add_item(aciXConv -> address(),-1,col0 | (col1 << 16));
+			pl -> add_item(aciXConv -> buf,-1,col0 | (col1 << 16));
 
 		pl -> add_item(" ");
 
-		pl -> add_item(aciSTR_DOMINANCE);
+		pl -> add_item(AciDict::playerStatDominance);
 		aciXConv -> init();
 		*aciXConv <= aciCurDominance;
 		if(aciCurDominance < 100)
-			pl -> add_item(aciXConv -> address());
+			pl -> add_item(aciXConv -> buf);
 		else
-			pl -> add_item(aciXConv -> address(),-1,col0 | (col1 << 16));
+			pl -> add_item(aciXConv -> buf,-1,col0 | (col1 << 16));
 	}
 	pl -> PosX = x;
 	pl -> PosY = y;
@@ -6004,7 +5907,7 @@ void aciInitPricePanel(InfoPanel* ip,iListElement* p,int mode,int sell_mode)
 		if(m -> mech_name) ip -> add_item(m -> mech_name,-1,aciCurColorScheme[FM_SELECT_COL]);
 
 		if(m -> flags & IM_NOT_COMPLETE)
-			ip -> add_item(aciSTR_BROKEN);
+			ip -> add_item(AciDict::shopBrokenMechosDescr);
 	}
 	else {
 		it = (invItem*)p;
@@ -6021,11 +5924,11 @@ void aciInitPricePanel(InfoPanel* ip,iListElement* p,int mode,int sell_mode)
 	if(!uvsCurrentWorldUnable){
 		if(mode != MECHOS_MODE || !(m -> flags & IM_NOT_COMPLETE)){
 			if(sell_mode)
-				*aciXConv < aciSTR_PRICE <= u -> sell_price < " $";
+				*aciXConv < AciDict::shopPricePrefix <= u -> sell_price < " $";
 			else
-				*aciXConv < aciSTR_PRICE <= u -> price < " $";
+				*aciXConv < AciDict::shopPricePrefix <= u -> price < " $";
 
-			ip -> add_item(aciXConv -> address(),-1,col);
+			ip -> add_item(aciXConv -> buf,-1,col);
 		}
 	}
 
@@ -6033,24 +5936,24 @@ void aciInitPricePanel(InfoPanel* ip,iListElement* p,int mode,int sell_mode)
 		m = (invMatrix*)p;
 		if(!sell_mode && m -> pData){
 			aciXConv -> init();
-			*aciXConv < aciSTR_ENERGY_SHIELD < " " < (m -> pData + ACI_MECHOS_ENERGY_SHIELD * ACI_MAX_PRM_LEN);
-			ip -> add_item(aciXConv -> address(),-1,col);
+			*aciXConv < AciDict::shopMechosEnergyPrm < " " < (m -> pData + ACI_MECHOS_ENERGY_SHIELD * ACI_MAX_PRM_LEN);
+			ip -> add_item(aciXConv -> buf,-1,col);
 
 			aciXConv -> init();
-			*aciXConv < aciSTR_RESTORING_SPEED < " " < (m -> pData + ACI_MECHOS_RESTORING_SPEED * ACI_MAX_PRM_LEN);
-			ip -> add_item(aciXConv -> address(),-1,col);
+			*aciXConv < AciDict::shopMechosEnergyRestorePrm < " " < (m -> pData + ACI_MECHOS_RESTORING_SPEED * ACI_MAX_PRM_LEN);
+			ip -> add_item(aciXConv -> buf,-1,col);
 
 			aciXConv -> init();
-			*aciXConv < aciSTR_MECHANIC_ARMOR < " " < (m -> pData + ACI_MECHOS_MECHANIC_ARMOR * ACI_MAX_PRM_LEN) < " " < aciSTR_VELOCITY < " " < (m -> pData + ACI_MECHOS_VELOCITY * ACI_MAX_PRM_LEN);
-			ip -> add_item(aciXConv -> address(),-1,col);
+			*aciXConv < AciDict::shopMechosArmorPrm < " " < (m -> pData + ACI_MECHOS_MECHANIC_ARMOR * ACI_MAX_PRM_LEN) < " " < AciDict::shopMechosVelocityPrm < " " < (m -> pData + ACI_MECHOS_VELOCITY * ACI_MAX_PRM_LEN);
+			ip -> add_item(aciXConv -> buf,-1,col);
 
 			aciXConv -> init();
-			*aciXConv < aciSTR_SPIRAL_CAPACITY < " " < (m -> pData + ACI_MECHOS_SPIRAL_CAPACITY * ACI_MAX_PRM_LEN);
-			ip -> add_item(aciXConv -> address(),-1,col);
+			*aciXConv < AciDict::shopMechosSpiralPrm < " " < (m -> pData + ACI_MECHOS_SPIRAL_CAPACITY * ACI_MAX_PRM_LEN);
+			ip -> add_item(aciXConv -> buf,-1,col);
 
 			aciXConv -> init();
-			*aciXConv < aciSTR_AIR_RESERVE < " " < (m -> pData + ACI_MECHOS_AIR_RESERVE * ACI_MAX_PRM_LEN);
-			ip -> add_item(aciXConv -> address(),-1,col);
+			*aciXConv < AciDict::shopMechosAirReservePrm < " " < (m -> pData + ACI_MECHOS_AIR_RESERVE * ACI_MAX_PRM_LEN);
+			ip -> add_item(aciXConv -> buf,-1,col);
 		}
 	}
 	else {
@@ -6058,50 +5961,44 @@ void aciInitPricePanel(InfoPanel* ip,iListElement* p,int mode,int sell_mode)
 		if(it -> pData && !sell_mode){
 			if(it -> slotType == AS_WEAPON_SLOT || it -> slotType == AS_TWEAPON_SLOT){
 				aciXConv -> init();
-				*aciXConv < aciSTR_DAMAGE < " " < (it -> pData + ACI_WEAPON_DAMAGE * ACI_MAX_PRM_LEN);
-				ip -> add_item(aciXConv -> address(),-1,col);
+				*aciXConv < AciDict::shopWeaponDamagePrm < " " < (it -> pData + ACI_WEAPON_DAMAGE * ACI_MAX_PRM_LEN);
+				ip -> add_item(aciXConv -> buf,-1,col);
 
 				if(!uvsCurrentWorldUnable){
 					aciXConv -> init();
-					*aciXConv < aciSTR_LOAD < " " < (it -> pData + ACI_WEAPON_LOAD * ACI_MAX_PRM_LEN);
-					ip -> add_item(aciXConv -> address(),-1,col);
+					*aciXConv < AciDict::shopWeaponLoadPrm < " " < (it -> pData + ACI_WEAPON_LOAD * ACI_MAX_PRM_LEN);
+					ip -> add_item(aciXConv -> buf,-1,col);
 				}
 
 				aciXConv -> init();
-				*aciXConv < aciSTR_SHOTS < " " < (it -> pData + ACI_WEAPON_SHOTS_SEC * ACI_MAX_PRM_LEN);
-				ip -> add_item(aciXConv -> address(),-1,col);
+				*aciXConv < AciDict::shopWeaponShotsPrm < " " < (it -> pData + ACI_WEAPON_SHOTS_SEC * ACI_MAX_PRM_LEN);
+				ip -> add_item(aciXConv -> buf,-1,col);
 
 				aciXConv -> init();
-				*aciXConv < aciSTR_BURST < " " < (it -> pData + ACI_WEAPON_RANGE * ACI_MAX_PRM_LEN);
-				ip -> add_item(aciXConv -> address(),-1,col);
+				*aciXConv < AciDict::shopWeaponBurstPrm < " " < (it -> pData + ACI_WEAPON_RANGE * ACI_MAX_PRM_LEN);
+				ip -> add_item(aciXConv -> buf,-1,col);
 			}
 			else {
 				if(it -> slotType == AS_DEVICE_SLOT){
 					if(!uvsCurrentWorldUnable){
 						aciXConv -> init();
-						*aciXConv < aciSTR_WORKING_TIME < " " < (it -> pData + ACI_DEVICE_WORKING_TIME * ACI_MAX_PRM_LEN) < aciSTR_SECONDS;
-						ip -> add_item(aciXConv -> address(),-1,col);
+						*aciXConv < AciDict::shopDeviceWorkTimePrm < " " < (it -> pData + ACI_DEVICE_WORKING_TIME * ACI_MAX_PRM_LEN) < AciDict::timeSeconds;
+						ip -> add_item(aciXConv -> buf,-1,col);
 					}
 				}
 				else {
 					aciXConv -> init();
-					*aciXConv < aciSTR_DAMAGE < " " < (it -> pData + ACI_AMMO_DAMAGE * ACI_MAX_PRM_LEN);
-					ip -> add_item(aciXConv -> address(),-1,col);
+					*aciXConv < AciDict::shopWeaponDamagePrm < " " < (it -> pData + ACI_AMMO_DAMAGE * ACI_MAX_PRM_LEN);
+					ip -> add_item(aciXConv -> buf,-1,col);
 
 					aciXConv -> init();
-					*aciXConv < aciSTR_IN_PACK < " " < (it -> pData + ACI_AMMO_IN_PACK * ACI_MAX_PRM_LEN);
-					ip -> add_item(aciXConv -> address(),-1,col);
+					*aciXConv < AciDict::shopAmmoInPackPrm < " " < (it -> pData + ACI_AMMO_IN_PACK * ACI_MAX_PRM_LEN);
+					ip -> add_item(aciXConv -> buf,-1,col);
 				}
 			}
 		}
 	}
 }
-
-#define ACI_RACING_X	70
-#define ACI_RACING_Y	70
-
-#define ACI_RACING2_X	70
-#define ACI_RACING2_Y	70
 
 #define ACI_RACING_X_H	80
 #define ACI_RACING_Y_H	80
@@ -6120,36 +6017,25 @@ void aciShowRacingPlace(void)
 	*aciXConv < aciCurRaceType < " ";
 
 	if(!(aScrDisp -> flags & AS_FULLSCR)){
-		if(actintLowResFlag){
-			x = aScrDisp -> curIbs -> PosX + ACI_RACING_X;
-			y = aScrDisp -> curIbs -> PosY + ACI_RACING_Y;
-		}
-		else {
-			x = aScrDisp -> curIbs -> PosX + ACI_RACING_X_H;
-			y = aScrDisp -> curIbs -> PosY + ACI_RACING_Y_H;
-		}
+
+		x = aScrDisp -> curIbs -> PosX + ACI_RACING_X_H;
+		y = aScrDisp -> curIbs -> PosY + ACI_RACING_Y_H;
 
 		y = XGR_MAXY - y;
 	}
 	else {
-		if(actintLowResFlag){
-			x = ACI_RACING2_X;
-			y = ACI_RACING2_Y;
-		}
-		else {
-			x = ACI_RACING2_X_H;
-			y = ACI_RACING2_Y_H;
-		}
+		x = ACI_RACING2_X_H;
+		y = ACI_RACING2_Y_H;
 
 		y = XGR_MAXY - y;
 	}
 
-	aOutStr(x,y,ACI_RACING_FONT,ACI_RACING_COL,(unsigned char*)aciXConv -> address(),1);
+	aOutStr(x,y,ACI_RACING_FONT,ACI_RACING_COL,(unsigned char*)aciXConv -> buf,1);
 
-	dx = aStrLen((unsigned char*)aciXConv -> address(),ACI_RACING_FONT,1);
+	dx = aStrLen((unsigned char*)aciXConv -> buf,ACI_RACING_FONT,1);
 	aciXConv -> init();
 	*aciXConv < aciCurRaceInfo;
-	aOutStr(x + dx,y,ACI_RACING_FONT,ACI_RACING_COL2,(unsigned char*)aciXConv -> address(),1);
+	aOutStr(x + dx,y,ACI_RACING_FONT,ACI_RACING_COL2,(unsigned char*)aciXConv -> buf,1);
 }
 
 void aciPrepareText(char* ptr)
@@ -6161,7 +6047,7 @@ void aciPrepareText(char* ptr)
 
 void aciAutoSave(void)
 {
-	if(NetworkON || aScrDisp -> curLocData -> WorldID == XPLO_ID) return;
+	if(globalGameState.inNetwork || aScrDisp -> curLocData -> WorldID == XPLO_ID) return;
 
 	aciAutoSaveFlag = 1;
 	acsSaveData();
@@ -6170,7 +6056,7 @@ void aciAutoSave(void)
 #ifdef _DEMO_
 void aciTheEnd(void)
 {
-	GameQuantReturnValue = RTO_LOADING3_ID;
+	GameQuantReturnValue = RTO_LOAD_GAMEOVER_ID;
 	aciCompleteGameFlag = 1;
 }
 #endif
@@ -6189,12 +6075,12 @@ void aciCHandler(int key)
 {
 	return;
 	int code = 0,cr;
-	if(NetworkON || key > 256 || key <= 0) return;
+	if(globalGameState.inNetwork || key > 256 || key <= 0) return;
 
 	if(aciTreeData) {
 		code = aciTreeData -> quant(key);
 	}
-	switch(code << NetworkON){
+	switch(code << globalGameState.inNetwork){
 		case ACI_ADD_BEEBOS:
 			cr = aciGetCurCredits();
 			cr += 50000;
@@ -6456,7 +6342,7 @@ void aPutChar32(int x,int y,int font,int color,int color_size,int str,int bsx,vo
 	aciXConv -> init();
 	*aciXConv < (char)str < "\0";
 
-	aPutStr32(x,y,font,color,color_size,aciXConv -> address(),bsx,buf,0);
+	aPutStr32(x,y,font,color,color_size,aciXConv -> buf,bsx,buf,0);
 }
 
 void aOutText32(int x,int y,int color,void* text,int font,int hspace,int vspace)
@@ -6683,8 +6569,6 @@ void acsCompressData(char* p)
 	fh.read(src_buf,src_sz);
 	fh.close();
 
-	//std::cout<<"compress src_sz:"<<src_sz<<std::endl;
-	//dest_sz = ZIP_compress(dest_buf,src_sz,src_buf,src_sz);
 	/* ZLIB realization (stalkerg)*/
 	dest_buf[0] = (char)(8 & 0xFF); //8 it is DEFLATE method
 	dest_buf[1] = (char)((8 >> 8) & 0xFF);
@@ -6741,11 +6625,9 @@ void acsDecompressData(char* p)
 	fh.read(src_buf,src_sz);
 	fh.close();
 
-	//dest_sz = ZIP_GetExpandedSize(src_buf);
 	dest_sz = *(unsigned int*)(src_buf + 2) + 12; //+12 for size need for zlib
 	dest_buf = new char[dest_sz];
 
-	//ZIP_expand(dest_buf,dest_sz,src_buf,src_sz);
 	/* ZLIB realisation (stalkerg)*/
 	if(*(short*)(src_buf)) { //if label = 0 not compress
 		//std::cout<<"acsDecompressData DeCompress "<<p<<" file."<<std::endl;
@@ -6781,87 +6663,6 @@ void aciSetRedraw(void)
 	aciPrevJumpCount = -1;
 }
 
-void aciInitStrings(void)
-{
-	if(lang() != RUSSIAN){
-		aciSTR_ON = aciSTR_ON1;
-		aciSTR_OFF = aciSTR_OFF1;
-		aciSTR_DAY = aciSTR_DAY1;
-		aciSTR_UNDEFINED_PRICE = aciSTR_UNDEFINED_PRICE1;
-		aciSTR_PRICE = aciSTR_PRICE1;
-		aciSTR_EMPTY_SLOT = aciSTR_EMPTY_SLOT1;
-		aciSTR_UNNAMED_SAVE = aciSTR_UNNAMED_SAVE1;
-		aciSTR_AUTOSAVE = aciSTR_AUTOSAVE1;
-		aciSTR_WINS = aciSTR_WINS1;
-		aciSTR_LOSSES = aciSTR_LOSSES1;
-		aciSTR_LUCK = aciSTR_LUCK1;
-		aciSTR_DOMINANCE = aciSTR_DOMINANCE1;
-		aciSTR_BROKEN = aciSTR_BROKEN1;
-		aciSTR_ENERGY_SHIELD = aciSTR_ENERGY_SHIELD1;
-		aciSTR_RESTORING_SPEED = aciSTR_RESTORING_SPEED1;
-		aciSTR_MECHANIC_ARMOR = aciSTR_MECHANIC_ARMOR1;
-		aciSTR_VELOCITY = aciSTR_VELOCITY1;
-		aciSTR_SPIRAL_CAPACITY = aciSTR_SPIRAL_CAPACITY1;
-		aciSTR_AIR_RESERVE = aciSTR_AIR_RESERVE1;
-		aciSTR_DAMAGE = aciSTR_DAMAGE1;
-		aciSTR_LOAD = aciSTR_LOAD1;
-		aciSTR_SHOTS = aciSTR_SHOTS1;
-		aciSTR_BURST = aciSTR_BURST1;
-		aciSTR_WORKING_TIME = aciSTR_WORKING_TIME1;
-		aciSTR_SECONDS = aciSTR_SECONDS1;
-		aciSTR_IN_PACK = aciSTR_IN_PACK1;
-		aciSTR_NO_CASH = aciSTR_NO_CASH1;
-		aciSTR_PICKUP_ITEMS_OFF = aciSTR_PICKUP_ITEMS_OFF1;
-		aciSTR_PICKUP_WEAPONS_OFF = aciSTR_PICKUP_WEAPONS_OFF1;
-		aciSTR_PutThis = aciSTR_PutThis1;
-		aciSTR_Ware1 = aciSTR_Ware11;
-		aciSTR_Ware2 = aciSTR_Ware21;
-		aciSTR_Checkpoints = aciSTR_Checkpoints1;
-		
-		aciSTR_RESTRICTIONS = aciSTR_RESTRICTIONS1;
-		aciSTR_STATISTICS = aciSTR_STATISTICS1;
-		aciSTR_MINUTES = aciSTR_MINUTES1;
-	}
-	else {
-		aciSTR_ON = aciSTR_ON2;
-		aciSTR_OFF = aciSTR_OFF2;
-		aciSTR_DAY = aciSTR_DAY2;
-		aciSTR_UNDEFINED_PRICE = aciSTR_UNDEFINED_PRICE2;
-		aciSTR_PRICE = aciSTR_PRICE2;
-		aciSTR_EMPTY_SLOT = aciSTR_EMPTY_SLOT2;
-		aciSTR_UNNAMED_SAVE = aciSTR_UNNAMED_SAVE2;
-		aciSTR_AUTOSAVE = aciSTR_AUTOSAVE2;
-		aciSTR_WINS = aciSTR_WINS2;
-		aciSTR_LOSSES = aciSTR_LOSSES2;
-		aciSTR_LUCK = aciSTR_LUCK2;
-		aciSTR_DOMINANCE = aciSTR_DOMINANCE2;
-		aciSTR_BROKEN = aciSTR_BROKEN2;
-		aciSTR_ENERGY_SHIELD = aciSTR_ENERGY_SHIELD2;
-		aciSTR_RESTORING_SPEED = aciSTR_RESTORING_SPEED2;
-		aciSTR_MECHANIC_ARMOR = aciSTR_MECHANIC_ARMOR2;
-		aciSTR_VELOCITY = aciSTR_VELOCITY2;
-		aciSTR_SPIRAL_CAPACITY = aciSTR_SPIRAL_CAPACITY2;
-		aciSTR_AIR_RESERVE = aciSTR_AIR_RESERVE2;
-		aciSTR_DAMAGE = aciSTR_DAMAGE2;
-		aciSTR_LOAD = aciSTR_LOAD2;
-		aciSTR_SHOTS = aciSTR_SHOTS2;
-		aciSTR_BURST = aciSTR_BURST2;
-		aciSTR_WORKING_TIME = aciSTR_WORKING_TIME2;
-		aciSTR_SECONDS = aciSTR_SECONDS2;
-		aciSTR_IN_PACK = aciSTR_IN_PACK2;
-		aciSTR_NO_CASH = aciSTR_NO_CASH2;
-		aciSTR_PICKUP_ITEMS_OFF = aciSTR_PICKUP_ITEMS_OFF2;
-		aciSTR_PICKUP_WEAPONS_OFF = aciSTR_PICKUP_WEAPONS_OFF2;
-		aciSTR_PutThis = aciSTR_PutThis2;
-		aciSTR_Ware1 = aciSTR_Ware12;
-		aciSTR_Ware2 = aciSTR_Ware22;
-		aciSTR_Checkpoints = aciSTR_Checkpoints2;
-		
-		aciSTR_RESTRICTIONS = aciSTR_RESTRICTIONS2;
-		aciSTR_STATISTICS = aciSTR_STATISTICS2;
-		aciSTR_MINUTES = aciSTR_MINUTES2;
-	}
-}
 
 char* aciGetItemEscave(int p2)
 {
@@ -7008,12 +6809,13 @@ void aciInitEndGame(int id)
 {
 	char* ptr;
 	ShowImageRTO* p = (ShowImageRTO*)xtGetRuntimeObject(RTO_SHOW_IMAGE_ID);
-	LoadingRTO3* lp = (LoadingRTO3*)xtGetRuntimeObject(RTO_LOADING3_ID);
+	LoadGameoverRTO* lp = (LoadGameoverRTO*)xtGetRuntimeObject(RTO_LOAD_GAMEOVER_ID);
 
 //	int sz;
 //	XStream fh;
 
-	if(!aciImgText){
+	if(!aciImgText)
+	{
 		aciImgText = new aciScreenText;
 		aciImgText -> MaxStrLen = 55;
 		aciImgText -> MaxPageStr = 19;
@@ -7021,7 +6823,9 @@ void aciInitEndGame(int id)
 		aciImgText -> DeltaY = -2;
 		aciImgText -> font = 3;
 	}
-	switch(GameOverID){
+
+	switch(globalGameState.gameoverTrigger)
+	{
 		case GAME_OVER_EXPLOSION:
 			if(lang() == RUSSIAN)
 				p -> SetName("img/img7.bmp");
@@ -7087,7 +6891,6 @@ void aciInitEndGame(int id)
 			break;
 	}
 	p -> SetFlag(0,IMG_RTO_CD_IMAGE);
-	GameOverID = 0;
 }
 
 int aciTextQuant(void)
@@ -7206,12 +7009,11 @@ char* aciLoadPackedFile(XStream& fh,int& out_sz) //Text decompress
 	sz = fh.size();
 	p = new char[sz];
 	fh.read(p,sz);
-	
+
 	out_sz = *(unsigned int*)(p + 2);
 	long long_out_sz = out_sz;
 	ptr = new char[out_sz];
 
-	//ZIP_expand(ptr,out_sz,p,sz);
 	/* ZLIB realisation (stalkerg)*/
 	if(*(short*)(p)) { //if label = 0 not compress
 		//std::cout<<"aciLoadPackedFile DeCompress "<<fh.file_name<<" file."<<std::endl;
@@ -7225,9 +7027,9 @@ char* aciLoadPackedFile(XStream& fh,int& out_sz) //Text decompress
 	} else {
 		memcpy(ptr, p + 2 + 4,(unsigned)(sz - 2 - 4));
 	}
-	
+
 	delete[] p;
-	
+
 	return ptr;
 }
 

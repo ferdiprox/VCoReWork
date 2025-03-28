@@ -3,10 +3,10 @@
 #include "../3d/3d_math.h"
 #include "../3d/3dgraph.h"
 #include "../3d/3dobject.h"
-#include "../3d/parser.h"
+#include "../fs/parser.h"
 
 #include "../common.h"
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 #include "../backg.h"
 #include "../network.h"
 

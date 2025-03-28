@@ -111,7 +111,7 @@ void Model::loadC3Dvariable(XBuffer& buf)
 		    > variable_polygons[i].flat_normal.x > variable_polygons[i].flat_normal.y
 		    > variable_polygons[i].flat_normal.z > variable_polygons[i].flat_normal.n_power
 		    > variable_polygons[i].middle_x > variable_polygons[i].middle_y > variable_polygons[i].middle_z;
-		    
+
 		variable_polygons[i].color_id = static_cast<unsigned char>(
 			color_id < static_cast<unsigned int>(COLORS_IDS::MAX_COLORS_IDS) ?
 			color_id : static_cast<unsigned int>(COLORS_IDS::BODY)
@@ -152,7 +152,7 @@ void Model::loadC3D(XBuffer& buf)
 	unsigned color_id,color_shift;
 	char skip_char;
 	int phi,psi,tetta;
-	
+
 	buf > version;
 	//std::cout<<"Load C3D. Version:"<<version<<std::endl;
 	if(version != C3D_VERSION_1 && version != C3D_VERSION_3)
@@ -208,10 +208,10 @@ void Model::loadC3D(XBuffer& buf)
 	for(i = 0;i < num_poly;i++){
 		buf > num > sort_info
 		    > color_id > color_shift
-		    > skip_char > skip_char 
-		    > skip_char > skip_char 
+		    > skip_char > skip_char
+		    > skip_char > skip_char
 		    > polygons[i].middle_x > polygons[i].middle_y > polygons[i].middle_z;
-		
+
 		polygons[i].color_id = static_cast<unsigned char>(
 			color_id < static_cast<unsigned int>(COLORS_IDS::MAX_COLORS_IDS) ?
 			color_id : static_cast<unsigned int>(COLORS_IDS::BODY)
@@ -341,7 +341,7 @@ void Object::loadM3D(char* name)
 
 	XStream ff(name,XS_IN);
 	XBuffer buf(ff.size());
-	ff.read(buf.address(),ff.size());
+	ff.read(buf.buf,ff.size());
 	ff.close();
 	//ErrH.Log(name);
 	model -> loadC3D(buf);
@@ -383,7 +383,7 @@ void Object::loadA3D(char* name)
 	int i;
 	XStream ff(name,XS_IN);
 	XBuffer buf(ff.size());
-	ff.read(buf.address(),ff.size());
+	ff.read(buf.buf,ff.size());
 	ff.close();
 	//std::cout<<"Load A3D:"<<name<<std::endl;
 	buf > n_models > xmax > ymax > zmax > rmax;
@@ -397,7 +397,7 @@ void Object::loadA3D(char* name)
 		{
 		//std::cout<<"BBB:"<<n_models<<" "<<xmax<<""<<ymax<<" "<<zmax<<" "<<rmax<<std::endl;
 		models[i].loadC3D(buf);
-		
+
 		}
 	ID = ID_INSECT;
 	model = models;
@@ -411,8 +411,8 @@ void Object::load(char* name,int size_for_m3d)
 		n_models = 1;
 		models = model = new Model;
 		XStream ff(name,XS_IN);
-		XBuffer buf(ff.size());
-		ff.read(buf.address(),ff.size());
+		XBuffer buf(ff.size);
+		ff.read(buf.buf,ff.size);
 		ff.close();
 		model -> loadC3D(buf);
 		xmax = model -> xmax;

@@ -1,0 +1,42 @@
+Incubator: "Incubator"
+Podish: "Podish"
+
+Repair1: "Repair Station I"
+Repair2: "Repair Station II"
+Rigs: "Rigs Station"
+GhOrb: "ghOrb Station"
+Broken1: "Broken Station I"
+Broken2: "Broken Station II"
+Spiral: "Spiral Station"
+
+PassGlorx: "Passage to Glorx"
+PassWeexow: "Passage to Weexow"
+
+Ogorod: "Ogorod"
+Lampasso: "Lampasso"
+VigBoo: "VigBoo"
+
+PassFostral: "Passage to  Fostral"
+PassNecross: "Passage to  Necross"
+PassXplo: "Passage to  Xplo"
+PassKhox: "Passage to  Khox"
+
+Rigs1: "Rigs Station I"
+
+Rigs2: "Rigs Station II"
+
+BZone: "B-Zone"
+ZeePa: "ZeePa"
+
+PassBoozeena: "Passage to  Boozeena"
+PassArk: "Passage to  Ark'a'Znoy"
+
+Repair: "Repair Station"
+Broken: "Broken Station"
+
+Spobs: "Spobs"
+
+PassThreall: "Passage to Threall"
+PassEarth: "Passage to Earth"
+
+

@@ -1,5 +1,4 @@
-#include "global.h"
 
-void RLE_UNCODE(uchar* _buf, int len, uchar* out);
+void RLE_UNCODE(unsigned char* _buf, int len, unsigned char* out);
 
-int RLE_ANALISE(uchar* _buf, int len, uchar*& out);
+int RLE_ANALISE(unsigned char* _buf, int len, unsigned char*& out);

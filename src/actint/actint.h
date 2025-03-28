@@ -1,3 +1,6 @@
+#pragma once
+
+#include "item_api.h"
 
 #define _ACI_PACK_SAVES_
 
@@ -1472,8 +1475,6 @@ int aStrLen(unsigned char* str,int font,int space = I_STR_SPACE);
 int aStrLen32(void* str,int font,int space = I_STR_SPACE);
 int aStrHeight(int font);
 int aStrHeight32(int font);
-
-extern int actintLowResFlag;
 
 #ifdef _ACTINT_MEMSTAT_
 extern int memQ;

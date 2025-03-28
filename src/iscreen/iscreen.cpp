@@ -35,9 +35,6 @@ extern int actIntLog;
 extern actIntDispatcher* aScrDisp;
 extern unsigned char* aciCurColorScheme;
 
-
-extern char* AVInotFound;
-
 extern int iFrameFlag;
 
 extern iScreenOption** iScrOpt;
@@ -738,14 +735,14 @@ void iAVIElement::load(void)
 		iResBuf -> init();
 		*iResBuf < iVideoPathDefault < avi_name;
 
-		if(!AVIopen(iResBuf -> address(),AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&data)){
+		if(!AVIopen(iResBuf -> buf,AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&data)){
 			iResBuf -> init();
 			*iResBuf < iVideoPath < avi_name;
-			if(!AVIopen(iResBuf -> address(),AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&data)){
+			if(!AVIopen(iResBuf -> buf,AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&data)){
 				iResBuf -> init();
 				*iResBuf < iVideoPath < iEMPTY_AVI;
-				if(!AVIopen(iResBuf -> address(),AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&data))
-					ErrH.Abort(AVInotFound);
+				if(!AVIopen(iResBuf -> buf,AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&data))
+					ErrH.Abort("No AVI video file");
 			}
 		}
 		AVIplay(data,0,0);
@@ -853,7 +850,7 @@ void iTriggerObject::change_state(int time,int st)
 	p -> scale = 0;
 	p -> scale_delta = (256 - p -> scale) / time;
 	p -> flags |= EL_HIDE;
-	
+
 	if (callback) {
 		callback(state);
 	}
@@ -1742,14 +1739,14 @@ void iScreenObject::init(void)
 		if(p -> type == I_AVI_ELEM){
 			iResBuf -> init();
 			*iResBuf < iVideoPathDefault < ((iAVIElement*)p) -> avi_name;
-			if(!AVIopen(iResBuf->address(),AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&(((iAVIElement*)p) -> data))){
+			if(!AVIopen(iResBuf->buf,AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&(((iAVIElement*)p) -> data))){
 				iResBuf -> init();
 				*iResBuf < iVideoPath < ((iAVIElement*)p) -> avi_name;
-				if(!AVIopen(iResBuf -> address(),AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&(((iAVIElement*)p) -> data))){
+				if(!AVIopen(iResBuf -> buf,AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&(((iAVIElement*)p) -> data))){
 					iResBuf -> init();
 					*iResBuf < iVideoPath < iEMPTY_AVI;
-					if(!AVIopen(iResBuf->address(),AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&(((iAVIElement*)p) -> data)))
-						ErrH.Abort(AVInotFound);
+					if(!AVIopen(iResBuf->buf,AVI_NOTIMER | AVI_NODRAW | AVI_LOOPING | AVI_NOPALETTE,0,&(((iAVIElement*)p) -> data)))
+						ErrH.Abort("No AVI video file");
 				}
 			}
 			if(!p -> SizeX) p -> SizeX = AVIwidth(((iAVIElement*)p) -> data);
@@ -3409,7 +3406,7 @@ void iScreenDispatcher::input_string_quant(void)
 		SDL_Event *event = KeyBuf->get();
 		if (event->type != SDL_KEYDOWN && event->type != SDL_TEXTINPUT)
 			continue;
-		
+
 		if(!(ActiveEl -> flags & EL_KEY_NAME)){
 			if (event->type == SDL_KEYDOWN) {
 				if (event->key.keysym.sym > 0 && event->key.keysym.sym < 127) {

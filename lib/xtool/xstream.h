@@ -25,19 +25,17 @@ struct XStream
 	typedef std::fstream* XSHANDLE;
 
 	XSHANDLE handler;
-	long	pos;
+	long pos;
 	int	eofFlag;
 	int	ErrHUsed;
-	//const char* fname;
 	std::string fname;
 	int	radix, digits;
-	long	extSize;
-	long	extPos;
+	long extSize;
+	long extPos;
 	std::string file_name;
-	char _ConvertBuffer[_CONV_BUFFER_LEN + 1];
 
 	XStream(int err = 1);
-	XStream(const char* name, unsigned flags,int err=1) {
+	XStream(const std::string& name, unsigned flags,int err=1) {
 		ErrHUsed = err;
 		handler  = NULL;//(XSHANDLE)-1;
 		eofFlag  = 1;
@@ -49,24 +47,24 @@ struct XStream
 	}
 	~XStream();
 
-	int	open(const char* name, unsigned f = XS_IN);
-	int	open(XStream* owner,long start,long ext_sz = -1);
-	void	close();
+	bool open(const std::string& name, unsigned f = XS_IN);
+	bool open(XStream* owner,long start,long ext_sz = -1);
+
+	void close();
 	unsigned long read(void* buf, unsigned long len);
 	unsigned long write(const void* buf, unsigned long len);
-	long	seek(long offset, int dir);
-	long	tell() const { return pos; }
-	char*	getline(char* buf, unsigned len);
-	int	eof(){ return eofFlag || pos >= size(); }
-	long	size();
+	long seek(long offset, int dir);
+	inline long tell() const { return pos; }
+	char* getline(char* buf, unsigned len);
+	int eof(){ return eofFlag || pos >= size(); }
+	long size();
 
 	XSHANDLE gethandler(){ return handler; }
 
 
-	void	flush();
-	const char*	GetFileName() const { return fname.c_str(); }
-	void	SetRadix(int r){ radix=r; }
-	void	SetDigits(int d){ digits=d; }
+	void flush();
+	void SetRadix(int r){ radix=r; }
+	void SetDigits(int d){ digits=d; }
 
 	XStream& operator< (const char*);
 	XStream& operator< (char);

@@ -457,7 +457,7 @@ iScreen* create_screen(void)
 	trg -> align_x_offs = 30;
 
 	trg -> PosY = 250;		// ‡ ¤ ­ЁҐ Є®®а¤Ё­ вл ®ЎкҐЄв  ­ Їап¬го,
-					// Ґб«Ё гбв ­®ўЁвм ҐйҐ Ё align_y, в® Є®®а¤Ё­ в 
+					// Ґб«Ё гбв ­®ўЁвм ҐйҐ Ё align_y, в® Є®®а¤Ё­ в
 					// Ё§¬Ґ­Ёвбп Ї®б«Ґ ўл§®ў  init() ў б®®вўҐвбвўЁЁ б align_y
 	trg -> num_state = 3;
 	trg -> alloc_state();
@@ -672,7 +672,7 @@ void iPrepareOptions(void)
 		iScrOpt[i] = NULL;
 
 	iScrOpt[iJOYSTICK_TYPE] = new iScreenOption(iTRIGGER,0,"Joystick screen","JoyTypeID");
-	
+
 	iScrOpt[iSOUND_ON] = new iScreenOption(iTRIGGER,0,"Sound screen","SoundTrig");
 	iScrOpt[iSOUND_VOLUME_CUR] = new iScreenOption(iSCROLLER,0,"Sound screen","SndVolumeScroller");
 	iScrOpt[iSOUND_VOLUME_MAX] = new iScreenOption(iSCROLLER,1,"Sound screen","SndVolumeScroller");
@@ -758,7 +758,7 @@ void iPrepareOptions(void)
 
 	iScrOpt[iKEEP_MODE] = new iScreenOption(iTRIGGER,0,"Graphics screen","KeepTrig");
 	iScrOpt[iDESTR_MODE] = new iScreenOption(iTRIGGER,0,"Graphics screen","DestrTrig");
-	
+
 	iScrOpt[iPROXY_USAGE] = new iScreenOption(iTRIGGER,0,"INet Host screen","ProxyTrg");
 	iScrOpt[iPROXY_SERVER] = new iScreenOption(iSTRING,0,"INet Host screen","ProxyServerName");
 	iScrOpt[iPROXY_PORT] = new iScreenOption(iSTRING,0,"INet Host screen","ProxyPortNum");
@@ -769,7 +769,7 @@ void iPrepareOptions(void)
 	iScrOpt[iPROXY_SERVER_STR] -> flags |= iOPTION_NO_SAVE;
 	iScrOpt[iPROXY_PORT_STR] = new iScreenOption(iSTRING,0,"INet Host screen","ProxyPortStrID");
 	iScrOpt[iPROXY_PORT_STR] -> flags |= iOPTION_NO_SAVE;
-	
+
 	//Stalkerg hack for save fake menu options.
 	iScrOpt[iCAMERA_TURN] = new iScreenOption(iTRIGGER,0,NULL,"CameraTurn");
 	iScrOpt[iCAMERA_TURN]->objPtr = new iTriggerObject();
@@ -777,14 +777,14 @@ void iPrepareOptions(void)
 	iScrOpt[iCAMERA_SLOPE]->objPtr = new iTriggerObject();
 	iScrOpt[iCAMERA_SCALE] = new iScreenOption(iTRIGGER,0,NULL,"CameraScale");
 	iScrOpt[iCAMERA_SCALE]->objPtr = new iTriggerObject();
-	
+
 	iScrOpt[iFULLSCREEN] = new iScreenOption(iTRIGGER,0,"Graphics screen","FullScreenTrig");
 	((iTriggerObject *)iScrOpt[iFULLSCREEN]->objPtr)->callback = &iSetFullscreen;
 	((iTriggerObject *)iScrOpt[iSCREEN_RESOLUTION]->objPtr)->callback = &iSetResolution;
 
 
 	iScrOpt[iAUTO_ACCELERATION] = new iScreenOption(iTRIGGER,0,"Controls screen","AutoAccelerationTrig");
-	
+
 	iPrepareControls();
 }
 
@@ -1156,7 +1156,7 @@ void iProcessControlsScreen(const char* name)
 					XBuf.init();
 					XBuf < "KeyID" <= i;
 					if(j) XBuf < "_" <= j;
-					el = (iStringElement*)scr -> get_object(XBuf.address());
+					el = (iStringElement*)scr -> get_object(XBuf.buf);
 					if(el) iControlsStr[i * iKEY_OBJECT_SIZE + j] = el;
 				}
 			}
@@ -1183,7 +1183,7 @@ void iInitControlObjects(void)
 					str = iGetJoyBtnNameText(key,lang());
 				}*/
 				str = iGetKeyNameText(key, lang(), true);
-				
+
 				if (str) {
 					if(strcasecmp(iControlsStr[index]->string,str)) {
 						strcpy(iControlsStr[index]->string,str);
@@ -1199,7 +1199,7 @@ void iInitControlObjects(void)
 						obj -> flags |= OBJ_MUST_REDRAW;
 					}
 				}
-				
+
 			}
 		}
 	}
@@ -1280,7 +1280,7 @@ void iMultiGameParameter::set_value(int num)
 			*iResBuf <= num;
 			for(i = 0; i < NumObjects; i ++){
 				str = (iStringElement*)objData[i];
-				strcpy(str -> string,iResBuf -> address());
+				strcpy(str -> string,iResBuf -> buf);
 				str -> init_size();
 				str -> init_align();
 				obj = (iScreenObject*)str -> owner;
@@ -1626,7 +1626,7 @@ void iInitMultiGames(void)
 		XPlace.init();
 		XPlace < "PlaceStr" <= i;
 
-		iPlaces[i] -> init("MultiGame Results screen",XPlace.address(),XStr.address(),XNum.address());
+		iPlaces[i] -> init("MultiGame Results screen",XPlace.buf,XStr.buf,XNum.buf);
 	}
 	for(i = 0; i < iMP_MAX_RESULT; i ++){
 		iResults[i] = new iMultiResultString;
@@ -1640,7 +1640,7 @@ void iInitMultiGames(void)
 		XPlace.init();
 		XPlace < "PlaceStr" <= i;
 
-		iResults[i] -> init("MultiGame Results screen 2",XPlace.address(),XStr.address(),XNum.address());
+		iResults[i] -> init("MultiGame Results screen 2",XPlace.buf,XStr.buf,XNum.buf);
 	}
 	for(i = 0; i < iMP_MAX_HALL_RESULT; i ++){
 		iHallPlaces[i] = new iMultiResultString;
@@ -1654,7 +1654,7 @@ void iInitMultiGames(void)
 		XPlace.init();
 		XPlace < "PlaceStr" <= i;
 
-		iHallPlaces[i] -> init("HallOfFame screen",XPlace.address(),XStr.address(),XNum.address());
+		iHallPlaces[i] -> init("HallOfFame screen",XPlace.buf,XStr.buf,XNum.buf);
 	}
 }
 
@@ -1927,7 +1927,7 @@ void iMultiResultString::redraw(void)
 		iResBuf -> init();
 		*iResBuf < place;
 
-		strcpy(el -> string,iResBuf -> address());
+		strcpy(el -> string,iResBuf -> buf);
 		obj -> flags |= OBJ_REINIT;
 		obj -> flags |= OBJ_MUST_REDRAW;
 	}
@@ -1948,7 +1948,7 @@ void iMultiResultString::redraw(void)
 		iResBuf -> init();
 		*iResBuf < prmNum;
 
-		strcpy(el -> string,iResBuf -> address());
+		strcpy(el -> string,iResBuf -> buf);
 		obj -> flags |= OBJ_REINIT;
 		obj -> flags |= OBJ_MUST_REDRAW;
 	}
@@ -1978,7 +1978,7 @@ void iPrepareResults(void)
 
 		XNum <= (int)round(iPlayerRatings[i]);
 
-		iPlaces[i] -> set_data(XPlace.address(),iPlayers[i] -> name,XNum.address());
+		iPlaces[i] -> set_data(XPlace.buf,iPlayers[i] -> name,XNum.buf);
 		iPlaces[i] -> redraw();
 	}
 
@@ -2170,25 +2170,25 @@ void iPreparePlayerResults(int id)
 	if(iCurMultiGame == iMP_VAN_WAR){
 		XBuf.init();
 		XBuf <= p -> body.kills;
-		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.address());
+		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.deaths;
-		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.address());
+		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.buf);
 /*
 		XBuf.init();
 		if(p -> body.VanVarStat.MinLiveTime)
 			XBuf <= p -> body.VanVarStat.MinLiveTime;
 		else
 			XBuf < "-";
-		iResults[2] -> set_data("",iSTR_MP_DeathTimeMin,XBuf.address());
+		iResults[2] -> set_data("",iSTR_MP_DeathTimeMin,XBuf.buf);
 
 		XBuf.init();
 		if(p -> body.VanVarStat.MaxLiveTime)
 			XBuf <= p -> body.VanVarStat.MaxLiveTime;
 		else
 			XBuf < "-";
-		iResults[3] -> set_data("",iSTR_MP_DeathTimeMax,XBuf.address());
+		iResults[3] -> set_data("",iSTR_MP_DeathTimeMax,XBuf.buf);
 */
 		num = p -> body.VanVarStat.KillFreq;
 		num0 = num / 3600;
@@ -2200,7 +2200,7 @@ void iPreparePlayerResults(int id)
 			XBuf <= num0 < ":" <= num1 < ":" <= num2;
 		else
 			XBuf < "-";
-		iResults[2] -> set_data("",iSTR_MP_Kills_rate,XBuf.address());
+		iResults[2] -> set_data("",iSTR_MP_Kills_rate,XBuf.buf);
 
 		num = p -> body.VanVarStat.DeathFreq;
 		num0 = num / 3600;
@@ -2212,7 +2212,7 @@ void iPreparePlayerResults(int id)
 			XBuf <= num0 < ":" <= num1 < ":" <= num2;
 		else
 			XBuf < "-";
-		iResults[3] -> set_data("",iSTR_MP_Deaths_rate,XBuf.address());
+		iResults[3] -> set_data("",iSTR_MP_Deaths_rate,XBuf.buf);
 
 		for(i = 0; i < 4; i ++)
 			iResults[i] -> redraw();
@@ -2225,19 +2225,19 @@ void iPreparePlayerResults(int id)
 	if(iCurMultiGame == iMP_MECHOSOMA){
 		XBuf.init();
 		XBuf <= p -> body.kills;
-		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.address());
+		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.deaths;
-		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.address());
+		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.MechosomaStat.ItemCount1;
-		iResults[2] -> set_data("",iSTR_MP_Ware01_Delivery,XBuf.address());
+		iResults[2] -> set_data("",iSTR_MP_Ware01_Delivery,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.MechosomaStat.ItemCount2;
-		iResults[3] -> set_data("",iSTR_MP_Ware02_Delivery,XBuf.address());
+		iResults[3] -> set_data("",iSTR_MP_Ware02_Delivery,XBuf.buf);
 
 /*
 		XBuf.init();
@@ -2245,7 +2245,7 @@ void iPreparePlayerResults(int id)
 			XBuf <= p -> body.MechosomaStat.MinTransitTime;
 		else
 			XBuf < "-";
-		iResults[4] -> set_data("",iSTR_MP_Min_delivery_time,XBuf.address());
+		iResults[4] -> set_data("",iSTR_MP_Min_delivery_time,XBuf.buf);
 */
 
 		num = p -> body.MechosomaStat.MaxTransitTime;
@@ -2258,15 +2258,15 @@ void iPreparePlayerResults(int id)
 			XBuf <= num0 < ":" <= num1 < ":" <= num2;
 		else
 			XBuf < "-";
-		iResults[4] -> set_data("",iSTR_MP_Max_delivery_time,XBuf.address());
+		iResults[4] -> set_data("",iSTR_MP_Max_delivery_time,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.MechosomaStat.SneakCount;
-		iResults[5] -> set_data("",iSTR_MP_StolenWares,XBuf.address());
+		iResults[5] -> set_data("",iSTR_MP_StolenWares,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.MechosomaStat.LostCount;
-		iResults[6] -> set_data("",iSTR_MP_Wares_lost,XBuf.address());
+		iResults[6] -> set_data("",iSTR_MP_Wares_lost,XBuf.buf);
 
 		for(i = 0; i < 7; i ++)
 			iResults[i] -> redraw();
@@ -2279,15 +2279,15 @@ void iPreparePlayerResults(int id)
 	if(iCurMultiGame == iMP_PASSEMBLOSS){
 		XBuf.init();
 		XBuf <= p -> body.kills;
-		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.address());
+		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.deaths;
-		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.address());
+		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.PassemblossStat.CheckpointLighting;
-		iResults[2] -> set_data("",iSTR_Checkpoints_Number,XBuf.address());
+		iResults[2] -> set_data("",iSTR_Checkpoints_Number,XBuf.buf);
 
 		num = p -> body.PassemblossStat.TotalTime;
 		num0 = num / 3600;
@@ -2299,7 +2299,7 @@ void iPreparePlayerResults(int id)
 			XBuf <= num0 < ":" <= num1 < ":" <= num2;
 		else
 			XBuf < "-";
-		iResults[3] -> set_data("",iSTR_MP_Total_time,XBuf.address());
+		iResults[3] -> set_data("",iSTR_MP_Total_time,XBuf.buf);
 
 /*
 		XBuf.init();
@@ -2307,14 +2307,14 @@ void iPreparePlayerResults(int id)
 			XBuf <= p -> body.PassemblossStat.MinTime;
 		else
 			XBuf < "-";
-		iResults[3] -> set_data("",iSTR_MP_Min_checkpoint_time,XBuf.address());
+		iResults[3] -> set_data("",iSTR_MP_Min_checkpoint_time,XBuf.buf);
 
 		XBuf.init();
 		if(p -> body.PassemblossStat.MaxTime)
 			XBuf <= p -> body.PassemblossStat.MaxTime;
 		else
 			XBuf < "-";
-		iResults[4] -> set_data("",iSTR_MP_Max_checkpoint_time,XBuf.address());
+		iResults[4] -> set_data("",iSTR_MP_Max_checkpoint_time,XBuf.buf);
 */
 
 		for(i = 0; i < 4; i ++)
@@ -2328,11 +2328,11 @@ void iPreparePlayerResults(int id)
 	if(iCurMultiGame == iMP_HUNTAGE){
 		XBuf.init();
 		XBuf <= p -> body.kills;
-		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.address());
+		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.deaths;
-		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.address());
+		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.buf);
 
 		for(i = 0; i < 2; i ++)
 			iResults[i] -> redraw();
@@ -2345,39 +2345,39 @@ void iPreparePlayerResults(int id)
 	if(iCurMultiGame == iMP_MUSTODONT){
 		XBuf.init();
 		XBuf <= p -> body.kills;
-		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.address());
+		iResults[0] -> set_data("",iSTR_MP_Kills,XBuf.buf);
 
 		XBuf.init();
 		XBuf <= p -> body.deaths;
-		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.address());
+		iResults[1] -> set_data("",iSTR_MP_Deaths,XBuf.buf);
 
 		XBuf.init();
 		if(p -> body.MustodontStat.PartTime1)
 			XBuf <= p -> body.MustodontStat.PartTime1;
 		else
 			XBuf < "-";
-		iResults[2] -> set_data("",iSTR_MP_1st_part_delivery,XBuf.address());
+		iResults[2] -> set_data("",iSTR_MP_1st_part_delivery,XBuf.buf);
 
 		XBuf.init();
 		if(p -> body.MustodontStat.PartTime2)
 			XBuf <= p -> body.MustodontStat.PartTime2;
 		else
 			XBuf < "-";
-		iResults[3] -> set_data("",iSTR_MP_2nd_part_delivery,XBuf.address());
+		iResults[3] -> set_data("",iSTR_MP_2nd_part_delivery,XBuf.buf);
 
 		XBuf.init();
 		if(p -> body.MustodontStat.BodyTime)
 			XBuf <= p -> body.MustodontStat.BodyTime;
 		else
 			XBuf < "-";
-		iResults[4] -> set_data("",iSTR_MP_Mechos_frame,XBuf.address());
+		iResults[4] -> set_data("",iSTR_MP_Mechos_frame,XBuf.buf);
 
 		XBuf.init();
 		if(p -> body.MustodontStat.MakeTime)
 			XBuf <= p -> body.MustodontStat.MakeTime;
 		else
 			XBuf < "-";
-		iResults[5] -> set_data("",iSTR_MP_Mechos_assembled_in,XBuf.address());
+		iResults[5] -> set_data("",iSTR_MP_Mechos_assembled_in,XBuf.buf);
 
 		for(i = 0; i < 6; i ++)
 			iResults[i] -> redraw();
@@ -2436,7 +2436,7 @@ const char* get_joystick_hat_name(int key) {
 			return "jhat_leftup";
 		case SDL_HAT_LEFTDOWN:
 			return "jhat_leftdown";
-			
+
 	}
 	return "jhat_unknow";
 }
@@ -2497,7 +2497,7 @@ const char* iGetJoyBtnNameText(int vkey, Language lang)
 			return ret;
 		}
 		else
-			return NULL; //WARNING NEED VIEW!!! 
+			return NULL; //WARNING NEED VIEW!!!
 	}
 	return NULL; //WARNING NEED VIEW!!!
 }
@@ -2522,7 +2522,7 @@ void iPrepareHallOfFame(void)
 		XNum.init();
 		XNum <= (int)round(p -> rating);
 
-		iHallPlaces[i] -> set_data(XPlace.address(),p -> name,XNum.address());
+		iHallPlaces[i] -> set_data(XPlace.buf,p -> name,XNum.buf);
 		iHallPlaces[i] -> redraw();
 
 		p = p -> next;

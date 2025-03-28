@@ -4,10 +4,10 @@
 #include "../3d/3d_math.h"
 #include "../3d/3dgraph.h"
 #include "../3d/3dobject.h"
-#include "../3d/parser.h"
+#include "../fs/parser.h"
 
 #include "../common.h"
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 #include "../backg.h"
 
 #include "../actint/item_api.h"
@@ -41,13 +41,16 @@
 #include "../sound/hsound.h"
 #include "../palette.h"
 #include "magnum.h"
+#include "../locale/compas_dict.h"
+
+#include "../random.h"
 
 const int TOUCH_SHIFT = 11;
 
 int TurnSideX;
 int TurnSideY;
 
-extern iGameMap* curGMap;
+extern GameSurfaceDispatcher* curSurfaceDisp;
 
 uchar* ShadowColorTable;
 
@@ -68,7 +71,6 @@ extern int DepthShow;
 extern int frame;
 extern int AdvancedView;
 
-int GameOverID;
 char* GameOverText;
 
 VangerUnit* actCurrentViewObject = NULL;
@@ -86,9 +88,7 @@ int LocalNetEnvironment;
 int LocalStationID;
 int LocalStationCounter[MAX_NID_OBJECT];
 
-extern int NetworkON;
 extern NetRndType NetRnd;
-
 
 int zGameBirthTime = 0;
 
@@ -134,8 +134,6 @@ int GeneralLoadReleaseFlag = 0;
 
 int NumUnitMatrix;
 
-extern int network_log;
-
 uvsDolly* actCurrentViewDolly = NULL;
 StuffObject* actCurrentViewStuff = NULL;
 
@@ -167,12 +165,12 @@ PassageImageType* PassageImageData;
 void OpenCyclicPal(void)
 {
 	int i;
-	XStream fin;	
-	
+	XStream fin;
+
 	if(CurrentWorld < MAIN_WORLD_MAX - 1){
 		WorldPalNum = WorldTable[CurrentWorld]->escT[0]->Pbunch->cycleN;
 		WorldPalData = new uchar*[WorldPalNum];
-		WorldPalCurrent = WorldTable[CurrentWorld]->escT[0]->Pbunch->currentStage;		
+		WorldPalCurrent = WorldTable[CurrentWorld]->escT[0]->Pbunch->currentStage;
 
 		for(i = 0;i < WorldPalNum;i++){
 			WorldPalData[i] = new uchar[768];
@@ -196,7 +194,7 @@ void CloseCyclicPal(void)
 };
 
 const int NUM_UNIQUE_ITEM = 8;
-const int UNIQUE_ITEM_ID[NUM_UNIQUE_ITEM] = 
+const int UNIQUE_ITEM_ID[NUM_UNIQUE_ITEM] =
 {
 	UVS_ITEM_TYPE::SANDOLL_PART1,UVS_ITEM_TYPE::SANDOLL_PART2,
 	UVS_ITEM_TYPE::LAST_MOGGY_PART1,UVS_ITEM_TYPE::LAST_MOGGY_PART2,
@@ -206,12 +204,12 @@ const int UNIQUE_ITEM_ID[NUM_UNIQUE_ITEM] =
 };
 
 const int NUM_UNIQUE_ARTEFACT = 4;
-const int UNIQUE_ARTEFACT_ID[NUM_UNIQUE_ARTEFACT] = 
+const int UNIQUE_ARTEFACT_ID[NUM_UNIQUE_ARTEFACT] =
 {
 	UVS_ITEM_TYPE::PROTRACTOR,
 	UVS_ITEM_TYPE::MECHANIC_MESSIAH,
 	UVS_ITEM_TYPE::FUNCTION83,
-	UVS_ITEM_TYPE::SECTOR	
+	UVS_ITEM_TYPE::SECTOR
 };
 
 int ProtoCryptTableSize[WORLD_MAX];
@@ -275,7 +273,7 @@ void FreeProtoCrypt(void)
 void SaveProtoCrypt(XStream& in)
 {
 	int i,j;
-	for(i = 0;i < WORLD_MAX;i++){		
+	for(i = 0;i < WORLD_MAX;i++){
 		in < ProtoCryptTableSize[i];
 		for(j = 0;j < ProtoCryptTableSize[i];j++){
 			in < ProtoCryptTable[i][j].z0;
@@ -292,7 +290,7 @@ void LoadProtoCrypt(XStream& in,int v)
 	char ch;
 	switch(v){
 		case 2:
-		case 1:	
+		case 1:
 			for(i = 0;i < WORLD_MAX;i++){
 				in > s;
 				for(j = 0;j < s;j++){
@@ -427,30 +425,30 @@ void GeneralSystemInit(void)
 			TimeSecretEnable[WORLD_GLORX][i] = 0;
 		};
 
-		BackD.init(200);		
+		BackD.init(200);
 
 	#ifdef GLOBAL_TIMER
 		Parser in("tgame.lst");
 	#else
 		Parser in("game.lst");
 	#endif
-		
-		in.search_name("NumImage");
+
+		in.searchName("NumImage");
 		PassageBmpNum = in.get_int();
-		PassageImageData = new PassageImageType[PassageBmpNum];		
+		PassageImageData = new PassageImageType[PassageBmpNum];
 		for(i = 0;i < PassageBmpNum;i++){
-			in.search_name("NameImage");
+			in.searchName("NameImage");
 			PassageImageData[i].Open(in.get_name());
 		};
 		PassageBmpPrev = -1;
 
 		for(i = 0;i < WORLD_MAX;i++){
-			in.search_name("NumSkipML");
+			in.searchName("NumSkipML");
 			NumSkipLocation[i] = in.get_int();
-			in.search_name("RealNumLocation");
+			in.searchName("RealNumLocation");
 			RealNumLocation[i] = in.get_int();
 
-			if(NetworkON) RealNumLocation[i] = 0;
+			if(globalGameState.inNetwork) RealNumLocation[i] = 0;
 
 			if(NumSkipLocation[i] > 0){
 				SkipLocationName[i] = new char*[NumSkipLocation[i]];
@@ -458,10 +456,10 @@ void GeneralSystemInit(void)
 				NumLocationID[i] = new int[NumSkipLocation[i]];
 
 				for(j =0;j < NumSkipLocation[i];j++){
-					in.search_name("SkipLocationID");
+					in.searchName("SkipLocationID");
 					NumLocationID[i][j] = in.get_int();
 
-					in.search_name("SkipLocationName");
+					in.searchName("SkipLocationName");
 					n = in.get_name();
 					SkipLocationName[i][j] = new char[strlen(n) + 1];
 					strcpy(SkipLocationName[i][j],n);
@@ -471,7 +469,7 @@ void GeneralSystemInit(void)
 
 		aiMessageBuffer.alloc_mem(AI_MESSAGE_MAX_STRING);
 
-		in.search_name("NumMessage");
+		in.searchName("NumMessage");
 		aiNumMessage = in.get_int();
 		aiMessageData = new aiMessageType[aiNumMessage];
 		for(i = 0;i < aiNumMessage;i++)
@@ -479,7 +477,7 @@ void GeneralSystemInit(void)
 
 		aiMessageQueue.Open();
 
-		in.search_name("NumUnitMatrix");
+		in.searchName("NumUnitMatrix");
 		NumUnitMatrix = in.get_int();
 
 		UnitMatrixData = new UnitItemMatrix[NumUnitMatrix];
@@ -489,19 +487,19 @@ void GeneralSystemInit(void)
 		for(i = 0;i < NumUnitMatrix;i++)
 			UnitMatrixData[i].FullNum = UnitMatrixData[i].GetFullNum();
 
-		in.search_name("UnitTimeConst");
+		in.searchName("UnitTimeConst");
 		UnitGlobalTime = in.get_int();
 
-		in.search_name("WeaponWaitTime");
+		in.searchName("WeaponWaitTime");
 		WeaponWaitTime = in.get_int();
 
-		in.search_name("MaxOxigenBar");
+		in.searchName("MaxOxigenBar");
 		MaxOxigenBar = in.get_int();
 
-		in.search_name("TotalVangerSpeed");
+		in.searchName("TotalVangerSpeed");
 		TotalVangerSpeed = in.get_int();
 
-		in.search_name("GameBulletNumType");
+		in.searchName("GameBulletNumType");
 		GameBulletNum = in.get_int();
 
 		GameBulletData = new WorldBulletTemplate[GameBulletNum];
@@ -519,9 +517,9 @@ void GeneralSystemInit(void)
 	//	MechosLst.open("report.lst",XS_OUT);
 		OpenCyclicPal();
 
-		CompasObj.Init();		
+		CompasObj.Init();
 
-		if(NetworkON){
+		if(globalGameState.inNetwork){
 			LocalNetEnvironment  =  LocalStationID | (CurrentWorld << 22);
 		};
 	};
@@ -540,20 +538,20 @@ void GeneralSystemOpen(void)
 	aiCutLuck = GamerResult.luck + GamerResult.add_luck;
 	aiCutDominance = GamerResult.dominance + GamerResult.add_dominance;
 	if(aiCutLuck > 100) aiCutLuck = 100;
-	else if(aiCutLuck < 0) aiCutLuck = 0; 		
+	else if(aiCutLuck < 0) aiCutLuck = 0;
 	if(aiCutDominance > 100) aiCutDominance = 100;
 	else if(aiCutDominance < -100) aiCutDominance = -100;
 
 	if(GeneralSystemSkip){
 		ChangeWorldConstraction = -1;
-		ChangeWorldSkipQuant = 0;			
+		ChangeWorldSkipQuant = 0;
 		aciPrepareMenus();
 
 		PalCD.Init();
 
 		if(CurrentWorld < MAIN_WORLD_MAX - 1) WorldBorderEnable = 1;
 		else WorldBorderEnable = 0;
-		
+
 		PTrack_mask_y = (map_size_y << 8) - 1;
 
 	#ifdef GLOBAL_TIMER
@@ -565,10 +563,10 @@ void GeneralSystemOpen(void)
 		StaticOpen();
 
 //zNfo many game inits
-		
-		in.search_name("TrackName");
+
+		in.searchName("TrackName");
 		HideTrack.Open(in.get_name());
-		
+
 		GameD.Open();
 		MapD.Open(in);
 
@@ -590,196 +588,68 @@ void GeneralSystemOpen(void)
 
 		ResortEnter();
 
-		if(lang() == RUSSIAN){
-			switch(CurrentWorld){
-				case WORLD_FOSTRAL:
-//zNfo - add target 2 compass
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Incubator"),rCmpIncubator);
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("Podish"),rCmpPodish);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate1"),rCmpRepair1);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate2"),rCmpRepair2);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate1"),rCmpRigs);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FireUpdate1"),rCmpGhOrb);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate1"),rCmpBroken1);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate2"),rCmpBroken2);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate1"),rCmpSpiral);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("F2G"),rCmpPassGlorx);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("F2W"),rCmpPassWeexow);
-					if(GamerResult.earth_unable)
-						AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("PASS83"),rCmpPassEarth);
-					break;
-				case WORLD_GLORX:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Ogorod"),rCmpOgorod);
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Lampasso"),rCmpLampasso);
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("VigBoo"),rCmpVigBoo);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2F"),rCmpPassFostral);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2N"),rCmpPassNecross);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2X"),rCmpPassXplo);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2K"),rCmpPassKhox);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate01"),rCmpRigs1);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate02"),rCmpRigs2);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate01"),rCmpRepair1);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate02"),rCmpRepair2);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FireUpdate01"),rCmpGhOrb);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate01"),rCmpSpiral);
-					break;
-				case WORLD_NECROSS:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("B-Zone"),rCmpBZone);
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("ZeePa"),rCmpZeePa);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2G"),rCmpPassGlorx);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2B"),rCmpPassBoozeena);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2A"),rCmpPassArk);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate01"),rCmpRigs);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate01"),rCmpRepair);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate01"),rCmpSpiral);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate01"),rCmpBroken);
-					break;
-				case WORLD_XPLO:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Spobs"),rCmpSpobs);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("X2G"),rCmpPassGlorx);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("X2T"),rCmpPassThreall);
-					break;
-				case WORLD_KHOX:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("K2G"),rCmpPassGlorx);
-					break;
-				case WORLD_BOOZEENA:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("B2N"),rCmpPassNecross);
-					break;
-				case WORLD_WEEXOW:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("W2F"),rCmpPassFostral);
-					break;
-				case WORLD_THREALL:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("T2X"),rCmpPassXplo);
-					break;
-				case WORLD_ARKONOY:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("A2N"),rCmpPassNecross);
-					break;
-			};
-		}else{
-			switch(CurrentWorld){
-				case WORLD_FOSTRAL:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Incubator"),eCmpIncubator);
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("Podish"),eCmpPodish);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate1"),eCmpRepair1);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate2"),eCmpRepair2);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate1"),eCmpRigs);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FireUpdate1"),eCmpGhOrb);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate1"),eCmpBroken1);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate2"),eCmpBroken2);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate1"),eCmpSpiral);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("F2G"),eCmpPassGlorx);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("F2W"),eCmpPassWeexow);
-					if(GamerResult.earth_unable)
-						AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("PASS83"),eCmpPassEarth);
-					break;
-				case WORLD_GLORX:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Ogorod"),eCmpOgorod);
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Lampasso"),eCmpLampasso);
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("VigBoo"),eCmpVigBoo);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2F"),eCmpPassFostral);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2N"),eCmpPassNecross);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2X"),eCmpPassXplo);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2K"),eCmpPassKhox);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate01"),eCmpRigs1);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate02"),eCmpRigs2);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate01"),eCmpRepair1);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate02"),eCmpRepair2);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FireUpdate01"),eCmpGhOrb);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate01"),eCmpSpiral);
-					break;
-				case WORLD_NECROSS:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("B-Zone"),eCmpBZone);
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("ZeePa"),eCmpZeePa);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2G"),eCmpPassGlorx);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2B"),eCmpPassBoozeena);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2A"),eCmpPassArk);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate01"),eCmpRigs);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate01"),eCmpRepair);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate01"),eCmpSpiral);
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate01"),eCmpBroken);
-					break;
-				case WORLD_XPLO:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Spobs"),eCmpSpobs);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("X2G"),eCmpPassGlorx);
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("X2T"),eCmpPassThreall);
-					break;
-				case WORLD_KHOX:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("K2G"),eCmpPassGlorx);
-					break;
-				case WORLD_BOOZEENA:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("B2N"),eCmpPassNecross);
-					break;
-				case WORLD_WEEXOW:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("W2F"),eCmpPassFostral);
-					break;
-				case WORLD_THREALL:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("T2X"),eCmpPassXplo);
-					break;
-				case WORLD_ARKONOY:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("A2N"),eCmpPassNecross	);
-					break;
-			};
-/*			switch(CurrentWorld){
-				case WORLD_FOSTRAL:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Incubator"),"Incubator");
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("Podish"),"Podish");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate1"),"Repair Station I");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate2"),"Repair Station II");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate1"),"Rigs Station");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FireUpdate1"),"ghOrb Station");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate1"),"Broken Station I");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate2"),"Broken Station II");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate1"),"Spiral Station");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("F2G"),"Passage to Glorx");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("F2W"),"Passage to  Weexow");
-					break;
-				case WORLD_GLORX:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Ogorod"),"Ogorod");
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Lampasso"),"Lampasso");
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("VigBoo"),"VigBoo");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2F"),"Passage to  Fostral");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2N"),"Passage to  Necross");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2X"),"Passage to  Xplo");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2K"),"Passage to  Khox");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate01"),"Rigs Station I");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate02"),"Rigs Station II");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate01"),"Repair Station I");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate02"),"Repair Station II");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FireUpdate01"),"ghOrb Station");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate01"),"Spiral Station");
-					break;
-				case WORLD_NECROSS:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("B-Zone"),"B-Zone");
-					AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("ZeePa"),"ZeePa");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2G"),"Passage to  Glorx");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2B"),"Passage to  Boozeena");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2A"),"Passage to  Ark'a'Znoy");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate01"),"Rigs Station");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate01"),"Repair Station");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate01"),"Spiral Station");
-					AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate01"),"Broken Station");
-					break;
-				case WORLD_XPLO:
-					AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Spobs"),"Spobs");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("X2G"),"Passage to Glorx");
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("X2T"),"Passage to Threall");
-					break;
-				case WORLD_KHOX:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("K2G"),"Passage to Glorx");
-					break;
-				case WORLD_BOOZEENA:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("B2N"),"Passage to Necross");
-					break;
-				case WORLD_WEEXOW:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("W2F"),"Passage to Fostral");
-					break;
-				case WORLD_THREALL:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("T2X"),"Passage to  Xplo");
-					break;
-				case WORLD_ARKONOY:
-					AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("A2N"),"Passage to  Necross");
-					break;
-			};*/
+		switch(CurrentWorld){
+		case WORLD_FOSTRAL:
+			AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Incubator"),CompasDict::Incubator);
+			AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("Podish"),CompasDict::Podish);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate1"),CompasDict::Repair1);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate2"),CompasDict::Repair2);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate1"),CompasDict::Rigs);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FireUpdate1"),CompasDict::GhOrb);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate1"),CompasDict::Broken1);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate2"),CompasDict::Broken2);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate1"),CompasDict::Spiral);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("F2G"),CompasDict::PassGlorx);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("F2W"),CompasDict::PassWeexow);
+			if(GamerResult.earth_unable)
+				AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("PASS83"),CompasDict::PassEarth);
+			break;
+		case WORLD_GLORX:
+			AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Ogorod"),CompasDict::Ogorod);
+			AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Lampasso"),CompasDict::Lampasso);
+			AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("VigBoo"),CompasDict::VigBoo);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2F"),CompasDict::PassFostral);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2N"),CompasDict::PassNecross);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2X"),CompasDict::PassXplo);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("G2K"),CompasDict::PassKhox);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate01"),CompasDict::Rigs1);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate02"),CompasDict::Rigs2);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate01"),CompasDict::Repair1);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate02"),CompasDict::Repair2);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FireUpdate01"),CompasDict::GhOrb);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate01"),CompasDict::Spiral);
+			break;
+		case WORLD_NECROSS:
+			AddTarget2Compas(CMP_TARGET_SPOT,(void*)("B-Zone"),CompasDict::BZone);
+			AddTarget2Compas(CMP_TARGET_ESCAVE,(void*)("ZeePa"),CompasDict::ZeePa);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2G"),CompasDict::PassGlorx);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2B"),CompasDict::PassBoozeena);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("N2A"),CompasDict::PassArk);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("FlyUpdate01"),CompasDict::Rigs);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("ArmorUpdate01"),CompasDict::Repair);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("KeyUpdate01"),CompasDict::Spiral);
+			AddTarget2Compas(CMP_TARGET_SENSOR,(void*)("RandomUpdate01"),CompasDict::Broken);
+			break;
+		case WORLD_XPLO:
+			AddTarget2Compas(CMP_TARGET_SPOT,(void*)("Spobs"),CompasDict::Spobs);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("X2G"),CompasDict::PassGlorx);
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("X2T"),CompasDict::PassThreall);
+			break;
+		case WORLD_KHOX:
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("K2G"),CompasDict::PassGlorx);
+			break;
+		case WORLD_BOOZEENA:
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("B2N"),CompasDict::PassNecross);
+			break;
+		case WORLD_WEEXOW:
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("W2F"),CompasDict::PassFostral);
+			break;
+		case WORLD_THREALL:
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("T2X"),CompasDict::PassXplo);
+			break;
+		case WORLD_ARKONOY:
+			AddTarget2Compas(CMP_TARGET_PASSAGE,(void*)("A2N"),CompasDict::PassNecross);
+			break;
 		};
 
 		SelectCompasTarget(NULL);
@@ -790,8 +660,8 @@ void GeneralSystemOpen(void)
 		actCurrentViewDolly = NULL;
 		actCurrentViewStuff = NULL;
 
-		if(NetworkON) NetworkWorldOpen();
-	}	
+		if(globalGameState.inNetwork) NetworkWorldOpen();
+	}
 };
 
 extern double scale_general;
@@ -813,13 +683,13 @@ void GeneralSystemFree(void)
 		GameD.Free();
 		ModelD.Free();
 		BackD.free();
-		
+
 		delete[] GameBulletData;
-		
+
 		aiMessageQueue.Close();
 		delete[] aiMessageData;
 		aiMessageBuffer.free_mem();
-		
+
 		for(i = 0;i < NumUnitMatrix;i++)
 			UnitMatrixData[i].Close();
 		delete[] UnitMatrixData;
@@ -836,26 +706,26 @@ void GeneralSystemFree(void)
 				delete[] NumLocationID[i];
 			};
 		};
-		delete[] CHECK_BSIGN_DATA; 
+		delete[] CHECK_BSIGN_DATA;
 	};
 
 	for(i = 0;i < PassageBmpNum;i++)
 		PassageImageData[i].Close();
 	delete[] PassageImageData;
 
-	
 
-	if(NetworkON){
+
+	if(globalGameState.inNetwork){
 		if(my_server_data.GameType == PASSEMBLOSS){
 			if(GloryPlaceData){
 				delete[] GloryPlaceData;
 				GloryPlaceData = NULL;
 			};
 		};
-		
+
 		total_players_data_list_query();
 		disconnect_from_server();
-		NetworkON = 0;
+		globalGameState.inNetwork = 0;
 	};
 //	for(i = 0;i < WORLD_MAX;i++)
 //		delete SKIP_LOCATION_NAME[i];
@@ -863,7 +733,7 @@ void GeneralSystemFree(void)
 #ifdef ITEM_LOG
 	xLog.close();
 #endif
-	
+
 //	DBGCHECK;
 };
 
@@ -874,8 +744,8 @@ void GeneralSystemClose(void)
 		aciClearTeleportMenu();
 
 		uvsKronActive = 0;
-		
-		if(NetworkON && my_server_data.GameType == PASSEMBLOSS){
+
+		if(globalGameState.inNetwork && my_server_data.GameType == PASSEMBLOSS){
 			for(i = 0;i < GloryPlaceNum;i++)
 				GloryPlaceData[i].CloseWorld();
 		};
@@ -949,7 +819,7 @@ void GeneralSystemClose(void)
 //		StorageLog < "\nNetworkClose";
 //!!!!!!!!!!!
 
-		if(NetworkON) NetworkWorldClose();
+		if(globalGameState.inNetwork) NetworkWorldClose();
 //!!!!!!!!!!!
 //		StorageLog < "\nEndClose";
 //!!!!!!!!!!!
@@ -970,7 +840,7 @@ void GeneralObject::Init(void)
 	Storage = NULL;
 	Cluster = NULL;
 	ObjectHeap = NULL;
-	NetID = 0;	
+	NetID = 0;
 };
 
 void GeneralObject::Init(MemoryStorageType* s)
@@ -1194,12 +1064,12 @@ void GameObjectDispatcher::Quant(void)
 
 #ifdef _DEBUG
 //	DBGCHECK;
-#endif	
+#endif
 
-	NetGlobalTime = GLOBAL_CLOCK();	
+	NetGlobalTime = GLOBAL_CLOCK();
 
-	if(NetworkON)
-		CheckPlayerList();			
+	if(globalGameState.inNetwork)
+		CheckPlayerList();
 
 	if(FirstQuant){
 		i = TELEPORT_ESCAVE_ID + 1;
@@ -1221,9 +1091,9 @@ void GameObjectDispatcher::Quant(void)
 		if(uvsKronActive){
 			for(i = 0;i < MAX_ACTIVE_SLOT;i++)
 				if(ActD.Slot[i] && ActD.Slot[i]->StuffType == DEVICE_ID_GUN){
-					uvsCheckKronIventTabuTask(UVS_KRON_EVENT::WEAPON_ON,1);	
+					uvsCheckKronIventTabuTask(UVS_KRON_EVENT::WEAPON_ON,1);
 					break;
-				};	
+				};
 		};
 	}
 
@@ -1240,7 +1110,7 @@ void GameObjectDispatcher::Quant(void)
 		p = (VangerUnit*)(p->NextTypeList);
 	};
 
-	if(NetworkON && my_server_data.GameType == PASSEMBLOSS && UsedCheckNum < GloryPlaceNum)
+	if(globalGameState.inNetwork && my_server_data.GameType == PASSEMBLOSS && UsedCheckNum < GloryPlaceNum)
 		GloryPlaceData[UsedCheckNum].Quant();
 
 	StaticQuant();
@@ -1250,7 +1120,7 @@ void GameObjectDispatcher::Quant(void)
 #ifdef _DEBUG
 //	DBGCHECK;
 #endif
-	ActD.Quant(); 	
+	ActD.Quant();
 
 #ifdef _DEBUG
 //	DBGCHECK;
@@ -1279,7 +1149,7 @@ void GameObjectDispatcher::Quant(void)
 #endif
 
 	ViewTail = NULL;
-	Sort();	
+	Sort();
 
 #ifdef _DEBUG
 //	DBGCHECK;
@@ -1307,11 +1177,11 @@ void GameObjectDispatcher::DrawQuant(void) {
 	ActD.DrawResource();
 
 	//znfo network
-	if(NetworkON) {
+	if(globalGameState.inNetwork) {
 		CreatePhantomTarget();
 	}
 	CreateTabutaskTarget();
-	CompasObj.Quant();	
+	CompasObj.Quant();
 };
 
 void setMapPixel(int px,int py,int col)
@@ -1753,7 +1623,7 @@ int TouchSphereZ(Vector& r0,Vector& r1,Vector& c,int rad,int& r)
 	};
 	return 0;
 };
- 
+
 void Object::DrawMechosParticle(int x,int y,int speed,int level,int n)
 {
 };
@@ -1772,11 +1642,11 @@ void TrackUnit::DrawMechosParticle(int x,int y,int speed,int level,int n)
 	uchar* TypeMap;
 	uchar trn;
 
-	double CosTetta = Cos(tetta)*(1 << FIXED_SHIFT)*8/3;
-	int track_nx = -round(Cos(psi)*CosTetta);
-	int track_ny = round(Sin(psi)*CosTetta);
+	double CosTetta = fCos(tetta)*(1 << FIXED_SHIFT)*8/3;
+	int track_nx = -round(fCos(psi)*CosTetta);
+	int track_ny = round(fSin(psi)*CosTetta);
 
-	if(CurrentWorld == WORLD_KHOX) return;	
+	if(CurrentWorld == WORLD_KHOX) return;
 
 	if(speed != 0){
 
@@ -1785,7 +1655,7 @@ void TrackUnit::DrawMechosParticle(int x,int y,int speed,int level,int n)
 		if(!TypeMap) return;
 		TypeMap += H_SIZE + x;
 
-		if((*TypeMap) & DOUBLE_LEVEL){			
+		if((*TypeMap) & DOUBLE_LEVEL){
 			if(level){
 				trn = GET_REAL_TERRAIN(TypeMap,x);
 				if(trn == 1){
@@ -1818,7 +1688,7 @@ void TrackUnit::DrawMechosParticle(int x,int y,int speed,int level,int n)
 
 		if((int)(RND(10)) > speed) return;
 
-		if(trn == 1) 
+		if(trn == 1)
 			MapD.CreateDust(Vector(x,y,level), MAP_DUST_PROCESS);
 		if(Status & SOBJ_ACTIVE) NullTime = 0;
 	}else{
@@ -2134,8 +2004,8 @@ void GameObjectDispatcher::Sort(void)
 
 	int view_y,view_z;
 	if(DepthShow){
-		view_y = ViewY - round(Sin(SlopeAngle)*ViewZ);
-		view_z = round(Cos(SlopeAngle)*ViewZ );
+		view_y = ViewY - round(fSin(SlopeAngle)*ViewZ);
+		view_z = round(fCos(SlopeAngle)*ViewZ );
 		}
 	else{
 		view_y = ViewY;
@@ -2247,9 +2117,9 @@ void GeneralTableInit(void)
 
 
 		for(i = 0;i < TERRAIN_MAX;i++){
-			if(i == 1 || i == 7) 
+			if(i == 1 || i == 7)
 				TerrainAlphaTable[i] = new uchar[256 << 8];
-			else 
+			else
 				TerrainAlphaTable[i] = NULL;
 		};
 	};
@@ -2258,10 +2128,10 @@ void GeneralTableInit(void)
 void GeneralTableFree(void)
 {
 	int i;
-	
+
 	if(GeneralSystemSkip){
 		for(i = 0;i < TERRAIN_MAX;i++){
-			if(i == 1 || i == 7) 
+			if(i == 1 || i == 7)
 				delete[] TerrainAlphaTable[i];
 		};
 
@@ -2419,7 +2289,7 @@ void CloseBunchPal(void)
 
 	if(uvsCurrentWorldUnable && CurrentWorld < MAIN_WORLD_MAX - 1){
 		vColor = Vector(63,63,63);
-		MaxVector = vColor.vabs();		
+		MaxVector = vColor.vabs();
 
 		for(k = 0;k < WorldPalNum;k++){
 			for(i = 0;i < NUM_COLOR_PLACE;i++){
@@ -2430,7 +2300,7 @@ void CloseBunchPal(void)
 					WorldPalData[k][j*3 + 1] = WorldPalData[k][j*3 + 1] + GrayColorCycle[CurrentWorld][i]*(dc - WorldPalData[k][j*3 + 1]) / 63;
 					WorldPalData[k][j*3 + 2] = WorldPalData[k][j*3 + 2] + GrayColorCycle[CurrentWorld][i]*(dc - WorldPalData[k][j*3 + 2]) / 63;
 				};
-			};			
+			};
 		};
 	};
 };
@@ -2452,12 +2322,12 @@ void GeneralTableOpen(void)
 
 		for(i = 0;i < TERRAIN_MAX;i++){
 			LastColorPlace[CurrentWorld][i] = ENDCOLOR[i];
-			FirstColorPlace[CurrentWorld][i] = BEGCOLOR[i]; 
+			FirstColorPlace[CurrentWorld][i] = BEGCOLOR[i];
 		};
 
 		if(uvsCurrentWorldUnable && CurrentWorld < MAIN_WORLD_MAX - 1){
 			vColor = Vector(63,63,63);
-			MaxVector = vColor.vabs();		
+			MaxVector = vColor.vabs();
 
 			for(k = 0;k < WorldPalNum;k++){
 				for(i = 0;i < NUM_COLOR_PLACE;i++){
@@ -2468,7 +2338,7 @@ void GeneralTableOpen(void)
 						WorldPalData[k][j*3 + 1] = WorldPalData[k][j*3 + 1] + GrayColorCycle[CurrentWorld][i]*(dc - WorldPalData[k][j*3 + 1]) / 63;
 						WorldPalData[k][j*3 + 2] = WorldPalData[k][j*3 + 2] + GrayColorCycle[CurrentWorld][i]*(dc - WorldPalData[k][j*3 + 2]) / 63;
 					};
-				};			
+				};
 			};
 		};
 
@@ -2490,7 +2360,7 @@ void GeneralTableOpen(void)
 
 		ParticlePaletteTableInit(palbufOrg);
 		FirePaletteTableInit(palbufOrg);
-		
+
 		vColor = Vector(63,63,63);
 		MaxVector = vColor.vabs();
 
@@ -2546,7 +2416,7 @@ void GeneralTableOpen(void)
 				else ShadowColorTable[i] = nmin;
 			};
 		};
-		
+
 		for(n = 0;n < TERRAIN_MAX;n++){
 			if(n == 1 || n == 7){
 				cmax = 0;
@@ -2671,7 +2541,7 @@ void ChangeWorld(int world,int flag)
 	LoadResourceSOUND(GetTargetName("sound"));
 
 	MLreload();
-	Redraw = 1;	
+	Redraw = 1;
 
 	OpenCyclicPal();
 	GeneralTableOpen();
@@ -2682,7 +2552,7 @@ void ChangeWorld(int world,int flag)
 		ChangeWorldSkipQuant = 1;
 
 	if(world == WORLD_KHOX) //znfo - items sizing
-		scale_general /= 2.; 
+		scale_general /= 2.;
 
 	if(PassageBmpPrev >= 0) PassageImageData[PassageBmpPrev].Hide();
 	XGR_MouseShow();
@@ -2850,7 +2720,7 @@ void BaseObject::GetVisible(void)
 		zz = focus_flt/zz;
 		xt = round(xx*zz);
 		yt = round(yy*zz);
-		if(abs(xt) - (radius << 1) < curGMap -> xside && abs(yt) - (radius << 1) < curGMap -> yside)
+		if(abs(xt) - (radius << 1) < curSurfaceDisp -> xside && abs(yt) - (radius << 1) < curSurfaceDisp -> yside)
 			Visibility = VISIBLE;
 		else
 			Visibility = UNVISIBLE;
@@ -2872,7 +2742,7 @@ void BaseObject::GetVisible(void)
 char getObjectPosition(int& x,int& y)
 {
 	char c;
-	
+
 		if(!actCurrentViewObject){
 #ifdef _DEBUG
 			if(aiCutDominance >= 0){
@@ -2880,7 +2750,7 @@ char getObjectPosition(int& x,int& y)
 //#ifdef ZMOD_BETA
 //			if (1) {
 //#else
-			if (!NetworkON && aiCutDominance >= 50) {
+			if (!globalGameState.inNetwork && aiCutDominance >= 50) {
 				//znfo - dolly visibility
 //#endif //ZMOD_BETA
 #endif
@@ -2892,7 +2762,7 @@ char getObjectPosition(int& x,int& y)
 						actCurrentViewObject = (VangerUnit*)(ActD.Tail);
 						if(actCurrentViewObject && (actCurrentViewObject->Status & SOBJ_WAIT_CONFIRMATION)){
 							do{
-								actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;					
+								actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;
 							}while(actCurrentViewObject && (actCurrentViewObject->Status & SOBJ_WAIT_CONFIRMATION));
 						};
 
@@ -2907,13 +2777,13 @@ char getObjectPosition(int& x,int& y)
 					x = actCurrentViewStuff->R_curr.x;
 					y = actCurrentViewStuff->R_curr.y;
 					actCurrentViewStuff = (StuffObject*)(actCurrentViewStuff->NextTypeList);
-					return 3;		   
+					return 3;
 #endif
 
 					actCurrentViewObject = (VangerUnit*)(ActD.Tail);
 					if(actCurrentViewObject && (actCurrentViewObject->Status & SOBJ_WAIT_CONFIRMATION)){
 						do{
-							actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;					
+							actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;
 						}while(actCurrentViewObject && (actCurrentViewObject->Status & SOBJ_WAIT_CONFIRMATION));
 					};
 
@@ -2949,7 +2819,7 @@ char getObjectPosition(int& x,int& y)
 				actCurrentViewObject = (VangerUnit*)(ActD.Tail);
 				if(actCurrentViewObject && (actCurrentViewObject->Status & SOBJ_WAIT_CONFIRMATION)){
 					do{
-						actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;					
+						actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;
 					}while(actCurrentViewObject && (actCurrentViewObject->Status & SOBJ_WAIT_CONFIRMATION));
 				};
 				return -1;
@@ -2963,10 +2833,10 @@ char getObjectPosition(int& x,int& y)
 				if(actCurrentViewObject->VangerRaceStatus != VANGER_RACE_NONE/* && aciRacingFlag*/){
 //					actCurrentViewObject = (VangerUnit*)(actCurrentViewObject->NextTypeList);
 					do{
-						actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;					
+						actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;
 					}while(actCurrentViewObject && (actCurrentViewObject->Status & SOBJ_WAIT_CONFIRMATION));
 					return 3;
-				};				
+				};
 
 				switch(actCurrentViewObject->uvsPoint->Pmechos->color){
 					case 0:
@@ -3003,14 +2873,14 @@ char getObjectPosition(int& x,int& y)
 						c = 7;
 						break;
 				};
-				
+
 				do{
-					actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;					
+					actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;
 				}while(actCurrentViewObject && (actCurrentViewObject->Status & SOBJ_WAIT_CONFIRMATION));
 
 //				actCurrentViewObject = (VangerUnit*)(actCurrentViewObject)->NextTypeList;
-				return c;			
-		};	
+				return c;
+		};
 
 /*	else{
 		if(!actCurrentViewObject){
@@ -3020,7 +2890,7 @@ char getObjectPosition(int& x,int& y)
 		x = actCurrentViewObject->R_curr.x;
 		y = actCurrentViewObject->R_curr.y;
 		actCurrentViewObject = actCurrentViewObject->NextTypeList;
-		return 1;			
+		return 1;
 	};*/
 
 	return -1;
@@ -3254,7 +3124,7 @@ void GeneralSystemLoad(XStream& in)
 			break;
 		case 3:
 			in > ActD.SpobsDestroy;
-			in > ActD.ThreallDestroy;	
+			in > ActD.ThreallDestroy;
 			in > ActD.SpummyRunner;
 
 			for(i = 0;i < NUM_CHECK_BSIGN;i++)
@@ -3268,7 +3138,7 @@ void GeneralSystemLoad(XStream& in)
 			break;
 		case 4:
 			in > ActD.SpobsDestroy;
-			in > ActD.ThreallDestroy;	
+			in > ActD.ThreallDestroy;
 			in > ActD.SpummyRunner;
 
 			for(i = 0;i < NUM_CHECK_BSIGN;i++)
@@ -3281,7 +3151,7 @@ void GeneralSystemLoad(XStream& in)
 			in >ActD.ThreallDestroyActive;
 			for(i = 0;i < MAX_TIME_SECRET;i++){
 				in > TimeSecretEnable[WORLD_FOSTRAL][i];
-				in > TimeSecretEnable[WORLD_GLORX][i];		
+				in > TimeSecretEnable[WORLD_GLORX][i];
 			};
 
 			in > i;
@@ -3294,7 +3164,7 @@ void GeneralSystemLoad(XStream& in)
 			break;
 		case 5:
 			in > ActD.SpobsDestroy;
-			in > ActD.ThreallDestroy;	
+			in > ActD.ThreallDestroy;
 			in > ActD.SpummyRunner;
 
 			for(i = 0;i < NUM_CHECK_BSIGN;i++)
@@ -3307,7 +3177,7 @@ void GeneralSystemLoad(XStream& in)
 			in > ActD.ThreallDestroyActive;
 			for(i = 0;i < MAX_TIME_SECRET;i++){
 				in > TimeSecretEnable[WORLD_FOSTRAL][i];
-				in > TimeSecretEnable[WORLD_GLORX][i];		
+				in > TimeSecretEnable[WORLD_GLORX][i];
 			};
 
 			in > ActD.PromptPodishFreeVisit;
@@ -3324,12 +3194,12 @@ void GeneralSystemLoad(XStream& in)
 			break;
 		case 6:
 			in > ActD.SpobsDestroy;
-			in > ActD.ThreallDestroy;	
+			in > ActD.ThreallDestroy;
 			in > ActD.SpummyRunner;
 
 			for(i = 0;i < NUM_CHECK_BSIGN;i++)
 				in > CHECK_BSIGN_INDEX[i];
-			
+
 			for(i = 0;i < NUM_CHECK_BSIGN;i++)
 				in > CHECK_BSIGN_DATA[i];
 
@@ -3383,11 +3253,11 @@ void GeneralSystemSave(XStream& out)
 
 //Version3--------------------------------
 	out < ActD.SpobsDestroy;
-	out < ActD.ThreallDestroy;	
+	out < ActD.ThreallDestroy;
 	out < ActD.SpummyRunner;
 
 	for(i = 0;i < NUM_CHECK_BSIGN;i++)
-		out < CHECK_BSIGN_INDEX[i];	
+		out < CHECK_BSIGN_INDEX[i];
 
 	for(i = 0;i < NUM_CHECK_BSIGN;i++)
 		out < CHECK_BSIGN_DATA[i];
@@ -3397,7 +3267,7 @@ void GeneralSystemSave(XStream& out)
 	out < ActD.ThreallDestroyActive;
 	for(i = 0;i < MAX_TIME_SECRET;i++){
 		out < TimeSecretEnable[WORLD_FOSTRAL][i];
-		out < TimeSecretEnable[WORLD_GLORX][i];		
+		out < TimeSecretEnable[WORLD_GLORX][i];
 //Version6-------------------------------
 		out < TimeSecretType[WORLD_FOSTRAL][i];
 		out < TimeSecretType[WORLD_GLORX][i];
@@ -3424,7 +3294,7 @@ void MemoryStorageType::Init(int mElement,int eSize)
 	StorageClusterType* p;
 	NumCluster = 1;
 	ElementSize = eSize;
-	MaxElement = mElement;	
+	MaxElement = mElement;
 	p = new StorageClusterType;
 	p ->Init(this);
 	Tail = p;
@@ -3554,7 +3424,7 @@ void UnitList::ConnectTypeList(GeneralObject* p)
 			if(n->R_curr.z > y)
 				break;
 			n = n->NextTypeList;
-		};			
+		};
 		Add2Next(p,np);
 	};*/
 
@@ -3745,7 +3615,7 @@ void GameObjectDispatcher::NetEvent(void)
 					break;
 				default:
 #ifdef _DEBUG
-				
+
 					fout.SetRadix(16);
 					fout < "Ignore:  Type:" <= type;
 					fout.SetRadix(10);
@@ -3756,7 +3626,7 @@ void GameObjectDispatcher::NetEvent(void)
 			};
 		};
 		NETWORK_IN_STREAM.next_event();
-	};	
+	};
 	NETWORK_OUT_STREAM.send();
 };
 
@@ -3772,8 +3642,8 @@ int NetInit(ServerFindChain* p)
 		return 0;
 
 	std::cout<<"NetInit - [1]"<<std::endl;
-	NetworkON = 1;
-	
+	globalGameState.inNetwork = 1;
+
 	LocalStationID = GlobalStationID << 26;
 	for(i = 0;i < MAX_NID_OBJECT;i++)
 		LocalStationCounter[i] = 0;
@@ -3783,7 +3653,7 @@ int NetInit(ServerFindChain* p)
 	set_time_by_server(10);
 	std::cout<<"NetInit - [1.5]"<<std::endl;
 	my_player_body.clear();
-	
+
 	NETWORK_OUT_STREAM.register_name((char*)(aciGetPlayerName() ? aciGetPlayerName() : "Finger"), (char*)(aciGetPlayerPassword() ? aciGetPlayerPassword() : "Password"));
 	std::cout<<"NetInit - [2]"<<std::endl;
 	//NETWORK_OUT_STREAM.register_name(aciGetPlayerName() ? aciGetPlayerName() : "Finger", "Password");
@@ -3798,7 +3668,7 @@ int NetInit(ServerFindChain* p)
 	GloryPlaceData = NULL;
 	UsedCheckNum = 0;
 
-	if(object_ID_offsets[NID_DEVICE >> 16] > object_ID_offsets[NID_STUFF >> 16]) 
+	if(object_ID_offsets[NID_DEVICE >> 16] > object_ID_offsets[NID_STUFF >> 16])
 		stuff_ID_offsets = object_ID_offsets[(NID_DEVICE & (~(1 << 31))) >> 16];
 	else
 		stuff_ID_offsets = object_ID_offsets[(NID_STUFF & (~(1 << 31))) >> 16];
@@ -3828,8 +3698,8 @@ void NetworkWorldOpen(void)
 
 
 	NetworkLoadEnable = set_world(CurrentWorld,map_size_y);
-//	NETWORK_OUT_STREAM.set_position(ViewX,ViewY,round((fabs(curGMap -> xsize*sinTurnInvFlt) + fabs(curGMap -> ysize*cosTurnInvFlt))*0.5));
-//	NETWORK_OUT_STREAM.send(1);	
+//	NETWORK_OUT_STREAM.set_position(ViewX,ViewY,round((fabs(curSurfaceDisp -> xsize*sinTurnInvFlt) + fabs(curSurfaceDisp -> ysize*cosTurnInvFlt))*0.5));
+//	NETWORK_OUT_STREAM.send(1);
 
 	//zNfo - инициализация game type
 
@@ -3865,12 +3735,12 @@ void NetworkWorldOpen(void)
 				aciOpenWorldLink(WORLD_NECROSS,WORLD_BOOZEENA);
 				aciOpenWorldLink(WORLD_XPLO,WORLD_THREALL);
 				aciOpenWorldLink(WORLD_HMOK,WORLD_HMOK);
-			};			
+			};
 			aciPrepareWorldsMenu();
 			break;
 	};
 
-	
+
 	if(NetworkLoadEnable){
 		for(i = 0;i < TntTableSize;i++){
 			NETWORK_OUT_STREAM.create_permanent_object(TntObjectData[i]->NetID,TntObjectData[i]->R_curr.x,TntObjectData[i]->R_curr.y,TntObjectData[i]->radius);
@@ -3897,7 +3767,7 @@ void NetworkWorldOpen(void)
 		};
 
 /*		for(i = 0;i < ProtoCryptTableSize[CurrentWorld];i++){
-			if(ProtoCryptTable[CurrentWorld][i].SensorType == 1 || ProtoCryptTable[CurrentWorld][i].SensorType == 2 || 
+			if(ProtoCryptTable[CurrentWorld][i].SensorType == 1 || ProtoCryptTable[CurrentWorld][i].SensorType == 2 ||
 			ProtoCryptTable[CurrentWorld][i].SensorType == 6 || ProtoCryptTable[CurrentWorld][i].SensorType == 7){
 				uvsCreateNewItem(ProtoCryptTable[CurrentWorld][i].R_curr.x,ProtoCryptTable[CurrentWorld][i].R_curr.y,ProtoCryptTable[CurrentWorld][i].R_curr.z,uvsGenerateItemForCrypt(ProtoCryptTable[CurrentWorld][i].SensorType),CurrentWorld);
 			}else{
@@ -3913,7 +3783,7 @@ void NetworkWorldOpen(void)
 			p = p->next;
 		};*/
 
-		
+
 		if(art_log){
 			for(i = 0;i < ProtoCryptTableSize[CurrentWorld];i++){
 				if((ProtoCryptTable[CurrentWorld][i].SensorType == 3 || ProtoCryptTable[CurrentWorld][i].SensorType == 5)
@@ -3927,7 +3797,7 @@ void NetworkWorldOpen(void)
 			n = (uvsItem*)(p);
 			addDevice(n->pos_x,n->pos_y,n->pos_z,n->type,n->param1,n->param2,NULL);
 			p = p->next;
-		};		
+		};
 	};
 	FreeList(WorldTable[CurrentWorld]->Pitem);
 };
@@ -3943,34 +3813,34 @@ void aiMessageType::Load(Parser& in)
 	int i;
 	char* n;
 
-	in.search_name("TypeString");
+	in.searchName("TypeString");
 	Type = in.get_int();
-	if(lang() == RUSSIAN) in.search_name("rNumString");
-	else in.search_name("NumString");
+	if(lang() == RUSSIAN) in.searchName("rNumString");
+	else in.searchName("NumString");
 	Num = in.get_int();
 
 	if(Num >= AI_MESSAGE_MAX_STRING)
 		ErrH.Abort("Bad aiMessage Num String");
 
 	for(i = 0;i < Num;i++){
-		in.search_name("Time:");
+		in.searchName("Time:");
 		Time[i] = in.get_int();
-		in.search_name("Color:");
+		in.searchName("Color:");
 		Color[i] = in.get_int();
 
-		if(lang() == RUSSIAN) in.search_name("rString:");
-		else in.search_name("String:");
+		if(lang() == RUSSIAN) in.searchName("rString:");
+		else in.searchName("String:");
 		n = in.get_name();
 
 		if(strlen(n) >= (AI_MESSAGE_LEN_STRING - 1))
 			ErrH.Abort("Bad aiMessage String");
-		strcpy(Data[i],/*Convert(*/n/*)*/);		
+		strcpy(Data[i],/*Convert(*/n/*)*/);
 	};
 
 /*	for(i = 0;i < Num;i++){
-		in.search_name("Time:");
+		in.searchName("Time:");
 		Time[i] = in.get_int();
-		in.search_name("String:");
+		in.searchName("String:");
 		n = in.get_name();
 		Data[i] = new char[strlen(n) + 1];
 		strcpy(Data[i],n);
@@ -3995,7 +3865,7 @@ void aiMessageType::Send(int speed,int ind,int sf)
 				aiMessageBuffer.TimeBuf[c] = Time[i];
 				aiMessageBuffer.ColBuf[c] = Color[i];
 				c++;
-			};			
+			};
 			ind >>= 1;
 		};
 		aiMessageBuffer.NumStr = c;
@@ -4009,7 +3879,7 @@ int aiMessageType::GetTime(int ind)
 	int c,i;
 	c = 0;
 	for(i = 0;i < Num;i++){
-		if(ind & 1) c += strlen(Data[i]);		
+		if(ind & 1) c += strlen(Data[i]);
 		ind >>= 1;
 	};
 	return c;
@@ -4017,13 +3887,13 @@ int aiMessageType::GetTime(int ind)
 
 void VangerUnit::SendCameraData(void)
 {
-	events_out < (short int)ViewX; 
-	events_out < (short int)ViewY; 
-	events_out < (short int)ViewZ; 
-	events_out < (short int)TurnAngle; 
-	events_out < (short int)SlopeAngle; 
-	events_out < (short int)curGMap -> xside;
-	events_out < (short int)curGMap -> yside;
+	events_out < (short int)ViewX;
+	events_out < (short int)ViewY;
+	events_out < (short int)ViewZ;
+	events_out < (short int)TurnAngle;
+	events_out < (short int)SlopeAngle;
+	events_out < (short int)curSurfaceDisp -> xside;
+	events_out < (short int)curSurfaceDisp -> yside;
 }
 
 void NetworkSetTnt(int id)
@@ -4056,7 +3926,7 @@ void FreeAll(int mode)
 {
 	switch(mode){
 		case 0:
-			 GeneralSystemFree();	
+			 GeneralSystemFree();
 			 break;
 		case 1:
 			GeneralSystemClose();
@@ -4147,7 +4017,7 @@ void PalConstructor::Quant(void)
 		if(pPrev != p && pPrev != NULL){
 			if(p->Mode == CPAL_CHANGE_CYCLE)
 				p->Set(CPAL_RESTORE_CHANGE,p->Time);
-			else 
+			else
 				p->Set(p->Mode,p->Time);
 		};
 		pPrev = p;
@@ -4229,7 +4099,7 @@ void PalPoint::Set(int mode,int time,uchar* p1,uchar* p2)
 			PalCD.PalEnable = 0;
 			for(i =0;i < 768;i++){
 				FirstColor[i] = ((int)(palbuf/*Org*/[i])) << 16;
-				DeltaColor[i] = ((63 << 16) - FirstColor[i]) / Time;					
+				DeltaColor[i] = ((63 << 16) - FirstColor[i]) / Time;
 			};
 			break;
 		case CPAL_PASSAGE_FROM:
@@ -4247,7 +4117,7 @@ void PalPoint::Set(int mode,int time,uchar* p1,uchar* p2)
 			for(i = 0;i < 768;i++){
 				FirstColor[i] = ((int)(palbuf[i])) << 16;
 				DeltaColor[i] = ((((int)(palbufOrg[i])) << 16) - FirstColor[i]) / Time;
-			};			
+			};
 			break;
 		case CPAL_THREALL_TO:
 			for(j = 0;j < TERRAIN_MAX;j++){
@@ -4269,7 +4139,7 @@ void PalPoint::Set(int mode,int time,uchar* p1,uchar* p2)
 void aiMessageList::Open(void)
 {
 	Time = Num = 0;
-	View = Tail = NULL;	
+	View = Tail = NULL;
 };
 
 void aiMessageList::Close(void)
@@ -4293,7 +4163,7 @@ void aiMessageList::Send(int ind,int speed,int n,int sf)
 	if(!ActD.Active || !(ActD.Active->ExternalDraw)) return;
 	if(abs(speed) != 0) PrevSpeed = 10;
 	else PrevSpeed--;
-	if(sf && PrevSpeed > MAX_AI_MESSAGE_SPEED) return;	
+	if(sf && PrevSpeed > MAX_AI_MESSAGE_SPEED) return;
 	if(abs(aiMessageData[ind].LastFrame - frame) > AI_MESSAGE_DELTA){
 		p = Tail;
 		while(p){
@@ -4384,7 +4254,7 @@ void aiMessageList::SendDominance(int dom)
 
 void aiMessageList::SendTabuTask(int luck)
 {
-	aiMessageListElem* p;	
+	aiMessageListElem* p;
 
 	p = Tail;
 	while(p){
@@ -4465,7 +4335,7 @@ void aiMessageList::Quant(void)
 					Time = aiMessageData[View->Index].GetTime(View->Mask) / 2 + 10;
 					break;
 			};
-		};		
+		};
 	};
 };
 
@@ -4504,7 +4374,7 @@ void sBunchCreate(int& id,int world,int data,int cycle)
 	id = NET_SBUNCH_COUNTER | (world << 22);
 	NETWORK_OUT_STREAM.create_permanent_object(id,0,0,0);
 	NETWORK_OUT_STREAM < (int)(cycle);
-	NETWORK_OUT_STREAM < (int)(data);	
+	NETWORK_OUT_STREAM < (int)(data);
 	NETWORK_OUT_STREAM.end_body();
 };
 
@@ -4512,8 +4382,8 @@ void sBunchSend(int id,int data,int cycle)
 {
 	NETWORK_OUT_STREAM.update_object(id,0,0);
 	NETWORK_OUT_STREAM < (int)(cycle);
-	NETWORK_OUT_STREAM < (int)(data);	
-	NETWORK_OUT_STREAM.end_body();	
+	NETWORK_OUT_STREAM < (int)(data);
+	NETWORK_OUT_STREAM.end_body();
 };
 
 void sBunchReceive(int id)
@@ -4528,7 +4398,7 @@ void sBunchReceive(int id)
 
 void NetworkQuant(void)
 {
-	if(NetworkON)
+	if(globalGameState.inNetwork)
 		GameD.NetEvent();
 };
 
@@ -4549,23 +4419,23 @@ void PassageImageType::Open(char* name)
 
 	buf.init();
 	buf < iVideoPathDefault < "svs/" < name;
-	if(!in.open(buf.address(),XS_IN)){
+	if(!in.open(buf.buf,XS_IN)){
 		buf.init();
 		buf < iVideoPath < "svs/" < name;
-		if(!in.open(buf.address(),XS_IN)){
+		if(!in.open(buf.buf,XS_IN)){
 			Name = NULL;
 			return;
 		};
 	};
-	
+
 	in.read(Pal,768);
 	in > st;
 	xSize = st;
 	in > st;
 	ySize = st;
 	in.close();
-	Name = new char[strlen(buf.address()) + 1];
-	strcpy(Name,buf.address());
+	Name = new char[strlen(buf.buf) + 1];
+	strcpy(Name,buf.buf);
 };
 
 void PassageImageType::Close(void)

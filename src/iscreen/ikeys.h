@@ -1,5 +1,5 @@
-#ifndef __IKEYS_H__
-#define __IKEYS_H__
+#pragma once
+
 #include <SDL.h>
 
 //#define _ISCREEN_GERMAN_
@@ -41,5 +41,3 @@ void KBD_init(void);
 
 extern KeyBuffer* KeyBuf;
 extern int KeyType;
-
-#endif

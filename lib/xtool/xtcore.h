@@ -1,6 +1,6 @@
 
-#ifndef __XTCORE_H
-#define __XTCORE_H
+#pragma once
+
 #include <iostream>
 #include <SDL.h>
 
@@ -94,6 +94,7 @@ void xtUnRegisterSysQuant(int id);
 
 void xtClearMessageQueue(void);
 
+void xtParseAppArguments(void);
 int xtInitApplication(void);
 void xtDoneApplication(void);
 
@@ -116,7 +117,3 @@ void set_key_handlers(void (*pH)(SDL_Event*),void (*upH)(SDL_Event*));
 
 extern double XTCORE_FRAME_DELTA;
 extern double XTCORE_FRAME_NORMAL;
-
-#endif /* __XTCORE_H */
-
-

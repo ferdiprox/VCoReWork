@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 
-std::fstream *open_file(const char* name, unsigned f)
+std::fstream *open_file(const std::string& name, unsigned f)
 {
 	std::ios::openmode mode;
 	mode = std::ios::binary;
@@ -16,42 +16,34 @@ std::fstream *open_file(const char* name, unsigned f)
 	return new std::fstream(name, mode);
 }
 
-int XStream::open(const char* name, unsigned f)
+bool XStream::open(const std::string& name, unsigned openingFlags)
 {
-
-	std::string smode;
-	smode+="File name:";
-	smode+=name;
 	file_name = name;
 
-#ifdef XSTREAM_DEBUG
-	std::cerr << "DBG: XStream::open(\"" << name << "\", 0x" << std::hex << f << ")" << std::endl;
-#endif
-
-	std::fstream *file = open_file(name, f);
+	std::fstream *file = open_file(name, openingFlags);
 	handler = file;
+
 	if (file->is_open()) {
 		fname = name;
 		pos = file->tellg();
 		eofFlag = 0;
-	} else {
-		#ifdef XSTREAM_DEBUG
-			std::cerr << "ERR: XStream::open(\"" << name << "\", 0x" << std::hex << f << ")" << std::endl;
-		#endif
-		if (ErrHUsed) {
-			char * error = strerror(errno);
-			ErrH.Abort((std::string("I/O Error: ") +
-				(error ? error : "unknown") +
-				" file: " + name).c_str(),
-			   XERR_USER, 0, smode.c_str());
-		} else {
-			return 0;
-		}
-	}
-	return 1;
+		return 1;
+	} 
+
+	if (ErrHUsed)
+	{
+		std::string errorMessage;
+
+		errorMessage += std::string("File ") + ((openingFlags & XS_IN) ? "opening" : "reading") + " error: ";
+		errorMessage += "No such file or directory; ";
+		errorMessage += "File name: " + name;
+		
+		ErrH.Abort(errorMessage);
+	} 
+	return 0;
 }
 
-int XStream::open(XStream* owner,long s,long ext_sz)
+bool XStream::open(XStream* owner,long s,long ext_sz)
 {
 	/* Full stream debug
 	std::fstream debug("openfile.txt", std::ios::out|std::ios::app);
@@ -70,25 +62,16 @@ int XStream::open(XStream* owner,long s,long ext_sz)
 }
 
 void XStream::close(void)
-{
-	
+{	
 	if(handler == NULL)
 		return;
-	//std::cout<<"XStream::close: "<<fname<<std::endl;
-	/* Full stream debug
-	std::fstream debug("openfile.txt", std::ios::out|std::ios::app);
-
-	if (debug.is_open()&&fname!=NULL)
-		debug<<"CLOSE "<<fname<<std::endl;
-	debug.close();
-	*/
-	//if(extSize == -1 && !CloseHandle(handler) && ErrHUsed)
-	//	ErrH.Abort(closeMSG,XERR_USER,GetLastError(),fname);
-
+	
 	if (handler->is_open())
 		handler->close();
+
 	delete handler;
 	handler = NULL;
+
 	//fname = "";
 	pos = 0L;
 	eofFlag = 1;

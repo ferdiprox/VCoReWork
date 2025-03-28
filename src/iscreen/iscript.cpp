@@ -1572,7 +1572,7 @@ void load_text(char* fname)
 		buf = new char[sz];
 		fh.read(buf,sz);
 		fh.close();
-		
+
 		for(i = 0; i < sz; i ++){
 			if(buf[i] == '\r' || buf[i] == '\n') buf[i] = 0;
 		}
@@ -1620,7 +1620,7 @@ void load_s_text(char* fname)
 		memset(buf, 0, sz + 1);
 		fh.read(buf,sz);
 		fh.close();
-		
+
 		for(i = 0; i < sz; i ++){
 			if(buf[i] == '\r' || buf[i] == '\n') buf[i] = 0;
 		}

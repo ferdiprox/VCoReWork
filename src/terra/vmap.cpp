@@ -5,12 +5,11 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <vector>
+#include <iostream>
 
 #ifdef DEBUG_MAP_REQUESTS
 #include <cassert>
 #endif
-
-
 
 #include "../3d/3d_math.h"
 #include "../3d/3dgraph.h"
@@ -18,14 +17,10 @@
 #include "vmap.h"
 #include "world.h"
 #include "render.h"
-//#include "..\win32f.h"
-//#include "cpuid.h"
 #include "../palette.h"
 
 #include "../zmod_common.h"
-
-#include <iostream>
-
+#include "../game_state.h"
 
 #ifdef _ROAD_
 //#define FILEMAPPING
@@ -40,12 +35,11 @@
 #endif
 
 /* ----------------------------- EXTERN SECTION ---------------------------- */
-extern int* SI;
-extern int* CO;
+extern int* IntSinIntTable;
+extern int* IntCosIntTable;
 extern int RestoreLog,CGenLog,MobilityLog,InitLog,SSSLog,ROLog,EncodeLog,DirectLog,ShotLog,GlassLog,CutvmpLog,WHLog,ExclusiveLog;
 extern int ForcedCompressed,ForcedUncompressed;
 extern int ConvertLog;
-extern int Verbose;
 extern int DepthShow;
 extern int alt_show;
 extern int Quit;
@@ -59,7 +53,6 @@ extern int DEFAULT_TERRAIN;
 extern int TotalDrawFlag;
 extern const char* mapFName;
 
-extern int NetworkON;
 extern int zGameBirthTime;
 extern int CurrentWorld;
 
@@ -76,12 +69,6 @@ void ExpandBuffer(unsigned char* InBuffer,unsigned char* OutBuffer);
 void LoadPRM(void);
 void CompressMap( char* name, int X_SHIFT, int Y_SHIFT );
 void ClipboardInit(void);
-
-#ifdef __HIGHC__
-#define invturn _invturn
-#define scale _scale
-#define pscale _pscale
-#endif
 
 struct PrmFile {
 	char* buf;
@@ -139,16 +126,16 @@ static uchar* mappingPtr;
 
 uchar** SkipLineTable;
 int preViewY;
-std::string path_to_world; 
+std::string path_to_world;
 
 char* GetTargetName(const char* name)
 {
 	static int first = 1;
 	static char namebuf[256];
 	//std::cout<<"name:"<<name<<" mapFName:"<<mapFName<<std::endl;
-	if(!name) { 
+	if(!name) {
 		first = 1;
-		return NULL; 
+		return NULL;
 	}
 	if(first) {
 		first = 0;
@@ -157,7 +144,7 @@ char* GetTargetName(const char* name)
 		path_to_world = path_to_world.substr(0, st+1);
 		return strdup(name);
 		}
-	
+
 	std::string path;
 	path = path_to_world + name;
 	strcpy(namebuf, path.c_str());
@@ -165,7 +152,7 @@ char* GetTargetName(const char* name)
 }
 
 int GetKeepSpace(void)
-{ 
+{
 	PrmFile pFile;
 	pFile.init(mapFName);
 	int maxWorld = atoi(pFile.getAtom());
@@ -197,7 +184,7 @@ int GetKeepSpace(void)
 }
 
 void KeepCleanUp(void)
-{ 
+{
 	PrmFile pFile;
 	pFile.init(mapFName);
 	int maxWorld = atoi(pFile.getAtom());
@@ -251,7 +238,6 @@ void YSetup(void)
 void vMapInit(void)
 {
 	vMap -> init();
-	Verbose = 0;
 
 #ifdef SESSION
 	linebuf = new uchar[H2_SIZE];
@@ -261,10 +247,10 @@ void vMapInit(void)
 void vMapPrepare(const char* name,int nWorld)
 {
 #ifdef _ROAD_
-	if(NetworkON)
+	if(globalGameState.inNetwork)
 #endif
 		KeepON = 0;
-	
+
 	vMap = new vrtMap;
 	vMap -> load(name,nWorld);
 
@@ -285,16 +271,16 @@ vrtMap::~vrtMap(void)
 
 	if(isCompressed) {
 #ifndef FILEMAPPING
-		if(inbuf) { 
-			delete[] inbuf; 
-			inbuf = NULL; 
+		if(inbuf) {
+			delete[] inbuf;
+			inbuf = NULL;
 		}
 #endif
-		if(st_table) { 
-			delete[] st_table; 
-			delete[] sz_table; 
-			st_table = NULL; 
-			sz_table = NULL; 
+		if(st_table) {
+			delete[] st_table;
+			delete[] sz_table;
+			st_table = NULL;
+			sz_table = NULL;
 		}
 	}
 
@@ -373,7 +359,7 @@ void vrtMap::release(void)
 		}
 #endif
 	fmap.close();
-	if(KeepON && on){ 
+	if(KeepON && on){
 		for(uint i = 0;i < V_SIZE;i++)
 			if(lineT[i] && changedT[i]){
 				keepT[i] = 1;
@@ -389,7 +375,6 @@ void vrtMap::release(void)
 
 void vrtMap::init(void)
 {
-	UI_OR_GAME=0;
 	//std::cout<<"vrtMap::init "<<"V_SIZE:"<<V_SIZE<<std::endl;
 	memset(lineT = new uchar*[V_SIZE],0,V_SIZE*sizeof(uchar*));
 	memset(lineTcolor = new uchar*[V_SIZE],0,V_SIZE*sizeof(uchar*));
@@ -441,7 +426,6 @@ void vrtMap::init(void)
 void vrtMap::sssUpdate(void)
 {
 	if(DirectLog) return;
-	if(Verbose) XCon < "\nSession updating...";
 	uint i,j;
 	int* p = sssT;
 	for(i = 0,j = 0;i < V_SIZE;i++,p++,j += H2_SIZE)
@@ -525,22 +509,7 @@ void vrtMap::squeeze(void)
 
 void vrtMap::openMirror(void)
 {
-#ifdef _SURMAP_ROUGH_
 	printf("WARN: openMirror is not emplimented\n");
-#else
-	if(!fmap.open(fname,XS_IN | XS_OUT)) ErrH.Abort("VMP not found");
-
-	offset = 0;
-	foffset = fmap.tell();
-
-	dHeap = (uchar*)win32_VMPMirrorON(fmap.gethandler());
-	if(!dHeap) ErrH.Abort("VMP Mirror Error");
-	dHeap += foffset;
-	uchar* p = dHeap;
-	memset(lineT = new uchar*[V_SIZE],0,V_SIZE*sizeof(uchar*));
-	memset(lineTcolor = new uchar*[V_SIZE],0,V_SIZE*sizeof(uchar*));
-	for(uint i = 0;i < V_SIZE;i++,p += H2_SIZE) lineT[i] = p;
-#endif
 }
 
 void vrtMap::closeMirror(void)
@@ -622,14 +591,14 @@ void vrtMap::analyzeINI(const char* name)
 	const char* secPalette = "Dynamic Palette";
 	const char* secCreation = "Creation Parameters";
 
-	
+
 
 	if(iniName)
 		free(iniName);
 	//HACK
 	/*std::string sbuf = strdup(name), sbuf2;
 	int startR = sbuf.find("TheChain");
-	sbuf2 = sbuf.substr(startR, sbuf.size()-startR);*/
+	sbuf2 = sbuf.substr(startR, sbuf.size-startR);*/
 	iniName = strdup(name);
 
 	XStream ff((char*)iniName,XS_IN);
@@ -638,7 +607,7 @@ void vrtMap::analyzeINI(const char* name)
 	dictionary *dict_name = iniparser_load(name);
 	int val = atoi(iniparser_getstring(dict_name,"Global Parameters:Map Power X", NULL));
 	if(val != MAP_POWER_X) ErrH.Abort("Incorrect X-Size");
-	
+
 	MAP_POWER_Y = atoi(iniparser_getstring(dict_name,"Global Parameters:Map Power Y", NULL));
 	POWER = atoi(iniparser_getstring(dict_name,"Global Parameters:GeoNet Power", NULL));
 	WPART_POWER = atoi(iniparser_getstring(dict_name,"Global Parameters:Section Size Power", NULL));
@@ -656,7 +625,7 @@ void vrtMap::analyzeINI(const char* name)
 
 	int tmax = iniparser_getint(dict_name,"Rendering Parameters:Terrain Max", 0);
 	if((!tmax && TERRAIN_MAX != 8) || (tmax && tmax != TERRAIN_MAX)) ErrH.Abort("Incorrect Terrain Max");
-	
+
 	int i;
 	{
 		char* p = iniparser_getstring(dict_name,"Rendering Parameters:Begin Colors", NULL);
@@ -702,13 +671,13 @@ void vrtMap::analyzeINI(const char* name)
 		{
 			char* pp = iniparser_getstring(dict_name,"Dynamic Palette:Green", NULL);
 			XBuffer b(pp,128);
-			for(i = 0;i < PAL_MAX;i++) 
+			for(i = 0;i < PAL_MAX;i++)
 				b >= PAL_GREEN[i];
 		}
 		{
 			char* pp = iniparser_getstring(dict_name,"Dynamic Palette:Blue", NULL);
 			XBuffer b(pp,128);
-			for(i = 0;i < PAL_MAX;i++) 
+			for(i = 0;i < PAL_MAX;i++)
 				b >= PAL_BLUE[i];
 		}
 		}
@@ -729,7 +698,7 @@ void vrtMap::fileLoad(void)
 
 	XBuffer buf;
 	buf < fileName < (isCompressed ? ".vmc" : ".vmp");
-	
+
 	fname = strdup(GetTargetName(buf.GetBuf()));
 	pname[0] = strdup(fname);
 	memcpy(pname[0] + strlen(pname[0]) - 3,"vpr",3);
@@ -776,13 +745,13 @@ void vrtMap::load(const char* name,int nWorld)
 	if(!fmap.open(fname,XS_IN|XS_NOSHARING)) {
 		ErrH.Abort("WorldData not found");
 	}
-	
+
 	if(KeepON) {
 		std::cout<<"KeepON"<<std::endl;
 		memset(keepT = new uchar[V_SIZE],0,V_SIZE);
 		int need = 0;
 		if(kmap.open(kname,XS_IN)) {
-			if(kmap.size() != (int)(V_SIZE*H2_SIZE + V_SIZE),XS_BEG) { 
+			if(kmap.size() != (int)(V_SIZE*H2_SIZE + V_SIZE),XS_BEG) {
 				kmap.close(); need = 1;
 			} else {
 				kmap.seek(V_SIZE*H2_SIZE,XS_BEG);
@@ -807,7 +776,7 @@ void vrtMap::load(const char* name,int nWorld)
 		delete st_table;
 		delete sz_table;
 		st_table = NULL;
-		sz_table = NULL; 
+		sz_table = NULL;
 	}
 	if(isCompressed) {
 		inbuf = new uchar[H2_SIZE]; // возможно не нужен
@@ -933,19 +902,13 @@ void vrtMap::reload(int nWorld)
 		}
 #endif
 
-#ifdef FILEMAPPING
-	mappingPtr = (uchar*)win32_FileMirror(fmap.gethandler(),fmap.size());
-	if(!mappingPtr) ErrH.Abort("File Mapping Error");
-#endif
-
 	if(isCompressed){
-#ifndef FILEMAPPING
 		if(!inbuf) inbuf = new uchar[H2_SIZE];
-#endif
+
 		if(V_SIZE != old_v_size || !st_table){
-			if(st_table) { 
+			if(st_table) {
 				delete[] st_table;
-				delete[] sz_table; 
+				delete[] sz_table;
 			}
 			st_table = new int[V_SIZE];
 			sz_table = new short[V_SIZE];
@@ -1085,7 +1048,7 @@ void vrtMap::dump_terrain() {
 void vrtMap::netModify(uchar* p) {
 	//ZMOD 1.18 DYNAMIC WATER
 	//ZMOD 1.20 fix
-	if (NetworkON && zMod_flood_level_delta!=0) {
+	if (globalGameState.inNetwork && zMod_flood_level_delta!=0) {
 		uchar* pa,*pc,*pf,*pa0,*pc0,*pf0;
 		//uchar type,lxVal,rxVal;
 		pa0 = pa = p;
@@ -1116,7 +1079,7 @@ void vrtMap::netModify(uchar* p) {
 
 /*Функция загрузки карт высот и т.д.
 Удалил закомментированный код, смотреть в svn.*/
-void vrtMap::accept(int up,int down) 
+void vrtMap::accept(int up,int down)
 {
 	// std::cout<<"vrtMap::accept up:"<<up<<" down:"<<down<<std::endl;
 	up = YCYCL(up);
@@ -1742,7 +1705,7 @@ void LoadVPR(int ind)
 	//ZMOD 1.18 DYNAMIC FLOOD LEVEL
 	//ZMOD 1.21 fix
 	zMod_flood_level_delta = 0;
-	if (NetworkON) {
+	if (globalGameState.inNetwork) {
 		// network cycled life of univang.
 		// 1172609523 eq 2007-02-27 23:52 - starting point.
 		double t = ((double)zGameBirthTime-1172609523.) / (60.*60.*24.);
@@ -1801,7 +1764,7 @@ void LoadVPR(int ind)
 		};
 
 		zMod_cycle = sin(t*2.*M_PI / period + phase);
-		
+
 		if (dynamic_level) {
 			if (zMod_cycle > high_period) {
 				zMod_flood_level_delta = SIGN(zMod_cycle)*(1+cos(t*2.*M_PI)) / 2;
@@ -2041,8 +2004,8 @@ void vrtMap::turning(int XSrcSize,int Turn,int cx,int cy,int xc,int yc,int XDstS
 
 	// XXX: this also still lacks zoom support
 	int YSrcSize = YDstSize*XSrcSize/XDstSize;
-	float sina = sin((float)Turn/(float)PI*M_PI);
-	float cosa = cos((float)Turn/(float)PI*M_PI);
+	float sina = sin((float)Turn/(float)Pi*M_PI);
+	float cosa = cos((float)Turn/(float)Pi*M_PI);
 
 	int edge_y1 = (int)(cy - sina*XSrcSize - cosa*YSrcSize);
 	int edge_y2 = (int)(cy + sina*XSrcSize + cosa*YSrcSize);
@@ -2074,8 +2037,8 @@ void vrtMap::turning(int XSrcSize,int Turn,int cx,int cy,int xc,int yc,int XDstS
 	// and bit shift + normal scaling.
 #if defined SLOW_INT_TURNING
 	int YSrcSize = YDstSize*XSrcSize/XDstSize;
-	int sina = sinTurn = SI[rPI(Turn)];
-	int cosa = cosTurn = CO[rPI(Turn)];
+	int sina = sinTurn = iSin(Turn);
+	int cosa = cosTurn = iCos(Turn);
 	int fx,tfx,tfy;
 	tfx = (cx << 16) - (XSrcSize*cosTurn - YSrcSize*sinTurn)/2 + (1 << 15);
 	int vv0 = XSrcSize*sinTurn;
@@ -2083,7 +2046,7 @@ void vrtMap::turning(int XSrcSize,int Turn,int cx,int cy,int xc,int yc,int XDstS
 	int v0 = (vv0 + vv1) >> 1;
 	int v1 = (vv0 - vv1) >> 1;
 	int vcy = cy << 16;
-	
+
 	tfy = vcy - v0 + (1 << 15);
 	int y0 = tfy >> 16;
 	int y1 = (vcy + v0) >> 16;
@@ -2092,9 +2055,9 @@ void vrtMap::turning(int XSrcSize,int Turn,int cx,int cy,int xc,int yc,int XDstS
 
 	request(MIN(MIN(MIN(y0,y1),y2),y3) - MAX_RADIUS/2,
 			MAX(MAX(MAX(y0,y1),y2),y3) + MAX_RADIUS/2,0,0);
-	
+
 	int x, y, srcx, srcy;
-	
+
 	char *dst;
 	uchar *src, *srcline;
 	float d_size;
@@ -2151,8 +2114,8 @@ void vrtMap::turning(int XSrcSize,int Turn,int cx,int cy,int xc,int yc,int XDstS
 	int i0, i;
 	int* tpTmp;
 
-	sinTurn = SI[rPI(Turn)];
-	cosTurn = CO[rPI(Turn)];
+	sinTurn = iSin(Turn);
+	cosTurn = iCos(Turn);
 
 #ifndef TURN_TEST
 	tfx = (cx << 16) - (XSrcSize*cosTurn - YSrcSize*sinTurn)/2 + (1 << 15);
@@ -2183,11 +2146,11 @@ void vrtMap::turning(int XSrcSize,int Turn,int cx,int cy,int xc,int yc,int XDstS
 		tmp = XSrcSize;
 		XSrcSize = YSrcSize;
 		YSrcSize = tmp;
-//		  Turn = 3*PIx2/4 - Turn + PIx2;
-//		  Turn %= PIx2;
+//		  Turn = 3*PiX2/4 - Turn + PiX2;
+//		  Turn %= PiX2;
 
-//		  sinTurn = SI[rPI(Turn)];
-//		  cosTurn = CO[rPI(Turn)];
+//		  sinTurn = IntSinIntTable[rPI(Turn)];
+//		  cosTurn = IntCosIntTable[rPI(Turn)];
 		tmp = -sinTurn;
 		sinTurn = -cosTurn;
 		cosTurn = tmp;

@@ -66,7 +66,7 @@ int XSocketInit(int ErrHUsed) {
 	}
 	XSocketLocalHostADDR = XSocketLocalHostExternADDR;
 
-	// TODO: resolve to external address if hostname resolves to localhost
+	// TODO: resolve to external buf if hostname resolves to localhost
 
 	XSocketInitializationOK = 1;
 	return 1;

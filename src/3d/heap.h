@@ -1,7 +1,9 @@
-#ifndef __3D__HEAP_H__
-#define __3D__HEAP_H__
+#pragma once
 
-struct MemoryHeap {
+#include "xerrhandler.h"
+
+struct MemoryHeap 
+{
 	int offset,size;
 	char* heap;
 	const char* overflow_message;
@@ -37,5 +39,3 @@ struct MemoryHeap {
 	}
 	void end_alloc();
 };
-
-#endif

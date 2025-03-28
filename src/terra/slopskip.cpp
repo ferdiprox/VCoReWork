@@ -52,10 +52,10 @@ void SlopTurnSkip(int Turn,int Slop,int H,int F,int cx,int cy,int xc,int yc,int 
 	XDstSize = 2*XDstSize;
 	YDstSize = 2*YDstSize;
 
-	sinAlpha = SI[rPI(Turn)];
-	cosAlpha = CO[rPI(Turn)];
-	sinTetta = SI[rPI(Slop)];
-	cosTetta = CO[rPI(Slop)];
+	sinAlpha = iSin(Turn);
+	cosAlpha = iCos(Turn);
+	sinTetta = iSin(Slop);
+	cosTetta = iCos(Slop);
 
 	int CenterDistance = H;
 	H = H*cosTetta >> 16;

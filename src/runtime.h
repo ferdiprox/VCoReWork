@@ -1,10 +1,13 @@
+#pragma once
+
+#include "xtcore.h"
+
 //TODO: stalkerg need timers kill!!!
-//const int  RTO_GAME_QUANT_TIMER	= 1000/20;
-const int  RTO_GAME_QUANT_TIMER	= 1000/20;
-const int  RTO_ISCREEN_TIMER 	= 1000/20;
-const int  RTO_PALETTE_TIMER 	= 1000/20;
-const int  RTO_ESCAVE_GATE_TIMER	= 1000/20;
-const int  RTO_IMAGE_TIMER		= 1000/20;
+const int  RTO_GAME_QUANT_TIMER = 1000/20;
+const int  RTO_ISCREEN_TIMER = 1000/20;
+const int  RTO_PALETTE_TIMER = 1000/20;
+const int  RTO_ESCAVE_GATE_TIMER = 1000/20;
+const int  RTO_IMAGE_TIMER = 1000/20;
 
 // Runtime objects...
 enum RoadRuntimeObjID
@@ -12,7 +15,7 @@ enum RoadRuntimeObjID
 	RTO_GAME_QUANT_ID  = 1,
 	RTO_LOADING1_ID,		// 2
 	RTO_LOADING2_ID,		// 3
-	RTO_LOADING3_ID,		// 4
+	RTO_LOAD_GAMEOVER_ID,		// 4
 	RTO_MAIN_MENU_ID,		// 5
 	RTO_FIRST_ESCAVE_ID,		// 6
 	RTO_FIRST_ESCAVE_OUT_ID,	// 7
@@ -54,22 +57,22 @@ struct LoadingRTO1 : BaseRTO
 	LoadingRTO1(void){ ID = RTO_LOADING1_ID; Timer = 1; }
 };
 
-struct LoadingRTO2 : BaseRTO
+struct LoadSurfaceRTO : BaseRTO
 {
 	virtual void Init(int id);
 	virtual int Quant(void);
 	virtual void Finit(void);
 
-	LoadingRTO2(void){ ID = RTO_LOADING2_ID; Timer = 1; }
+	LoadSurfaceRTO(void){ ID = RTO_LOADING2_ID; Timer = 1; }
 };
 
-struct LoadingRTO3 : BaseRTO
+struct LoadGameoverRTO : BaseRTO
 {
 	virtual void Init(int id);
 	virtual int Quant(void);
 	virtual void Finit(void);
 
-	LoadingRTO3(void){ ID = RTO_LOADING3_ID; Timer = 1; }
+	LoadGameoverRTO(void){ ID = RTO_LOAD_GAMEOVER_ID; Timer = 1; }
 };
 
 struct GameQuantRTO : BaseRTO

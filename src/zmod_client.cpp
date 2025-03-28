@@ -21,24 +21,3 @@ void z_time_collect() {
 	z_time_avg = z_time_all / z_time_cnt;
 }
 
-#ifdef _ZMOD_DEBUG_
-
-FILE* ZLog;
-
-void ZLogClose() {
-  if (ZLog != NULL)
-    fclose(ZLog);
-}
-
-void ZLogFlush() {
-  if (ZLog != NULL)
-    fflush(ZLog);
-}
-
-FILE* ZLogOpen() {
-  FILE* F = fopen("zMod.log","wb");
-  return F;
-}
-
-#endif
-

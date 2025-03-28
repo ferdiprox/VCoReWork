@@ -3,11 +3,12 @@
 #include "../3d/3d_math.h"
 #include "../3d/3dgraph.h"
 #include "../3d/3dobject.h"
-#include "../3d/parser.h"
+#include "../fs/parser.h"
 
 #include "../common.h"
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 #include "../backg.h"
+#include "../random.h"
 
 #if !(defined(__unix__) || defined(__APPLE__))
 static WIN32_FIND_DATA FFdata;
@@ -69,9 +70,9 @@ char* win32_findfirst(const char* mask)
 
 /* ----------------------------- EXTERN SECTION ---------------------------- */
 extern int ViewX,ViewY;
-extern iGameMap* curGMap;
+extern GameSurfaceDispatcher* curSurfaceDisp;
 extern int MLstatus,MLprocess;
-extern std::string path_to_world; 
+extern std::string path_to_world;
 /* --------------------------- PROTOTYPE SECTION --------------------------- */
 char* GetTargetName(const char* name);
 /* --------------------------- DEFINITION SECTION -------------------------- */
@@ -138,13 +139,13 @@ void LocalMapProcess::Init(Parser& in)
 	UnitList::Init(in);
 	DestroySmoothInit();
 
-	in.search_name("NumMapPoint");
+	in.searchName("NumMapPoint");
 	NumMapPoint = in.get_int();
 	MapPointStorage.Init(NumMapPoint);
 	MapPointData = new MapPointType[NumMapPoint];
 	for(i = 0;i < NumMapPoint;i++) MapPointData[i].Init(&MapPointStorage);
 
-	in.search_name("NumTrace");
+	in.searchName("NumTrace");
 	NumTrace = in.get_int();
 	TraceStorage.Init(NumTrace);
 	TraceData = new MapTraceType[NumTrace];
@@ -157,7 +158,7 @@ void LocalMapProcess::Init(Parser& in)
 	MaxUnit = new int[MAX_MAP_OBJECT];
 	UnitStorage = new StorageType[MAX_MAP_OBJECT];
 
-	in.search_name("NumMapProcess");
+	in.searchName("NumMapProcess");
 	for(i = 0;i < MAX_MAP_OBJECT;i++){
 		MaxUnit[i] = in.get_int();
 //		if(CurrentWorld != WORLD_KHOX && i == MAP_FIRETERROR_TYPE) MaxUnit[i] = 1;
@@ -183,7 +184,7 @@ void LocalMapProcess::Init(Parser& in)
 				case MAP_LANDSLIDE_TYPE:
 					UnitData[k] = new LandSlideType;
 					break;
-				case MAP_LANDHOLE_TYPE:			   
+				case MAP_LANDHOLE_TYPE:
 					UnitData[k] = new MapLandHole;
 					break;
 				case MAP_ACID_TYPE:
@@ -211,7 +212,7 @@ void LocalMapProcess::Free(void)
 	delete[] UnitData;
 	delete[] MaxUnit;
 	delete[] UnitStorage;
- 
+
 	MapPointStorage.Free();
 	TraceStorage.Free();
 
@@ -227,16 +228,16 @@ void LocalMapProcess::Open(Parser& in)
 
 	UnitList::Open(in);
 
-	in.search_name("NumDustType");
+	in.searchName("NumDustType");
 	NumDustType = in.get_int();
 	DustStorage = new StorageType[NumDustType];
 	Dust = new ParticleProcess[NumDustType];
 	DustData = new MapPointType*[NumDustType];
 
 	for(i = 0;i < NumDustType;i++){
-		in.search_name("DustVolume");
+		in.searchName("DustVolume");
 		volume = in.get_int();
-		in.search_name("DustFirstColor");
+		in.searchName("DustFirstColor");
 		Dust[i].init(1500,in.get_int(),1);
 		DustData[i] = new MapPointType[volume];
 		DustStorage[i].Init(volume);
@@ -244,12 +245,12 @@ void LocalMapProcess::Open(Parser& in)
 	};
 
 /*	for(i = 0;i < TERRAIN_MAX;i++){
-		in.search_name("TerrainDustID");
+		in.searchName("TerrainDustID");
 		DustID[i] = in.get_int();
 	};*/
 
 	for(i = 0;i < TERRAIN_MAX;i++){
-		in.search_name("DestroyTerrain");
+		in.searchName("DestroyTerrain");
 		DestroyTerrainTable[i] = (uchar)(in.get_int());
 		DestroyMechosTable[i] = (uchar)(in.get_int());
 		DestroyMoleTable[i] = (uchar)(in.get_int());
@@ -296,9 +297,9 @@ void LocalMapProcess::Quant(void)
 
 	while((t = (MapTraceType*)(TraceStorage.GetAll())) != NULL){
 		if(t->UpFlag) DrawMechosWheelUp(t->x0,t->y0,t->x1,t->y1,8,3,-1,t->track_nx,t->track_ny,3);
-		else DrawMechosWheelDown(t->x0,t->y0,t->x1,t->y1,8,3,-1,t->track_nx,t->track_ny,3);		
+		else DrawMechosWheelDown(t->x0,t->y0,t->x1,t->y1,8,3,-1,t->track_nx,t->track_ny,3);
 	};
-	
+
 	if(ActD.Active && aciGroundPressingEnabled)
 		ActD.Active->ground_pressing();
 
@@ -318,7 +319,7 @@ void LocalMapProcess::Quant(void)
 				SmoothTerrainMask[6] = 1;
 
 				SmoothTerrainMask[4] = 0;
-				SmoothTerrainMask[5] = 0;				
+				SmoothTerrainMask[5] = 0;
 				SmoothTerrainMask[7] = 0;
 				DestroySpot(p->R_curr.x,p->R_curr.y,10,83,512,1);
 				DestroySpot(p->R_curr.x,p->R_curr.y,8,83,-(1 << 11),1);
@@ -341,7 +342,7 @@ void LocalMapProcess::Quant(void)
 				DestroySpot(p->R_curr.x,p->R_curr.y,15,83,-(1 << 11),1);
 				break;
 			case MAP_POINT_CRATER03:
-				MLobjBug[rPI(-(p->Angle))*8/PIx2] -> put(p->R_curr.x,p->R_curr.y);
+				MLobjBug[((-(p->Angle)) & ANGLE_CLAMP_MASK) * 8 /PiX2] -> put(p->R_curr.x,p->R_curr.y);
 				break;
 			case MAP_POINT_CRATER04:
 				MLobjExp[2] -> put(p->R_curr.x,p->R_curr.y);
@@ -461,7 +462,7 @@ void LocalMapProcess::Quant(void)
 	while(n){
 		if(n->Status & SOBJ_DISCONNECT){
 			if(n->Storage) n->Storage->Deactive(n);
-			DisconnectTypeList(n);		
+			DisconnectTypeList(n);
 		};
 		n = n->NextTypeList;
 	};
@@ -524,12 +525,12 @@ LightPoint* LocalMapProcess::CreateLight(int x,int y,int z, int r,int e,int mode
 void LocalMapProcess::CreateLandSlide(int* x,int* y,int time)
 {
 //zmod 1.17
-//	if(NetworkON) return;
+//	if(globalGameState.inNetwork) return;
 	LandSlideType* p;
 	p = (LandSlideType*)(UnitStorage[MAP_LANDSLIDE_TYPE].Active());
 	if(p){
 		p->CreateLandSlide(x,y,time);
-		ConnectTypeList(p);		
+		ConnectTypeList(p);
 	};
 };
 
@@ -550,7 +551,7 @@ void LocalMapProcess::CreateAcidSpot(Vector v,int fR,int lR,int fD,int lD,int lT
 	if(p){
 		p->CreateAcid(v,fR,lR,fD,lD,lT);
 		ConnectTypeList(p);
-	};	
+	};
 };
 
 void MapLavaSpot::CreateSpot(Vector& v,int fRadius,int fDelta,int radius1,int delta1,int radius2,int delta2,int phase1,int phase2,uchar terrain,uchar md,uchar rf,uchar render,uchar clip_t)
@@ -585,7 +586,7 @@ void MapLavaSpot::CreateSpot(Vector& v,int fRadius,int fDelta,int radius1,int de
 void MapLavaSpot::Quant(void)
 {
 //	int i;
-	
+
 	if(ClipTerrain == 83)
 		memset(SmoothTerrainMask,1,TERRAIN_MAX);
 //		for(i = 0;i < TERRAIN_MAX;i++) SmoothTerrainMask[i] = 1;
@@ -593,9 +594,9 @@ void MapLavaSpot::Quant(void)
 //		for(i = 0;i < TERRAIN_MAX;i++) SmoothTerrainMask[i] = 0;
 		memset(SmoothTerrainMask,0,TERRAIN_MAX);
 		SmoothTerrainMask[ClipTerrain] = 1;
-	};	
+	};
 
-	if(Delay >= mDelay){		
+	if(Delay >= mDelay){
 		if(Phase) xRestoreDestroySpot(R_curr.x,R_curr.y,LastRadius >> 8,Terrain,LastDelta >> 8,0);
 		else xRestoreDestroySpot(R_curr.x,R_curr.y,LastRadius >> 8,Terrain,LastDelta >> 8,rFactor);
 
@@ -654,7 +655,7 @@ void MLload(void)
 {
 	int i,j,t;
 	XBuffer buf;
-	
+
 #ifdef _ROAD_
 	int k;
 
@@ -680,7 +681,7 @@ void MLload(void)
 		buf.init();
 		buf < "resource/mlvot/exptrl" <= i < ".vot";
 		(MLobjExp[i] = new MobileLocation) -> load(buf.GetBuf(),1);
-		}	
+		}
 	for(i = 0;i < 2;i++){
 		buf.init();
 		if(strcmp(MLTntName[CurrentWorld][i],"None")){
@@ -702,28 +703,28 @@ MLTableSize = 0;
 	std::string tmp = path_to_world+"data.vot/";
 	struct dirent **namelist;
 	int n;
-	n = scandir(tmp.c_str(), &namelist, 0, alphasort); 
-	if (n < 0) 
-		perror("scandir"); 
-	else { 
-		while(n--) { 
+	n = scandir(tmp.c_str(), &namelist, 0, alphasort);
+	if (n < 0)
+		perror("scandir");
+	else {
+		while(n--) {
 			std::string name = namelist[n]->d_name;
 			if (name.find(".vot")!=std::string::npos)
 				MLTableSize++;
-			free(namelist[n]); 
-		} 
-	free(namelist); 
-	} 
-	
+			free(namelist[n]);
+		}
+	free(namelist);
+	}
+
 
 #endif
-	
+
 #ifdef _ROAD_
 #if !(defined(__unix__) || defined(__APPLE__))
 	MLTableSize -= NumSkipLocation[CurrentWorld] - RealNumLocation[CurrentWorld];
 #endif
 #endif
-	
+
 	MLTable = new MobileLocation*[MLTableSize];
 	i = 0;
 #if !(defined(__unix__) || defined(__APPLE__))
@@ -747,11 +748,11 @@ MLTableSize = 0;
 	};
 #else
 	struct dirent **namelist2;
-	n = scandir(tmp.c_str(), &namelist2, 0, alphasort); 
-	if (n < 0) 
-		perror("scandir"); 
-	else { 
-		while(n--) { 
+	n = scandir(tmp.c_str(), &namelist2, 0, alphasort);
+	if (n < 0)
+		perror("scandir");
+	else {
+		while(n--) {
 			std::string name = namelist2[n]->d_name;
 			if (name.find(".vot")!=std::string::npos)
 				{
@@ -759,10 +760,10 @@ MLTableSize = 0;
 				i++;
 				}
 			else
-				free(namelist2[n]); 
-		} 
-	//free(namelist2); 
-	} 
+				free(namelist2[n]);
+		}
+	//free(namelist2);
+	}
 #endif
 	VLload();
 	ML_FRAME_DELTA = new uchar[ML_FRAME_SIZE];
@@ -780,7 +781,7 @@ void MLfree(void)
 {
 	int i;
 	if (ML_FRAME_DELTA) {
-		delete[] ML_FRAME_DELTA; 
+		delete[] ML_FRAME_DELTA;
 		ML_FRAME_DELTA = NULL;
 	}
 	if (ML_FRAME_TERRAIN) {
@@ -794,7 +795,7 @@ void MLfree(void)
 	delete[] MLTable;
 	MLTableSize = 0;
 
-#ifdef _ROAD_	
+#ifdef _ROAD_
 	for(i = 0;i < 8;i++)
 		delete MLobjBug[i];
 	for(i = 0;i < 4;i++)
@@ -853,8 +854,8 @@ void MLreload(void)
 			}
 #endif
 
-	MLTableSize = 0;	
-	
+	MLTableSize = 0;
+
 #ifdef _SURMAP_
 	TntValoc::tail = NULL;
 	MLCloneValoc::tail = NULL;
@@ -907,7 +908,7 @@ void MobileLocation::load(char* fname,int direct)
 	else
 		ff.open(fname,XS_IN);
 
-	
+
 	MLverify(ff);
 	ff.read(name,MLNAMELEN + 1);
 	int i;
@@ -1030,7 +1031,7 @@ void MLFrame::load(XStream& ff,int mode)
 	if(sz > ML_FRAME_SIZE)  ML_FRAME_SIZE = sz + 2;
 
 	c_terrain = c_delta = NULL;
-	
+
 	if (!csd){
 		delta = new uchar[sz + 2];
 		memset(delta,'\0',sz + 2);
@@ -1115,7 +1116,7 @@ void MobileLocation::checkQuant(void)
 		goPh = 0;
 	}else{
 		if(!checked && !frozen){
-			steps[cFrame] = 0;			
+			steps[cFrame] = 0;
 			cFrame = 0;
 			frozen = 1;
 			cStage = -1;
@@ -1125,17 +1126,13 @@ void MobileLocation::checkQuant(void)
 };
 #endif
 
-#ifdef _ROAD_
-extern int StartMainQuantFlag;
-#endif
-
 int MobileLocation::quant(int render,int skipVZ,int skipCheck)
 {
 #ifdef _SURMAP_
 	// TODO: delete this block
 	// if(!inUse) return 0;
-	// int xsd = curGMap -> xside;
-	// int ysd = curGMap -> yside;
+	// int xsd = curSurfaceDisp -> xside;
+	// int ysd = curSurfaceDisp -> yside;
 	// if(!skipVZ){
 	// 	if(!(getDistX(x0 + dx,ViewX) < xsd && getDistX(ViewX,XCYCL(x0 + dx + altSx - 1)) < xsd)) return 0;
 	// 	if(!(getDistY(y0 + dy,ViewY) < ysd && getDistY(ViewY,YCYCL(y0 + dy + altSy - 1)) < ysd)) return 0;
@@ -1161,7 +1158,7 @@ int MobileLocation::quant(int render,int skipVZ,int skipCheck)
 				steps[cFrame] = 0;
 				cFrame = 0;
 				frozen = 1;
-#ifdef _ROAD_		
+#ifdef _ROAD_
 				cStage = -1;
 				goPh = 0;
 //				vMap->delink(YCYCL(y0 - altSy),YCYCL(y0 + altSy));
@@ -1172,33 +1169,29 @@ int MobileLocation::quant(int render,int skipVZ,int skipCheck)
 			}
 		}
 
-#ifdef _ROAD_
-//	if(!StartMainQuantFlag) return 0;
-#endif
-
 	if(getCurPhase() == goPh)
 		return 0;
 
-#ifdef _ROAD_		
+#ifdef _ROAD_
 	cStage++;
-#endif	
+#endif
 
 #ifdef _SURMAP_
 	if(mode == MLM_RELATIVE || mode == MLM_REL2ABS){
 		if(mode == MLM_REL2ABS) isMLFConverted = isConverted + cFrame;
 #else
 	if(mode == MLM_RELATIVE){
-#endif		
+#endif
 		if(table[cFrame].quant(steps[cFrame],dx,dy,alt,DryTerrain,render,fastMode)){
 			if(++cFrame == maxFrame){
 				cStage = 0;
 				steps[cFrame = 0] = 0;
 				}
 			if(!render) return 1;
-			if(!skipCheck && table[cFrame].check(dy)) 
+			if(!skipCheck && table[cFrame].check(dy))
 #ifdef _SURMAP_
 				if(mode == MLM_REL2ABS) isMLFConverted = isConverted + cFrame;
-#endif		
+#endif
 				table[cFrame].quant(steps[cFrame],dx,dy,alt,DryTerrain,render,fastMode);
 			}
 		}
@@ -1259,7 +1252,7 @@ int MLFrame::quant(int& step,int dx,int dy,MLAtype* alt,int dry,int render,int f
 	uchar* pd = delta;
 	if(csd){
 		pd = ML_FRAME_DELTA;
-		RLE_UNCODE(pd,sz,c_delta);	
+		RLE_UNCODE(pd,sz,c_delta);
 		}
 #endif
 
@@ -1327,7 +1320,7 @@ int MLFrame::quant(int& step,int dx,int dy,MLAtype* alt,int dry,int render,int f
 						}
 					}
 				}
-		else 
+		else
 			for(j = 0,y = YCYCL(y0 + dy);j < sy;j++,y = YCYCL(y + 1)){
 				pa0 = lt[y];
 				pf0 = pa0 + H_SIZE;
@@ -1383,7 +1376,7 @@ int MLFrame::quant(int& step,int dx,int dy,MLAtype* alt,int dry,int render,int f
 						}
 					}
 				}
-		else 
+		else
 			for(j = 0,y = YCYCL(y0 + dy);j < sy;j++,y = YCYCL(y + 1)){
 				pa0 = lt[y];
 				pf0 = pa0 + H_SIZE;
@@ -1413,7 +1406,7 @@ int MLFrame::quant(int& step,int dx,int dy,MLAtype* alt,int dry,int render,int f
 				for(i = 0,x = XCYCL(x0 + dx);i < sx;i++,x = XCYCL(x + 1),pd++)
 					if(*pd) *pd = *(pa0 + x);
 				}
-		else 
+		else
 			for(j = 0,y = YCYCL(y0 + dy);j < sy;j++,y = YCYCL(y + 1)){
 				pa0 = lt[y];
 				pf0 = pa0 + H_SIZE;
@@ -1456,7 +1449,7 @@ int MLFrame::quantAbs(int& step,int dx,int dy,MLAtype* alt,int dry,int render,in
 #else
 	if (csd){
 		pd = ML_FRAME_DELTA;
-		RLE_UNCODE(pd, sz, c_delta);	
+		RLE_UNCODE(pd, sz, c_delta);
 		}
 #endif
 
@@ -1505,7 +1498,7 @@ int MLFrame::quantAbs(int& step,int dx,int dy,MLAtype* alt,int dry,int render,in
 					}
 				}
 			}
-	else 
+	else
 		for(j = 0,y = YCYCL(y0 + dy);j < sy;j++,y = YCYCL(y + 1)){
 			pa0 = lt[y];
 			pf0 = pa0 + H_SIZE;
@@ -1593,7 +1586,7 @@ char MobileLocation::GetVisible(void)
 #endif
 
 void MobileLocation::put(int x,int y)
-{	
+{
 	table[0].put(x,y,alt);
 }
 
@@ -1603,8 +1596,8 @@ void MLFrame::put(int x,int y,MLAtype* alt)
 	y0 = YCYCL(y - sy/2);
 	int step = 0;
 #ifdef _SURMAP_
-	quant(step,0,0,alt,1);	
-#else 
+	quant(step,0,0,alt,1);
+#else
 	if(check(0)) DestroyQuant(0,0,alt,1);
 #endif
 }
@@ -1698,7 +1691,7 @@ void VLload(void)
 #endif
 		ff.close();
 		}
-	
+
 
 	buf.init();
 	buf < "data.vot/" < VLfilenames[2] < ".vlc";
@@ -1717,7 +1710,7 @@ void VLload(void)
 			SnsTable[i].link();
 		};
 #else
-//#ifdef _NT	
+//#ifdef _NT
 		SensorObjectData = new SensorDataType*[SnsTableSize];
 		for(i = 0;i < SnsTableSize;i++){
 			SensorObjectData[i] = new SensorDataType;
@@ -1738,7 +1731,7 @@ void VLload(void)
 //#endif
 #endif
 		ff.close();
-		}	      
+		}
 
 #ifdef _ROAD_
 	NumAddDanger = MaxAddDanger[CurrentWorld];
@@ -1772,9 +1765,9 @@ void VLload(void)
 		DngTableSize += MaxAddDanger[CurrentWorld];
 #endif
 		ff.close();
-		}      
-	
-	
+		}
+
+
 }
 
 #ifdef _SURMAP_
@@ -1843,7 +1836,7 @@ int MLFrame::DestroyQuant(int dx,int dy,MLAtype* alt,int dry)
 	if (csd){
 		pd = ML_FRAME_DELTA;
 		RLE_UNCODE(pd, sz, c_delta);
-	} 
+	}
 #endif
 
 	int i,j,x,y,v;
@@ -1942,7 +1935,7 @@ void DestroySmoothFree(void)
 
 int DestroyBarellSmoothWithCheck(int x0,int y0,int SmoothRadius,int SpotRadius,int Delta,uchar terrain,int Num,int z0,uchar rfactor)
 {
-	int Phi = RND(PI/2);
+	int Phi = RND(Pi/2);
 	uchar* pa0,*pf0;
 	int i,j,n;
 
@@ -1972,9 +1965,9 @@ int DestroyBarellSmoothWithCheck(int x0,int y0,int SmoothRadius,int SpotRadius,i
 			pf0 = pa0 + H_SIZE;
 			if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 				if(*pf0 & DOUBLE_LEVEL){
-					if(rx & 1) 
+					if(rx & 1)
 						*pa0 = AltProtectedTable[z0 + (((*pa0) - z0) >> 6) + ALT_PROTECTED_OFFSET];
-				}else 
+				}else
 					*pa0 = AltProtectedTable[z0 + (((*pa0) - z0) >> 6) + ALT_PROTECTED_OFFSET];
 			};
 		};
@@ -1988,18 +1981,20 @@ int DestroyBarellSmoothWithCheck(int x0,int y0,int SmoothRadius,int SpotRadius,i
 	if(Delta > 0){
 		for(i = 0;i < Num;i++){
 			n = RND(SmoothRadius - SpotRadius);
-			rx = XCYCL(x0 + ((CO[Phi] * n) >> 16));
-			ry = YCYCL(y0 + ((SI[Phi] * n) >> 16));
+			rx = XCYCL(x0 + ((IntCosIntTable[Phi] * n) >> 16));
+			ry = YCYCL(y0 + ((IntSinIntTable[Phi] * n) >> 16));
 			DestroyBarellSpot(rx,ry,SpotRadius,terrain,RND(Delta),rfactor);
-			Phi = rPI(Phi + 2*PI / Num);
+			Phi += PiX2 / Num;
+			Phi &= ANGLE_CLAMP_MASK;
 		};
 	}else{
 		for(i = 0;i < Num;i++){
 			n = RND(SmoothRadius - SpotRadius);
-			rx = XCYCL(x0 + ((CO[Phi] * n) >> 16));
-			ry = YCYCL(y0 + ((SI[Phi] * n) >> 16));
+			rx = XCYCL(x0 + ((IntCosIntTable[Phi] * n) >> 16));
+			ry = YCYCL(y0 + ((IntSinIntTable[Phi] * n) >> 16));
 			DestroyBarellSpot(rx,ry,SpotRadius,terrain,-(int)(RND(-Delta)),rfactor);
-			Phi = rPI(Phi + 2*PI / Num);
+			Phi += PiX2 / Num;
+			Phi &= ANGLE_CLAMP_MASK;
 		};
 	};
 
@@ -2026,7 +2021,7 @@ int DestroyBarellSmoothWithCheck(int x0,int y0,int SmoothRadius,int SpotRadius,i
 
 void DestroyBarellSmooth(int x0,int y0,int SmoothRadius,int SpotRadius,int Delta,uchar terrain,int Num,int z0,uchar rfactor)
 {
-	int Phi = RND(PI/2);
+	int Phi = RND(Pi/2);
 	uchar* pa0,*pf0;
 	int i,j,n;
 
@@ -2038,11 +2033,11 @@ void DestroyBarellSmooth(int x0,int y0,int SmoothRadius,int SpotRadius,int Delta
 
 	for(i = y0 - SmoothRadius;i <= y0 + SmoothRadius;i++) if(!lt[YCYCL(i)]) return;
 
-	if(terrain != 83){		
+	if(terrain != 83){
 //		for(i = 0;i < TERRAIN_MAX;i++) SmoothTerrainMask[i] = 0;
 		memset(SmoothTerrainMask,0,TERRAIN_MAX);
-		SmoothTerrainMask[terrain] = 1;		
-	}else{	
+		SmoothTerrainMask[terrain] = 1;
+	}else{
 //		for(i = 0;i < TERRAIN_MAX;i++) SmoothTerrainMask[i] = 1;
 		memset(SmoothTerrainMask,1,TERRAIN_MAX);
 	};
@@ -2062,9 +2057,9 @@ void DestroyBarellSmooth(int x0,int y0,int SmoothRadius,int SpotRadius,int Delta
 			pf0 = pa0 + H_SIZE;
 			if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 				if(*pf0 & DOUBLE_LEVEL){
-					if(rx & 1) 
+					if(rx & 1)
 						*pa0 = AltProtectedTable[z0 + (((*pa0) - z0) >> 6) + ALT_PROTECTED_OFFSET];
-				}else 
+				}else
 					*pa0 = AltProtectedTable[z0 + (((*pa0) - z0) >> 6) + ALT_PROTECTED_OFFSET];
 			};
 		};
@@ -2079,18 +2074,20 @@ void DestroyBarellSmooth(int x0,int y0,int SmoothRadius,int SpotRadius,int Delta
 	if(Delta > 0){
 		for(i = 0;i < Num;i++){
 			n = RND(SmoothRadius - SpotRadius);
-			rx = XCYCL(x0 + ((CO[Phi] * n) >> 16));
-			ry = YCYCL(y0 + ((SI[Phi] * n) >> 16));
+			rx = XCYCL(x0 + ((IntCosIntTable[Phi] * n) >> 16));
+			ry = YCYCL(y0 + ((IntSinIntTable[Phi] * n) >> 16));
 			DestroyBarellSpot(rx,ry,SpotRadius,terrain,RND(Delta),rfactor);
-			Phi = rPI(Phi + 2*PI / Num);
+			Phi += PiX2 / Num;
+			Phi &= ANGLE_CLAMP_MASK;
 		};
 	}else{
 		for(i = 0;i < Num;i++){
 			n = RND(SmoothRadius - SpotRadius);
-			rx = XCYCL(x0 + ((CO[Phi] * n) >> 16));
-			ry = YCYCL(y0 + ((SI[Phi] * n) >> 16));
+			rx = XCYCL(x0 + ((IntCosIntTable[Phi] * n) >> 16));
+			ry = YCYCL(y0 + ((IntSinIntTable[Phi] * n) >> 16));
 			DestroyBarellSpot(rx,ry,SpotRadius,terrain,-(int)(RND(-Delta)),rfactor);
-			Phi = rPI(Phi + 2*PI / Num);
+			Phi += PiX2 / Num;
+			Phi &= ANGLE_CLAMP_MASK;
 		};
 	};
 
@@ -2125,8 +2122,8 @@ void ClearBarell(int x0,int y0,int radius,uchar terrain,int z0)
 	if(terrain != 83){
 //		for(i = 0;i < TERRAIN_MAX;i++) SmoothTerrainMask[i] = 0;
 		memset(SmoothTerrainMask,0,TERRAIN_MAX);
-		SmoothTerrainMask[terrain] = 1;		
-	}else{	
+		SmoothTerrainMask[terrain] = 1;
+	}else{
 //		for(i = 0;i < TERRAIN_MAX;i++) SmoothTerrainMask[i] = 1;
 		memset(SmoothTerrainMask,1,TERRAIN_MAX);
 	};
@@ -2144,9 +2141,9 @@ void ClearBarell(int x0,int y0,int radius,uchar terrain,int z0)
 			pf0 = pa0 + H_SIZE;
 			if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 				if(*pf0 & DOUBLE_LEVEL){
-					if(rx & 1) 
+					if(rx & 1)
 						*pa0 = AltProtectedTable[z0 + (((*pa0) - z0) >> 6) + ALT_PROTECTED_OFFSET];
-				}else 
+				}else
 					*pa0 = AltProtectedTable[z0 + (((*pa0) - z0) >> 6) + ALT_PROTECTED_OFFSET];
 			};
 		};
@@ -2169,7 +2166,7 @@ void ClearBarell(int x0,int y0,int radius,uchar terrain,int z0)
 
 void DestroySmooth(int x0,int y0,int SmoothRadius,int SpotRadius,int Delta,int cDelta,uchar terrain,int Num,uchar rfactor)
 {
-	int Phi = RND(PI/2);
+	int Phi = RND(Pi/2);
 	int i,n,rx,ry;
 
 	uchar** lt = vMap -> lineT;
@@ -2184,18 +2181,20 @@ void DestroySmooth(int x0,int y0,int SmoothRadius,int SpotRadius,int Delta,int c
 	if(Delta > 0){
 		for(i = 0;i < Num;i++){
 			n = RND(SmoothRadius - SpotRadius);
-			rx = XCYCL(x0 + ((CO[Phi] * n) >> 16));
-			ry = YCYCL(y0 + ((SI[Phi] * n) >> 16));
+			rx = XCYCL(x0 + ((IntCosIntTable[Phi] * n) >> 16));
+			ry = YCYCL(y0 + ((IntSinIntTable[Phi] * n) >> 16));
 			DestroyBarellSpot(rx,ry,SpotRadius,terrain,cDelta + RND(Delta),rfactor);
-			Phi = rPI(Phi + 2*PI / Num);
+			Phi += PiX2 / Num;
+			Phi &= ANGLE_CLAMP_MASK;
 		};
 	}else{
 		for(i = 0;i < Num;i++){
 			n = RND(SmoothRadius - SpotRadius);
-			rx = XCYCL(x0 + ((CO[Phi] * n) >> 16));
-			ry = YCYCL(y0 + ((SI[Phi] * n) >> 16));
+			rx = XCYCL(x0 + ((IntCosIntTable[Phi] * n) >> 16));
+			ry = YCYCL(y0 + ((IntSinIntTable[Phi] * n) >> 16));
 			DestroyBarellSpot(rx,ry,SpotRadius,terrain,cDelta - RND(-Delta),rfactor);
-			Phi = rPI(Phi + 2*PI / Num);
+			Phi += PiX2 / Num;
+			Phi &= ANGLE_CLAMP_MASK;
 		};
 	};
 
@@ -2272,9 +2271,9 @@ void DestroySpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rfactor)
 					pf0 = pa0 + H_SIZE;
 					if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 						if(*pf0 & DOUBLE_LEVEL){
-							if(rx & 1) 
+							if(rx & 1)
 								*pa0 = AltProtectedTable[(*pa0) + r + ALT_PROTECTED_OFFSET];
-						}else 
+						}else
 							*pa0 = AltProtectedTable[(*pa0) + r + ALT_PROTECTED_OFFSET];
 					};
 				};
@@ -2292,7 +2291,7 @@ void DestroySpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rfactor)
 					ry = YCYCL((*dy) + y0);
 					pa0 = lt[ry] + rx;
 					pf0 = pa0 + H_SIZE;
-					
+
 					if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 						if(*pf0 & DOUBLE_LEVEL){
 							if(rx & 1){
@@ -2381,8 +2380,8 @@ void DestroyBarellSpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rf
 					if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 						if(*pf0 & DOUBLE_LEVEL){
 							if(rx & 1) *pa0 = AltProtectedTable[(*pa0) + r + ALT_PROTECTED_OFFSET];
-						}else 
-							*pa0 = AltProtectedTable[(*pa0) + r + ALT_PROTECTED_OFFSET];						
+						}else
+							*pa0 = AltProtectedTable[(*pa0) + r + ALT_PROTECTED_OFFSET];
 					};
 				};
 			};
@@ -2399,7 +2398,7 @@ void DestroyBarellSpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rf
 					ry = YCYCL((*dy) + y0);
 					pa0 = lt[ry] + rx;
 					pf0 = pa0 + H_SIZE;
-					
+
 					if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 						if(*pf0 & DOUBLE_LEVEL){
 							if(rx & 1){
@@ -2443,7 +2442,7 @@ void DestroyBarellSpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rf
 	_ph = ph + side;
 	_pt = pt + side - 1;
 	uchar last = *(_pt + 2);
-	
+
 	for( i = y0 - Radius;i <= y0 + Radius; i++){
 		uchar *llt = lt[( i) & clip_mask_y];
 		int _x0 = (x0 - Radius) & clip_mask_x;
@@ -2467,7 +2466,7 @@ void DestroyBarellSpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rf
 			}
 
 			for( j = 0; j < _side - d; j++){
-				if (llt[j + H_SIZE] & DOUBLE_LEVEL ){ 
+				if (llt[j + H_SIZE] & DOUBLE_LEVEL ){
 					uchar _h = llt[j | 0x00000001];
 					uchar _l = llt[j &(~ 0x00000001)];
 					last = *_pt++ = (((_h+_l)>>1) >_zr) ? _l : _h;
@@ -2476,7 +2475,7 @@ void DestroyBarellSpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rf
 				else
 					*_pt++ = last;
 			}
-			
+
 		} else{
 			memcpy(_ph, llt + _x0 + H_SIZE, side);
 			_ph += side;
@@ -2514,7 +2513,7 @@ void DestroyBarellSpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rf
 				t += *(_pt+1);
 				t += *(_pt - side);
 				t += *(_pt + side);
-				
+
 				*_ptt++ = t >> 2;
 			} else {
 				*_ptt++ = *_pt;
@@ -2522,7 +2521,7 @@ void DestroyBarellSpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rf
 		}//  for j;
 	}//  for i;
 
-	
+
 	_ptt = ptt;
 	for( i = y0 - Radius;i <= y0 + Radius; i++){
 		uchar *llt = lt[( i) & clip_mask_y];
@@ -2627,7 +2626,7 @@ void DestroySmoothCheck(int x0,int y0,int Radius)
 					if(a & DOUBLE_LEVEL){
 						if(rx ^ 1){
 							v = *(pac = pc0 + rx);
-							
+
 							pf1 = pf0 + (xx = XCYCL(rx + 2));
 							if((*pf1) & DOUBLE_LEVEL) t = *(pc0 + xx);
 							else t = v;
@@ -2639,7 +2638,7 @@ void DestroySmoothCheck(int x0,int y0,int Radius)
 							pf1= lt[yy = YCYCL(ry - 1)] + hrx;
 							if((*pf1) & DOUBLE_LEVEL) t += *(lt[yy] + rx);
 							else t += v;
-		
+
 							pf1= lt[yy = YCYCL(ry + 1)] + hrx;
 							if((*pf1) & DOUBLE_LEVEL) t += *(lt[yy] + rx);
 							else t += v;
@@ -2648,11 +2647,11 @@ void DestroySmoothCheck(int x0,int y0,int Radius)
 						}// if rx;
 					}else{
 						v = *(pac = pc0 + rx);
-						
+
 						pf1 = pf0 + (xx = XCYCL(rx + 1));
 						if((*pf1) & DOUBLE_LEVEL) t = v;
 						else t = *(pc0 + xx);
-						
+
 						pf1 = pf0 + (xx = XCYCL(rx - 1));
 						if((*pf1) & DOUBLE_LEVEL) t += v;
 						else t += *(pc0 + xx);
@@ -2660,7 +2659,7 @@ void DestroySmoothCheck(int x0,int y0,int Radius)
 						pf1= lt[yy = YCYCL(ry - 1)] + hrx;
 						if((*pf1) & DOUBLE_LEVEL) t += v;
 						else t += *(lt[yy] + rx);
-	
+
 						pf1= lt[yy = YCYCL(ry + 1)] + hrx;
 						if((*pf1) & DOUBLE_LEVEL) t += v;
 						else t += *(lt[yy] + rx);
@@ -2717,7 +2716,7 @@ void DestroySmoothPut(int x0,int y0,int Radius)
 					if(a & DOUBLE_LEVEL){
 						if(rx ^ 1){
 							v = *(pac = pc0 + rx);
-							
+
 							pf1 = pf0 + (xx = XCYCL(rx + 2));
 							if((*pf1) & DOUBLE_LEVEL) t = *(pc0 + xx);
 							else t = v;
@@ -2729,7 +2728,7 @@ void DestroySmoothPut(int x0,int y0,int Radius)
 							pf1= lt[yy = YCYCL(ry - 1)] + hrx;
 							if((*pf1) & DOUBLE_LEVEL) t += *(lt[yy] + rx);
 							else t += v;
-		
+
 							pf1= lt[yy = YCYCL(ry + 1)] + hrx;
 							if((*pf1) & DOUBLE_LEVEL) t += *(lt[yy] + rx);
 							else t += v;
@@ -2738,11 +2737,11 @@ void DestroySmoothPut(int x0,int y0,int Radius)
 						};
 					}else{
 						v = *(pac = pc0 + rx);
-						
+
 						pf1 = pf0 + (xx = XCYCL(rx + 1));
 						if((*pf1) & DOUBLE_LEVEL) t = v;
 						else t = *(pc0 + xx);
-						
+
 						pf1 = pf0 + (xx = XCYCL(rx - 1));
 						if((*pf1) & DOUBLE_LEVEL) t += v;
 						else t += *(pc0 + xx);
@@ -2750,7 +2749,7 @@ void DestroySmoothPut(int x0,int y0,int Radius)
 						pf1= lt[yy = YCYCL(ry - 1)] + hrx;
 						if((*pf1) & DOUBLE_LEVEL) t += v;
 						else t += *(lt[yy] + rx);
-	
+
 						pf1= lt[yy = YCYCL(ry + 1)] + hrx;
 						if((*pf1) & DOUBLE_LEVEL) t += v;
 						else t += *(lt[yy] + rx);
@@ -2773,7 +2772,7 @@ void xRestoreDestroySpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar 
 	int* dx,*dy;
 	int rrad;
 
-	int phase,sphase; 
+	int phase,sphase;
 	if(!Radius) return;
 
 	for(i = y0 - Radius;i <= y0 + Radius;i++) if(!lt[YCYCL(i)]) return;
@@ -2808,13 +2807,13 @@ void xRestoreDestroySpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar 
 			break;
 	};
 
-	phase = PI / 2;
-	sphase = PI / (2 * Radius);
+	phase = Pi / 2;
+	sphase = Pi / (2 * Radius);
 
 	for(i = 0;i < Radius;i++){
 		dx = RadiusDestroyX[i];
 		dy = RadiusDestroyY[i];
-		r = SI[rPI(phase)]*delta >> 16;
+		r = IntSinIntTable[phase & ANGLE_CLAMP_MASK]*delta >> 16;
 		for(j = 0;j < NumDestroyRadius[i];j++,dx++,dy++){
 			if((int)RND(rrad) < Radius - i){
 				rx = XCYCL((*dx) + x0);
@@ -2823,10 +2822,10 @@ void xRestoreDestroySpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar 
 				pf0 = pa0 + H_SIZE;
 				if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 					if(*pf0 & DOUBLE_LEVEL){
-						if(rx & 1) 
+						if(rx & 1)
 //							*pa0 -= r;
 							*pa0 = AltProtectedTable[(*pa0) - r + ALT_PROTECTED_OFFSET];
-					}else 
+					}else
 //						*pa0 -= r;
 						*pa0 = AltProtectedTable[(*pa0) - r + ALT_PROTECTED_OFFSET];
 				};
@@ -2883,14 +2882,14 @@ void xDestroySpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rfactor
 			break;
 	};
 
-	phase = PI / 2;
-	sphase = PI / (2 * Radius);
+	phase = Pi / 2;
+	sphase = Pi / (2 * Radius);
 
 	if(terrain == 83){
 		for(i = 0;i < Radius;i++){
 			dx = RadiusDestroyX[i];
 			dy = RadiusDestroyY[i];
-			r = SI[rPI(phase)]*delta >> 16;
+			r = IntSinIntTable[phase & ANGLE_CLAMP_MASK]*delta >> 16;
 			for(j = 0;j < NumDestroyRadius[i];j++,dx++,dy++){
 				if((int)RND(rrad) < Radius - i){
 					rx = XCYCL((*dx) + x0);
@@ -2899,10 +2898,10 @@ void xDestroySpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rfactor
 					pf0 = pa0 + H_SIZE;
 					if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 						if(*pf0 & DOUBLE_LEVEL){
-							if(rx & 1) 
-//								*pa0 += r;							
+							if(rx & 1)
+//								*pa0 += r;
 								*pa0 = AltProtectedTable[(*pa0) + r + ALT_PROTECTED_OFFSET];
-						}else 
+						}else
 //							*pa0 += r;
 							*pa0 = AltProtectedTable[(*pa0) + r + ALT_PROTECTED_OFFSET];
 					};
@@ -2915,14 +2914,14 @@ void xDestroySpot(int x0,int y0,int Radius,uchar terrain,int delta,uchar rfactor
 		for(i = 0;i < Radius;i++){
 			dx = RadiusDestroyX[i];
 			dy = RadiusDestroyY[i];
-			r = SI[rPI(phase)]*delta >> 16;
+			r = IntSinIntTable[phase & ANGLE_CLAMP_MASK]*delta >> 16;
 			for(j = 0;j < NumDestroyRadius[i];j++,dx++,dy++){
 				if((int)RND(rrad) < Radius - i){
 					rx = XCYCL((*dx) + x0);
 					ry = YCYCL((*dy) + y0);
 					pa0 = lt[ry] + rx;
 					pf0 = pa0 + H_SIZE;
-					
+
 					if(SmoothTerrainMask[GET_TERRAIN(*pf0)]){
 						if(*pf0 & DOUBLE_LEVEL){
 							if(rx & 1){
@@ -3000,7 +2999,7 @@ void RadialRender(int x0,int y0,int radius)
 				if(v > delta){
 					pf1 = pf0 + (xx = XCYCL(rx + 1));
 					t1 = t = v - *(pc0 + xx);
-					
+
 					pf1 = pf0 + (xx = XCYCL(rx - 1));
 					t = v - *(pc0 + xx);
 					if(t < t1) t1 = t;
@@ -3053,7 +3052,7 @@ void RadialRender(int x0,int y0,int radius)
 						t = v - *(pc0 + xx);
 						if(t < t1) t1 = t;
 					};
-					
+
 					pf1 = pf0 + (xx = XCYCL(rx - 2));
 					if((*pf1) & DOUBLE_LEVEL){
 						t = v - *(pc0 + xx);
@@ -3067,7 +3066,7 @@ void RadialRender(int x0,int y0,int radius)
 					}
 
 					pf1= lt[yy = YCYCL(ry + 1)] + rx + H_SIZE;
-					if((*pf1) & DOUBLE_LEVEL){						
+					if((*pf1) & DOUBLE_LEVEL){
 						t = v - *(lt[yy] + rx);
 						if(t < t1) t1 = t;
 					};
@@ -3215,7 +3214,7 @@ int LandSlideMove(int x0,int y0,int Radius,int z0,int delta)
 			if(((*(pf0 + rx)) & DOUBLE_LEVEL) && (rx & 1)){
 				t0 = *(pac = pc0 + rx);
 				if(t0 < z0){
-					xx = rx - 1;					
+					xx = rx - 1;
 					t2 = *(pc0 + xx);
 					t1 = (((GET_DELTA(*(pf0 + xx)) << 2) + GET_DELTA(*(pf0 + rx)) + 1) << DELTA_SHIFT);
 					if(t0 > t2 + t1 + delta){
@@ -3283,7 +3282,7 @@ int LandSlideProcess(int* fx,int* fy,int pow,int z0,int delta)
 	int fv,rv,lv;
 	int n,n_clip;
 	int cnt;
-	
+
 	cnt = 0;
 
 	n = 1 << pow;
@@ -3470,7 +3469,7 @@ void MapCircleProcess(int x0,int y0,int z0,int r0,int mode,uchar terrain)
 	uchar *pc,*pf0,*pf,*ph;
 	int j;
 	uchar** lt = vMap -> lineT;
-	int rx,ry;													     
+	int rx,ry;
 	int* dx,*dy;
 	uchar delta0,delta1;
 	uchar t1;
@@ -3521,10 +3520,10 @@ void MapCircleProcess(int x0,int y0,int z0,int r0,int mode,uchar terrain)
 				*pc = z0 + *pc - *(pf - H_SIZE);
 			};
 		};
-	};	
+	};
 };
 
-int GetLandAlt(int x0,int y0,int Radius)	       
+int GetLandAlt(int x0,int y0,int Radius)
 {
 /*	uchar *pc0,*pf0;
 	int t,i,j,t1;
@@ -3574,7 +3573,7 @@ int GetLandAlt(int x0,int y0,int Radius)
 };
 
 
-void MakeSecondLevel(int x0,int y0,uchar z0,int Radius)	       
+void MakeSecondLevel(int x0,int y0,uchar z0,int Radius)
 {
 	uchar *pf0,*pf1,*pf;
 	uchar** lt;
@@ -3587,7 +3586,7 @@ void MakeSecondLevel(int x0,int y0,uchar z0,int Radius)
 	for(i = -Radius;i < Radius;i++){
 		pf1 = NULL;
 		pf0 = lt[YCYCL(y0 + i)] + H_SIZE;
-		for(j = -Radius;j < Radius;j++){			
+		for(j = -Radius;j < Radius;j++){
 			t = XCYCL(x0 + j);
 			pf = pf0 + t;
 			if(t & 1){
@@ -3632,12 +3631,12 @@ void LandSlideType::CreateLandSlide(int* _xx,int* _yy,int _Time)
 		vCheck = Vector(getDistX(x,cX[i]),getDistY(y,cY[i]),0);
 		a = vCheck.vabs();
 		if(a > Radius) Radius = a;
-	};	
+	};
 	z = GetLandAlt(x,y,Radius);
 	//Time = _Time;
 	Time = 80;
 	Status = 0;
-	ID = ID_MOBILE_LOCATION;	
+	ID = ID_MOBILE_LOCATION;
 	sZ = z << 16;
 	dZ = ((255 << 16) - sZ) / Time;
 };
@@ -3706,18 +3705,18 @@ void LandSlideType::makeLittelNoise(void){
 
 		cY[1] += ((cY[3] - cY[1])>>4);
 		cY[3] += ((cY[1] - cY[3])>>4);
-													 
+
 		LandSlideProcess(cX,cY,2,250,10);
 		RadialRender(x,y,Radius);
 		Time = 0;
 		return;
 	} else if (Time < end_time)return;
 
-	for( i = 0; i < for_one; i++){ 
+	for( i = 0; i < for_one; i++){
 		int rnd1 = RND(259), rnd2 = RND(259);
 		char* mask = Mask_for_crash;
 		int k = RND(4);
-		
+
 		if (Time > firtst_time) {
 			xc = cX[k] + (( ((cX[(k+1)&3] - cX[k])*rnd1) + ((cX[(k-1)&3] - cX[k])*rnd2))>>8);
 			yc = cY[k] + (( ((cY[(k+1)&3] - cY[k])*rnd1) + ((cY[(k-1)&3] - cY[k])*rnd2))>>8);
@@ -3752,7 +3751,7 @@ void LandSlideType::makeLittelNoise(void){
 				//else
 				dastPutSpriteOnMapAlt( XCYCL(xc + (size>>1)), yc + (size>>1), dastResource->data[RND(dastResource->n)], dastResource->x_size, dastResource->y_size, 1<<14);
 				regSet(xc,yc,xc + size -1, yc + size - 1,1,0);
-				regRender(xc,yc,xc + size - 1,yc + size - 1 );				
+				regRender(xc,yc,xc + size - 1,yc + size - 1 );
 			}
 		}//  end if
 	}//  end for i
@@ -3774,7 +3773,7 @@ void MapLandHole::CreateLandHole(Vector v,int rMax,int l1,int l2,int l3)
 	LifeTime = l1;
 	R_curr = v;
 	Status = 0;
-	ID = ID_MOBILE_LOCATION;	
+	ID = ID_MOBILE_LOCATION;
 	cRadius = 0;
 	Mode = 0;
 };
@@ -3815,9 +3814,9 @@ void MapAcidSpot::CreateAcid(Vector v,int fRad,int lRad,int fDelta,int lDelta,in
 
 	Time = lTime;
 	Radius = fRad << 8;
-	dRadius = ((lRad << 8) - Radius) / lTime;	
+	dRadius = ((lRad << 8) - Radius) / lTime;
 	Delta = fDelta << 8;
-	dDelta = ((lDelta << 8) - Delta) / lTime;	
+	dDelta = ((lDelta << 8) - Delta) / lTime;
 };
 
 void MapAcidSpot::Quant(void)
@@ -3837,7 +3836,7 @@ void MapAcidSpot::Quant(void)
 };
 
 int MobileLocation::QuickCheck(void)
-{ 
+{
 	uchar** lt = vMap -> lineT;
 	int j,y;
 	for(j = 0,y = YCYCL(y0 + dy);j < altSy;j++,y = YCYCL(y + 1))
@@ -3846,7 +3845,7 @@ int MobileLocation::QuickCheck(void)
 };
 
 int MobileLocation::NetQuickCheck(int x83,int y83,int r83)
-{ 
+{
 	uchar** lt = vMap -> lineT;
 	int j,y;
 
@@ -3866,9 +3865,9 @@ void LandSlideType::makeFastlNoise(void){
 	int rnd_quant = 4;
 	uchar** lt = vMap -> lineT;
 
-	for( i = 0; i < 4; i++){ 
+	for( i = 0; i < 4; i++){
 		char* mask = Mask_for_crash;
-		
+
 		for( l = 0; l < 16; l++){
 			if (!RND(3)){
 				xc = (l*cX[i] + (16-l)*cX[(i+1)&3])>>4;
@@ -3893,7 +3892,7 @@ void LandSlideType::makeFastlNoise(void){
 		}//  end for l
 	}//  end for i
 
-/*		
+/*
 	dastPutSpriteOnMapAlt( XCYCL(xc + (size>>1)), yc + (size>>1), dastResource->data[RND(dastResource->n)], dastResource->x_size, dastResource->y_size, 1<<14);
    */
 	LandSlideProcess(cX,cY,2,250,10);

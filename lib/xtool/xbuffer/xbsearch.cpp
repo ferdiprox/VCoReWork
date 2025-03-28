@@ -1,108 +1,51 @@
 #include "xglobal.h"
 
-int XBuffer::search(const char* what, int mode, int cs)
+bool XBuffer::subcompare(const std::string& string, unsigned int at, bool considerCase)
 {
-	int i,j;
-	unsigned int wlen = strlen(what) - 1;
-	if(mode == XB_GLOBAL) { i = 0; mode = XB_FORWARD; } else i = offset;
-	if(mode == XB_FORWARD){
-		if(cs == XB_CASEON){
-			while(buf[i]){
-				if(buf[i] == *what){
-					j = wlen;
-					while(buf[i + j] == what[j] && j) j--;
-					if(j <= 0) { offset = i; return 1; };
-					}
-				i++;
-				}
+	for (unsigned int i = 0; i < string.size(); i++)
+	{
+		if (considerCase)
+		{
+			if (buf[i + at] != string[i])
+			{
+				return false;
 			}
-		else {
-			while(buf[i]){
-				if(toupper(buf[i]) == toupper(*what)){
-					j = wlen;
-					while(toupper(buf[i + j]) == toupper(what[j]) && j) j--;
-					if(j <= 0) { offset = i; return 1; };
-					}
-				i++;
-				}
-			}
+
+			continue;
 		}
-	else {
-		i-=wlen + 1;
-		if(cs == XB_CASEON){
-			while(i >= 0){
-				if(buf[i] == *what){
-					j = wlen;
-					while(buf[i + j] == what[j] && j) j--;
-					if(j <= 0) { offset = i; return 1; };
-					}
-				i--;
-				}
-			}
-		else {
-			while(i >= 0){
-				if(toupper(buf[i]) == toupper(*what)){
-					j = wlen;
-					while(toupper(buf[i + j]) == toupper(what[j]) && j) j--;
-					if(j <= 0) { offset = i; return 1; };
-					}
-				i--;
-				}
-			}
+
+		if (toupper(buf[i + at]) != toupper(string[i]))
+		{
+			return false;
 		}
-	return 0;
+	}
+
+	return true;
 }
 
-int XBuffer::search(char* what, int mode, int cs)
+bool XBuffer::search(const std::string& what, unsigned char mode, bool considerCase)
 {
-	int i,j;
-	unsigned int wlen = strlen(what) - 1;
-	if(mode == XB_GLOBAL) { i = 0; mode = XB_FORWARD; } else i = offset;
-	if(mode == XB_FORWARD){
-		if(cs == XB_CASEON){
-			while(buf[i]){
-				if(buf[i] == *what){
-					j = wlen;
-					while(buf[i + j] == what[j] && j) j--;
-					if(j <= 0) { offset = i; return 1; };
-					}
-				i++;
-				}
-			}
-		else {
-			while(buf[i]){
-				if(toupper(buf[i]) == toupper(*what)){
-					j = wlen;
-					while(toupper(buf[i + j]) == toupper(what[j]) && j) j--;
-					if(j <= 0) { offset = i; return 1; };
-					}
-				i++;
-				}
-			}
-		}
-	else {
-		i-=wlen + 1;
-		if(cs == XB_CASEON){
-			while(i >= 0){
-				if(buf[i] == *what){
-					j = wlen;
-					while(buf[i + j] == what[j] && j) j--;
-					if(j <= 0) { offset = i; return 1; };
-					}
-				i--;
-				}
-			}
-		else {
-			while(i >= 0){
-				if(toupper(buf[i]) == toupper(*what)){
-					j = wlen;
-					while(toupper(buf[i + j]) == toupper(what[j]) && j) j--;
-					if(j <= 0) { offset = i; return 1; };
-					}
-				i--;
-				}
-			}
-		}
-	return 0;
-}
+	unsigned int curOffset = offset;
 
+	if(mode == XB_GLOBAL)
+	{
+		mode = XB_FORWARD;
+	}
+
+	bool comparedSuccessfull;
+
+	char offsetStep = mode == XB_BACKWARD ? -1 : 1;
+
+	while(buf[curOffset])
+	{
+		if(subcompare(what, curOffset, considerCase))
+		{
+		    offset = curOffset;
+			return true;
+		}
+
+		curOffset += offsetStep;
+	}
+
+	return false;
+}

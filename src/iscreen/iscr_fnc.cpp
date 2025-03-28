@@ -39,14 +39,8 @@
 #include "../sound/hmusic.h"
 #include "../sound/hsound.h"
 
-
-#ifdef _NT
-#define EXTQUIT_VERIFY	if(XWaitWhileInactive()) ErrH.Exit();
-#else
-#define EXTQUIT_VERIFY
-#endif
-
-//#define CLOCK() 	(SDL_GetTicks())*18/1000)
+#include "../sqfont.h"
+#include "../master_boot_data.h"
 
 /* ----------------------------- EXTERN SECTION ----------------------------- */
 
@@ -79,7 +73,6 @@ extern int aciBreathFlag;
 extern int Dead;
 
 extern int ExclusiveLog,DIBLog;
-extern int actintLowResFlag;
 extern int actintActiveFlag;
 
 extern int iEvLineID;
@@ -96,12 +89,6 @@ extern int iScreenChat;
 extern int iChatON;
 
 extern int IsMainMenu;
-
-extern bool autoconnect;
-extern char *autoconnectHost;
-extern unsigned short  autoconnectPort;
-extern int  autoconnectJoinGame;
-extern int  autoconnectGameID;
 
 /* --------------------------- PROTOTYPE SECTION ---------------------------- */
 
@@ -539,7 +526,7 @@ void iPreInitFirst() {
 		p = (iScreen*)iScrDisp -> get_object(aci_iScreenID);
 		if(!p) ErrH.Abort("Bad aci_iScreenID...");
 		iScrDisp -> curScr = p;
-		if(NetworkON){
+		if(globalGameState.inNetwork){
 			iEscaveTimer = -1;
 			iEndGameFlag = 0;
 		}
@@ -610,7 +597,7 @@ void iQuantFirst(void)
 		p = (iScreen*)iScrDisp -> get_object(aci_iScreenID);
 		if(!p) ErrH.Abort("Bad aci_iScreenID...");
 		iScrDisp -> curScr = p;
-		if(NetworkON){
+		if(globalGameState.inNetwork){
 			iEscaveTimer = -1;
 			iEndGameFlag = 0;
 		}
@@ -619,36 +606,46 @@ void iQuantFirst(void)
 #ifndef _ACI_SKIP_MAINMENU_
 		iEvLineID = 0;
 		iScrDisp -> init_texts();
-		if(iMultiFlag){
+		if(iMultiFlag)
+		{
 			iScrDisp -> curScr = (iScreen*)iScrDisp -> get_object("MultiGame Results screen");
 			iPrepareResults();
 			iMultiFlag = 0;
 			iEndGameFlag = 1;
 		}
-        else if (autoconnect) {
+        else if (mbd::isAutoconnect)
+		{
             iScrDisp->curScr = (iScreen *) iScrDisp->get_object("iSearch server screen");
-            avaible_servers.find_servers_in_the_internet(autoconnectHost, autoconnectPort);
+            avaible_servers.find_servers_in_the_internet(mbd::autoconnectHost.data(), mbd::autoconnectPort);
             if (avaible_servers.size() > 0) {
                 iFirstServerPtr = avaible_servers.first();
-                iCurServer      = 0;
+                iCurServer = 0;
                 iInitServersList();
-                if (autoconnectJoinGame) {
+                if (mbd::isAutoconnectJoinGame)
+				{
                     auto serverPtr = iFirstServerPtr;
-                    int  serverId  = 0;
-                    while (serverPtr) {
-                        if (serverPtr->game_ID == autoconnectGameID) break;     // game match or new game
-                        if (serverPtr->game_ID && autoconnectGameID < 0) break; // first existent game
+                    int serverId = 0;
+
+                    while (serverPtr)
+					{
+                        if (serverPtr->game_ID == mbd::autoconnectGameID) break;     // game match or new game
+                        if (serverPtr->game_ID && mbd::autoconnectGameID < 0) break; // first existent game
                         serverPtr = serverPtr->next;
                         serverId++;
                     }
-                    if (serverPtr) {
+
+                    if (serverPtr)
+					{
                         iScrDisp->curScr = (iScreen *) iScrDisp->get_object("Identification screen");
                         iLoadData();
                         iHandleExtEvent(iEXT_CHOOSE_SERVER, serverId);
                         iHandleExtEvent(iEXT_CONNECT, 0);
-                        if (iEvLineID == 1) {
+                        if (iEvLineID == 1)
+						{
                             iScrDisp->curScr = (iScreen *) iScrDisp->get_object("Failed screen");
-                        } else if (iEvLineID == 2) {
+                        }
+						else if (iEvLineID == 2)
+						{
                             iHandleExtEvent(iEXT_CHECK_SERVER_CONFIG, 0);
                             if (iEvLineID == 3) {
                                 iScrDisp->curScr = (iScreen *) iScrDisp->get_object("Server Info screen");
@@ -747,7 +744,7 @@ int iQuantSecond(void)
 	}
 #endif
 	if(!iPause) {
-		if(actIntLog && NetworkON){
+		if(actIntLog && globalGameState.inNetwork){
 			if(iEscaveTimer == -1)
 				iEscaveTimer = iGetEscaveTime();
 
@@ -840,7 +837,7 @@ int iQuantSecond(void)
 			if(!iPause && actIntLog)
 				uvsQuant();
 
-			if(NetworkON) void_network_quant();
+			if(globalGameState.inNetwork) void_network_quant();
 
 			if(!iPause){
 				iFrameCount ++;
@@ -864,6 +861,7 @@ int iQuantSecond(void)
 					i_postExtQuant();
 					EventFlag = 0;
 				}
+
 				if(iChatON) iChatQuant(1);
 			}
 			return 0;
@@ -1259,9 +1257,6 @@ void i_change_res(void)
 {
 	int emode = ExclusiveLog ? XGR_EXCLUSIVE : 0;
 
-	/*if(actintLowResFlag){
-		if(XGR_ReInit(640,480,emode)) ErrH.Abort("Error video initialization");
-	}*/
 	XGR_Flip();
 	set_mouse();
 }
@@ -2319,7 +2314,7 @@ void iHandleExtEvent(int code,int data)
 			iServersListDown();
 			break;
 		case iEXT_SAVE_GAME:
-			if(actIntLog && !iPause && !NetworkON){
+			if(actIntLog && !iPause && !globalGameState.inNetwork){
 				if(!(aScrDisp -> flags & AS_INV_MOVE_ITEM)){
 					iPause = 1;
 					acsScreenID = aScrDisp -> curLocData -> SaveScreenID;
@@ -2423,7 +2418,7 @@ void iHandleExtEvent(int code,int data)
 			break;
 		case iEXT_DISCONNECT:
 			disconnect_from_server();
-			NetworkON = 0;
+			globalGameState.inNetwork = 0;
 			break;
 		case iEXT_INIT_KEEP_OPTIONS:
 			iInitKeepOptions();
@@ -2467,18 +2462,18 @@ void iPrepareSaveNames(void)
 		XBuf <= i < ".dat";
 
 		XBufStr < "SlotStr" <= i;
-		el = (iStringElement*)scr -> get_object(XBufStr.address());
+		el = (iStringElement*)scr -> get_object(XBufStr.buf);
 
 		XBufStr.init();
 		XBufStr < "SlotStrTime" <= i;
-		el1 = (iStringElement*)scr -> get_object(XBufStr.address());
+		el1 = (iStringElement*)scr -> get_object(XBufStr.buf);
 
 		if(el){
 			obj = (iScreenObject*)el -> owner;
 			if(el1){
 				obj1 = (iScreenObject*)el1 -> owner;
 			}
-			if(fh.open(XBuf.address(),XS_IN)){
+			if(fh.open(XBuf.buf,XS_IN)){
 				fh > len;
 
 				time_len = (len >> 16) & 0xFF;
@@ -2545,7 +2540,7 @@ void iInitServersList()
 	for(i = 0; i < ACI_NUM_SERVERS; i ++){
 		XBuf.init();
 		XBuf < "ServerStr" <= i;
-		el = (iStringElement*)scr -> get_object(XBuf.address());
+		el = (iStringElement*)scr -> get_object(XBuf.buf);
 		if(el){
 			obj = (iScreenObject*)el -> owner;
 			memset(el -> string,0,ACI_SERVER_NAME_LEN + 1);
@@ -2633,7 +2628,7 @@ void iMapShot(void)
 		XBuf < "0";
 
 	XBuf <= iMapShotCount < ".bmp";
-	fh.open(XBuf.address(),XS_OUT);
+	fh.open(XBuf.buf,XS_OUT);
 
 	p = new unsigned char[I_RES_X * I_RES_Y];
 	get_buf(iScreenOffs,0,I_RES_X,I_RES_Y,p);
@@ -2751,7 +2746,7 @@ void iInitKeepOptions(void)
 		sz = GetKeepSpace();
 		iResBuf -> init();
 		*iResBuf < iSTR_SpaceInUse < " " <= sz < " " < iSTR_MBytes;
-		iSetOptionValueCHR(iKEEP_IN_USE,iResBuf -> address());
+		iSetOptionValueCHR(iKEEP_IN_USE,iResBuf -> buf);
 		iSetOptionValueCHR(iKEEP_CLEAN_UP,iSTR_CleanUp);
 		p = (iScreenObject*)iGetObject("Graphics screen","CleanUpObj");
 		if(p) p -> flags &= ~OBJ_LOCKED;
@@ -2961,9 +2956,9 @@ void iShowObjCoords(iScreenObject* p)
 		iResBuf -> init();
 		*iResBuf <= x < "\n" <= y;
 
-		sx = XGR_TextWidth(iResBuf -> address());
-		sy = XGR_TextHeight(iResBuf -> address());
-		XGR_OutText(iMOVED_OBJ_X + (iMOVED_OBJ_SX - sx)/2,iMOVED_OBJ_Y + (iMOVED_OBJ_SY - sy)/2,255,iResBuf -> address());
+		sx = XGR_TextWidth(iResBuf -> buf);
+		sy = XGR_TextHeight(iResBuf -> buf);
+		XGR_OutText(iMOVED_OBJ_X + (iMOVED_OBJ_SX - sx)/2,iMOVED_OBJ_Y + (iMOVED_OBJ_SY - sy)/2,255,iResBuf -> buf);
 	}
 	XGR_Flush(iMOVED_OBJ_X,iMOVED_OBJ_Y,iMOVED_OBJ_SX,iMOVED_OBJ_SY);
 }
@@ -3009,15 +3004,15 @@ void iWriteScreenSummary(void)
 	while(p){
 		iResBuf -> init();
 		*iResBuf < iScrDisp -> curScr -> ID_ptr < "_" < p -> ID_ptr;
-		ptr = iResBuf -> address();
+		ptr = iResBuf -> buf;
 		sz = strlen(ptr);
 		for(i = 0; i < sz; i ++){
 			if(ptr[i] == ' ') ptr[i] = '_';
 		}
 		*iResBuf < "_Pos";
 
-		fh < "#define " < iResBuf -> address() < "X\t" <= p -> nPosX < "\r\n";
-		fh < "#define " < iResBuf -> address() < "Y\t" <= p -> nPosY < "\r\n";
+		fh < "#define " < iResBuf -> buf < "X\t" <= p -> nPosX < "\r\n";
+		fh < "#define " < iResBuf -> buf < "Y\t" <= p -> nPosY < "\r\n";
 
 		p = (iScreenObject*)p -> prev;
 	}
@@ -3127,6 +3122,6 @@ void iGetIP(void)
 	XBuffer XBuf;
 
 	XBuf <= (IP & 0xff) < "." <= ((IP >> 8) & 0xff) < "." <= ((IP >> 16) & 0xff) < "." <= ((IP >> 24) & 0xff);
-	iSetOptionValueCHR(iIP_ADDRESS,XBuf.address());
+	iSetOptionValueCHR(iIP_ADDRESS,XBuf.buf);
 }
 

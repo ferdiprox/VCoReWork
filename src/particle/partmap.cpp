@@ -4,11 +4,7 @@
 
 #include "../common.h"
 
-#ifdef _DEBUG
-#include "../win32f.h"
-#endif
-
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 #include "../backg.h"
 
 #include "../terra/vmap.h"
@@ -20,17 +16,10 @@
 #include "partmap.h"
 #include <string.h>
 
+#include "../random.h"
+
 #undef random
 #define random(a) BogusRND(a)
-
-#ifdef __HIGHC__
-#ifndef EXTERNAL_USE
-#ifndef random
-	#define random(a) ((rand() >> 16)*(a) >> 15)
-#endif
-#endif
-#endif
-
 
 Mask* ParticleMapProcessMaskArray = 0;
 int ParticleMapProcessMaskTotal = 0;

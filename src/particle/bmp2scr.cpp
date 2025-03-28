@@ -2,7 +2,7 @@
 
 #include "../3d/3d_math.h"
 
-#include "../sqexp.h"
+#include "../game_surface_disp.h"
 #include "../backg.h"
 #include "../3d/3dgraph.h"
 
@@ -96,13 +96,13 @@ void bitmap2screenNoTurn(char* vb,unsigned char* data,int Xcenter,int Ycenter,in
 	int X,Y;
 	int x,y;
 	int l,r,lx,rx;
-	turn &= (PIx2 - 1);
+	turn &= (PiX2 - 1);
 #ifdef EXTERNAL_USE
-	sinTurn = SI[turn] >> 1;
-	cosTurn = CO[turn] >> 1;
+	sinTurn = IntSinIntTable[turn] >> 1;
+	cosTurn = IntCosIntTable[turn] >> 1;
 #else
-	sinTurn = SI[turn];
-	cosTurn = CO[turn];
+	sinTurn = IntSinIntTable[turn];
+	cosTurn = IntCosIntTable[turn];
 #endif
 	int Xs2 = XsizeS/2;
 	int Ys2 = YsizeS/2;
@@ -544,7 +544,7 @@ void smart_putspr_f(unsigned char* data,int Xcenter,int Ycenter,int XsizeB,int Y
 	int XsizeS = ScaleXsize;
 	int YsizeS = ScaleXsize*YsizeB/XsizeB;
 	if(DepthShow)
-		YsizeS = round(YsizeS*Cos(SlopeAngle));
+		YsizeS = round(YsizeS*fCos(SlopeAngle));
 	int bKx,bKy;
 	int X = Xcenter - XsizeS/2;
 	int Y = Ycenter - YsizeS/2;

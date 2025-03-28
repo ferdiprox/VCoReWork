@@ -2,6 +2,7 @@
 #define __UNITS__ITEMS_H
 
 #include "../3d/3dgraph.h"
+#include "../actint/item_api.h"
 
 const int ITEM_GUN_DEVICE = 0;
 const int ITEM_CHANGER = 1;
@@ -24,6 +25,10 @@ const int NETWORK_INIT_OBJECT = 0;
 
 struct ActionUnit;
 struct GunDevice;
+struct VangerUnit;
+struct WorldBulletTemplate;
+struct SimpleParticleType;
+struct SensorDataType;
 
 const int NET_OUT_OBJECT = 11083;
 
@@ -38,7 +43,7 @@ struct DebrisObject : Object
 	void Init(void);
 	void Quant(void);
 	void DrawQuant(void);
-	void CreateDebris(int id,int ind);	
+	void CreateDebris(int id,int ind);
 	void vExplosion(Object* parent,int debris_index);
 };
 
@@ -71,7 +76,7 @@ struct StuffObject : Object
 	int Hour,Minutes;
 	int Time;
 	int FindDolly;
-	
+
 
 	void Init(StorageType* s);
 	void Quant(void);
@@ -83,7 +88,7 @@ struct StuffObject : Object
 	virtual void DeviceOut(Vector v1,int flag = 1,Vector v2 = Vector(-1,-1,-1));
 	virtual void Active(void);
 	virtual void Deactive(void);
-	virtual void DeviceQuant(void);	
+	virtual void DeviceQuant(void);
 	virtual void DeviceLoad(Parser& in);
 	virtual void GetDevice(StuffObject* p);
 	void NetEvent(int type,int id,int creator,int x,int y);
@@ -94,23 +99,23 @@ struct StuffObject : Object
 	void ImpulseAction(Vector v1,int flag,Vector v2);
 
 	int CheckItemOver(void){
-		if(ActIntBuffer.type == ACI_PROTRACTOR || 
+		if(ActIntBuffer.type == ACI_PROTRACTOR ||
 		   ActIntBuffer.type == ACI_MECHANIC_MESSIAH ||
-		   ActIntBuffer.type == ACI_FUNCTION83 || 
+		   ActIntBuffer.type == ACI_FUNCTION83 ||
 		   ActIntBuffer.type == ACI_SPUMMY ||
 		   ActIntBuffer.type == ACI_BOOT_SECTOR ||
 		   ActIntBuffer.type == ACI_PEELOT ||
-		   ActIntBuffer.type == ACI_LEEPURINGA || 
-		   ActIntBuffer.type == ACI_SANDOLL_PART1 || 
-		   ActIntBuffer.type == ACI_SANDOLL_PART2 || 
-		   ActIntBuffer.type == ACI_LAST_MOGGY_PART1 || 
+		   ActIntBuffer.type == ACI_LEEPURINGA ||
+		   ActIntBuffer.type == ACI_SANDOLL_PART1 ||
+		   ActIntBuffer.type == ACI_SANDOLL_PART2 ||
+		   ActIntBuffer.type == ACI_LAST_MOGGY_PART1 ||
 		   ActIntBuffer.type == ACI_LAST_MOGGY_PART2 ||
 		   ActIntBuffer.type == ACI_QUEEN_FROG_PART1 ||
-		   ActIntBuffer.type == ACI_QUEEN_FROG_PART2 || 
-		   ActIntBuffer.type == ACI_LAWN_MOWER_PART1 || 
+		   ActIntBuffer.type == ACI_QUEEN_FROG_PART2 ||
+		   ActIntBuffer.type == ACI_LAWN_MOWER_PART1 ||
 		   ActIntBuffer.type == ACI_LAWN_MOWER_PART2 ||
 		   ActIntBuffer.type == ACI_WORMASTER_PART1 ||
-		   ActIntBuffer.type == ACI_WORMASTER_PART2 || 
+		   ActIntBuffer.type == ACI_WORMASTER_PART2 ||
 		   ActIntBuffer.type == ACI_TABUTASK_SUCCESSFUL ||
 		   ActIntBuffer.type == ACI_TABUTASK)
 		   return 0;
@@ -207,7 +212,7 @@ struct BulletControlType
 	int Power,DeltaPower,Speed;
 	int Precision;
 	int Time;
-	int CraterType;	
+	int CraterType;
 	int AltOffset;
 	int BulletScale;
 };
@@ -219,8 +224,8 @@ struct BulletObject : BaseObject , BulletControlType
 	Vector vDelta,vTarget;
 	GeneralObject* TargetObject;
 	int FrameCount;
-	GeneralObject* Owner;	
-	Vector vTail;		
+	GeneralObject* Owner;
+	Vector vTail;
 	LightPoint* LightData;
 	Vector vWallTarget;
 	int DataID;
@@ -318,7 +323,7 @@ struct SkyFarmerObject : Object
 const int DEFAULT_MAX_AMMO = 8;
 
 struct GunDevice : StuffObject
-{	
+{
 	WorldBulletTemplate* pData;
 
 	void CreateGun(void);
@@ -327,7 +332,7 @@ struct GunDevice : StuffObject
 	void GetDevice(StuffObject* p);
 	void DeviceIn(void);
 	void DeviceOut(Vector v1,int flag = 1,Vector v2 = Vector(-1,-1,-1));
-	void Quant(void);	
+	void Quant(void);
 	void DeviceQuant(void);
 };
 
@@ -360,8 +365,8 @@ struct ChangerDevice : StuffObject
 {
 	VangerUnit* PrevOwner;
 
-	void DeviceQuant(void);	
-	void CreateChanger(void){ PrevOwner = NULL; };	
+	void DeviceQuant(void);
+	void CreateChanger(void){ PrevOwner = NULL; };
 	void DeviceOut(Vector v1,int flag = 1,Vector v2 = Vector(-1,-1,-1));
 };
 
@@ -373,7 +378,7 @@ struct GloryPlace final : GeneralObject
 	LightPoint* LightData;
 
 	void Init(int ind);
-	void Quant(void);	
+	void Quant(void);
 	void CloseWorld(void);
 };
 
@@ -383,7 +388,7 @@ extern int GloryPlaceNum;
 extern GloryPlace* GloryPlaceData;
 extern int UsedCheckNum;
 
-struct ItemsDispatcher : UnitList 
+struct ItemsDispatcher : UnitList
 {
 	int NumDeviceType;
 	StuffObject** DeviceTypeData;
@@ -475,9 +480,9 @@ struct SkyFarmerList : UnitBaseListType
 };
 
 struct HordeList : UnitBaseListType
-{	
+{
 	void Init(void);
-	HordeObject* CreateHorde(void);	
+	HordeObject* CreateHorde(void);
 };
 
 struct HordeSourceList : UnitBaseListType
